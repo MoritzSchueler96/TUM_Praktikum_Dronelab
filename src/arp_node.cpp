@@ -155,7 +155,68 @@ int main(int argc, char **argv)
     }
 
     // TODO: process moving commands when in state 3,4, or 7
-  }
+    if(droneStatus==3||droneStatus==4||droneStatus==7) {
+        double forward=0;
+        double left=0;
+        double up=0;
+        double rotateLeft=0;
+        //UP Arrow: move drone forward
+        if (state[SDL_SCANCODE_UP]&&!state[SDL_SCANCODE_DOWN]) {
+            forward+=1;
+            std::cout << "Forward ";
+
+        }
+        //Down Arrow: move drone backwards
+        if (state[SDL_SCANCODE_DOWN]&&!state[SDL_SCANCODE_UP]) {
+            std::cout << "Backwards ";
+            forward-=1;
+        }
+        //Right Arrow: move drone right
+        if (state[SDL_SCANCODE_RIGHT]&&!state[SDL_SCANCODE_LEFT]) {
+            std::cout << "Right ";
+            left-=1;
+        }
+        //Left Arrow: move drone left
+        if (state[SDL_SCANCODE_LEFT]&&!state[SDL_SCANCODE_RIGHT]) {
+            std::cout << "Left ";
+            left+=1;
+        }
+        //'W': move drone Up
+        if (state[SDL_SCANCODE_W]&&!state[SDL_SCANCODE_S]) {
+            std::cout << "Up ";
+            up+=1;
+        }
+        //'S': move drone Down
+        if (state[SDL_SCANCODE_S]&&!state[SDL_SCANCODE_W]) {
+            std::cout << "Down ";
+            up-=1;
+        }
+        //'A': yaw drone left
+        if (state[SDL_SCANCODE_A]&&!state[SDL_SCANCODE_D]) {
+            std::cout << "Rotate Left ";
+            rotateLeft+=1;
+        }
+        //'D': yaw drone right
+        if (state[SDL_SCANCODE_D]&& !state[SDL_SCANCODE_A]) {
+            std::cout << "Rotate Right ";
+            rotateLeft-=1;
+        }
+        if(forward==0&&left==0&&up==0&rotateLeft==0) {
+            std::cout << "Hover ";
+        }
+        //TODO: Batterie State
+        std::cout << "...  status=" << droneStatus;
+        //forward moving instructions to Autopilot class
+        bool success = autopilot.manualMove(forward, left, up, rotateLeft);
+        if (success) {
+            std::cout << " [ OK ]" << std::endl;
+        } else {
+            std::cout << " [FAIL]" << std::endl;
+        }
+
+        }
+    }
+
 
   // make sure to land the drone...
   bool success = autopilot.land();

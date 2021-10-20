@@ -104,6 +104,7 @@ class Autopilot {
   ardrone_autonomy::Navdata lastNavdata_; ///< Store navdata as it comes in asynchronously.
   std::mutex navdataMutex_; ///< We need to lock navdata access due to asynchronous arrival.
   ros::Subscriber subNavdata_; ///< The subscriber for navdata.
+  ros::Publisher pubMove_; ///<publish to cmd_vel
 };
 
 } // namespace arp
