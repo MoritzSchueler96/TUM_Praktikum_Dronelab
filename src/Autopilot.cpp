@@ -44,6 +44,16 @@ Autopilot::DroneStatus Autopilot::droneStatus()
   }
   return DroneStatus(navdata.state);
 }
+// Get the remaining charge of the drone's betterie.
+float Autopilot::droneBattery()
+{
+    ardrone_autonomy::Navdata navdata;
+    {
+        std::lock_guard<std::mutex> l(navdataMutex_);
+        navdata = lastNavdata_;
+    }
+    return (navdata.batteryPercent);
+}
 
 // Request flattrim calibration.
 bool Autopilot::flattrimCalibrate()

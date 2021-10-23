@@ -48,6 +48,10 @@ class Autopilot {
   /// \return The status.
   DroneStatus droneStatus();
 
+  /// \brief Get the remaining charge of the drone’s battery .
+   /// \return The value: 0 means no battery, 100 means full battery.
+  float droneBattery();
+
   /// \brief Set to automatic control mode.
   void setManual();
 

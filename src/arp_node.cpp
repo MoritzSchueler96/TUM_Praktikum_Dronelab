@@ -91,30 +91,15 @@ int main(int argc, char **argv)
       break;
     }
 
-    // render image, if there is a new one available
-    if(subscriber.getLastImage(image)) {
 
-      // TODO: add overlays to the cv::Mat image, e.g. text
-      
-      // https://stackoverflow.com/questions/22702630/converting-cvmat-to-sdl-texture
-      // I'm using SDL_TEXTUREACCESS_STREAMING because it's for a video player, you should
-      // pick whatever suits you most: https://wiki.libsdl.org/SDL_TextureAccess
-      // remember to pick the right SDL_PIXELFORMAT_* !
-      texture = SDL_CreateTexture(
-          renderer, SDL_PIXELFORMAT_BGR24, SDL_TEXTUREACCESS_STREAMING, image.cols, image.rows);
-      SDL_UpdateTexture(texture, NULL, (void*)image.data, image.step1());
-      SDL_RenderClear(renderer);
-      SDL_RenderCopy(renderer, texture, NULL, NULL);
-      SDL_RenderPresent(renderer);
-      // cleanup (only after you're done displaying. you can repeatedly call UpdateTexture without destroying it)
-      SDL_DestroyTexture(texture);
-    }
 
     //Multiple Key Capture Begins
     const Uint8 *state = SDL_GetKeyboardState(NULL);
 
     // check states!
     auto droneStatus = autopilot.droneStatus();
+
+    auto droneBattery=autopilot.droneBattery();
     // command
     if (state[SDL_SCANCODE_ESCAPE]) {
       std::cout << "ESTOP PRESSED, SHUTTING OFF ALL MOTORS status=" << droneStatus;
@@ -204,8 +189,8 @@ int main(int argc, char **argv)
         if(forward==0&&left==0&&up==0&rotateLeft==0) {
             std::cout << "Hover ";
         }
-        //TODO: Batterie State
         std::cout << "...  status=" << droneStatus;
+        std::cout << "...  battery=" << droneBattery;
         //forward moving instructions to Autopilot class
         bool success = autopilot.manualMove(forward, left, up, rotateLeft);
         if (success) {
@@ -215,6 +200,37 @@ int main(int argc, char **argv)
         }
 
         }
+
+      // render image, if there is a new one available
+      if(subscriber.getLastImage(image)) {
+
+          // TODO: add overlays to the cv::Mat image, e.g. text
+          //generate Text for drone state and add it to picture
+          cv::Size image_size= image.size();
+          std::string display="state: "+std::to_string(droneStatus);
+          cv::putText(image, display, cv::Point(10, 25), cv::FONT_HERSHEY_SIMPLEX,1, cv::Scalar(0,255,0), 2, false); //putText( image, text, org, font, fontScale, color, thickness, lineType, bottomLeftOrigin)
+          //creates text of Batterie charge in 0.1% and add it to picture
+          std::stringstream stream;
+          stream<< std::fixed<<std::setprecision(1)<<droneBattery <<"%";
+          auto color= cv::Scalar(0, 255,0);
+          if(droneBattery<10){
+              color= cv::Scalar(255,0,0);
+          }
+          cv::putText(image, stream.str(), cv::Point(image_size.width-100, 25), cv::FONT_HERSHEY_SIMPLEX,1, color, 2, false);
+
+          // https://stackoverflow.com/questions/22702630/converting-cvmat-to-sdl-texture
+          // I'm using SDL_TEXTUREACCESS_STREAMING because it's for a video player, you should
+          // pick whatever suits you most: https://wiki.libsdl.org/SDL_TextureAccess
+          // remember to pick the right SDL_PIXELFORMAT_* !
+          texture = SDL_CreateTexture(
+                  renderer, SDL_PIXELFORMAT_BGR24, SDL_TEXTUREACCESS_STREAMING, image.cols, image.rows);
+          SDL_UpdateTexture(texture, NULL, (void*)image.data, image.step1());
+          SDL_RenderClear(renderer);
+          SDL_RenderCopy(renderer, texture, NULL, NULL);
+          SDL_RenderPresent(renderer);
+          // cleanup (only after you're done displaying. you can repeatedly call UpdateTexture without destroying it)
+          SDL_DestroyTexture(texture);
+      }
     }
 
 
