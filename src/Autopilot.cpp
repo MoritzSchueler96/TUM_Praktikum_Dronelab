@@ -116,6 +116,10 @@ bool Autopilot::move(double forward, double left, double up, double rotateLeft)
 {
   // TODO: implement...
     geometry_msgs::Twist moveMsg;
+    if (abs(forward)>1||abs(left)>1||abs(up)>1||abs(rotateLeft)>1)
+    {
+        return false;
+    }
     moveMsg.linear.x=forward;
     moveMsg.linear.y=left;
     moveMsg.linear.z=up;

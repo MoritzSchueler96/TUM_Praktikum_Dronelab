@@ -17,6 +17,8 @@
 #include <std_srvs/Empty.h>
 
 #include <arp/Autopilot.hpp>
+#define image_width 1920
+#define image_height 960
 
 class Subscriber
 {
@@ -72,7 +74,7 @@ int main(int argc, char **argv)
   SDL_Event event;
   SDL_Init(SDL_INIT_VIDEO);
   SDL_Window * window = SDL_CreateWindow("Hello AR Drone", SDL_WINDOWPOS_UNDEFINED,
-                                         SDL_WINDOWPOS_UNDEFINED, 640, 360, 0);
+                                         SDL_WINDOWPOS_UNDEFINED, image_width, image_height, 0);
   SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, 0);
   SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
   SDL_RenderClear(renderer);
@@ -139,9 +141,11 @@ int main(int argc, char **argv)
           // I'm using SDL_TEXTUREACCESS_STREAMING because it's for a video player, you should
           // pick whatever suits you most: https://wiki.libsdl.org/SDL_TextureAccess
           // remember to pick the right SDL_PIXELFORMAT_* !
+          cv::Mat dst;
+          cv::resize(image, dst,cv::Size(image_width, image_height), CV_INTER_CUBIC);
           texture = SDL_CreateTexture(
-                  renderer, SDL_PIXELFORMAT_BGR24, SDL_TEXTUREACCESS_STREAMING, image.cols, image.rows);
-          SDL_UpdateTexture(texture, NULL, (void*)image.data, image.step1());
+                  renderer, SDL_PIXELFORMAT_BGR24, SDL_TEXTUREACCESS_STREAMING, dst.cols, dst.rows);
+          SDL_UpdateTexture(texture, NULL, (void*)dst.data, dst.step1());
           SDL_RenderClear(renderer);
           SDL_RenderCopy(renderer, texture, NULL, NULL);
           SDL_RenderPresent(renderer);
