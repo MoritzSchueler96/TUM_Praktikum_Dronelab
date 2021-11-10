@@ -44,7 +44,7 @@ namespace arp {
 namespace cameras {
 
 // Check if the keypoint is in the image.
-bool CameraBase::isInImage(const Eigen::Vector2d& imagePoint) const
+bool CameraBase::isInImage(const Eigen::Vector2d & imagePoint) const
 {
   if (imagePoint[0] < -0.5 || imagePoint[1] < -0.5) {
     return false;

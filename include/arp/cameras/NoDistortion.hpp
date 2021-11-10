@@ -113,6 +113,7 @@ class NoDistortion : public DistortionBase
                          Eigen::Vector2d * pointUndistorted) const 
   {
     *pointUndistorted = pointDistorted;
+    return true;
   }
   /// @}
 };

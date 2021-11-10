@@ -170,15 +170,11 @@ ProjectionStatus PinholeCamera<DISTORTION_T>::project(
   // (    )= (      )*(x_2)
   //  y_2     0 1 0    x_3
   Eigen::Vector2d calc_point, distpoint;
-  Eigen::Matrix3d h;
-  h<<1 0 0,
-      0 1 0; 
-  calc_point=1/point[3]*h*point;
-  if distortion_.distort(&calc_point, &distpoint)
+  calc_point<<1/point[2]*point[0], 1/point[2]*point[1];
+  if (distortion_.distort(calc_point, &distpoint))
   {
-    imagePoint[0]=fu_*distpoint[0]+cu_;
-    imagePoint[1]=fv_*distpoint[1]+cv_;
-    if isInImage(imagePoint)
+    *imagePoint<<fu_*distpoint[0]+cu_, fv_*distpoint[1]+cv_;
+    if (isInImage(*imagePoint))
     {
       return ProjectionStatus::Successful;
     }
@@ -204,26 +200,25 @@ ProjectionStatus PinholeCamera<DISTORTION_T>::project(
   Eigen::Vector2d calc_point, distpoint;
   Eigen::Matrix<double,2,2> U, D;
   Eigen::Matrix<double,2,3> P;
-  Eigen::Matrix<int, 2,3> h;
-  h<<1 0 0,
-      0 1 0;
+  
   //Project Point to unit plane 
-  calc_point=1/point[3]*h*point;
+  calc_point<<1/point[2]*point[0], 1/point[2]*point[1];
   //calculate Jacobian of projection
-  P<<1/point[3], 0, -point[1]/pow(point[3],2),
-  0,1/point[3], -point[2]/pow(point[3],2);
+  P<<1/point[2], 0, -point[0]/pow(point[2],2),
+  0,1/point[2], -point[1]/pow(point[2],2);
   //distort point and get Disytortion Jacobian
-  if distortion_.distort(&calc_point, &distpoint, &D)
+  if (distortion_.distort(calc_point, &distpoint, &D))
   {
     //Scale Point on image plane
-    imagePoint[0]=fu_*distpoint[0]+cu_;
-    imagePoint[1]=fv_*distpoint[1]+cv_;
+    *imagePoint<<fu_*int(distpoint[0])+cu_, fv_*int(distpoint[1])+cv_;
     //calculate Jacobian of scaling
     U<<fu_, 0,
         0, fv_;
     //calculate global Jacobian, chain rule
-    pointJacobian=U*D*P;
-    if isInImage(imagePoint)
+    Eigen::Matrix<double,2,2> temp=U*D;
+
+    *pointJacobian<<temp*P;
+    if (isInImage(*imagePoint))
     {
       return ProjectionStatus::Successful;
     }
@@ -246,26 +241,18 @@ bool PinholeCamera<DISTORTION_T>::backProject(
   // TODO: implement
   Eigen::Vector2d calc_point, distpoint;
   Eigen::Matrix3d h;
-  if !(isInImage(imagePoint))
+  
+  calc_point<< one_over_fu_*(imagePoint[0]-cu_), one_over_fv_*(imagePoint[1]-cv_);
+  if (distortion_.undistort(calc_point, &distpoint))
   {
-    return ProjectionStatus::OutsideImage;
+    *direction<<distpoint(0),distpoint(1),1;    
+    return true;
+
   }
-  calc_point[0]=one_over_fu_*(imagePoint[0]-cu_);
-  calc_point[1]=one_over_fv_*(imagePoint[1]-cv_);
-  if distortion_.undistort(&calc_point, &distpoint)
-  {
-    direction=(distpoint,1);
-    if isInImage(imagePoint)
-    {
-      return ProjectionStatus::Successful;
-    }
-    else
-    {
-      return ProjectionStatus::OutsideImage;
-    }
-  throw std::runtime_error("not implemented");
-  return success;
+  //throw std::runtime_error("not implemented");
+  return false;
 }
+
 
 
 }  // namespace cameras
