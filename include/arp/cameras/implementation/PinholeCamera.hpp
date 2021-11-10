@@ -166,7 +166,29 @@ ProjectionStatus PinholeCamera<DISTORTION_T>::project(
     const Eigen::Vector3d & point, Eigen::Vector2d * imagePoint) const
 {
   // TODO: implement
-  throw std::runtime_error("not implemented");
+  //  y_1     1 0 0    x_1
+  // (    )= (      )*(x_2)
+  //  y_2     0 1 0    x_3
+  Eigen::Vector2d calc_point, distpoint;
+  Eigen::Matrix3d h;
+  h<<1 0 0,
+      0 1 0; 
+  calc_point=1/point[3]*h*point;
+  if distortion_.distort(&calc_point, &distpoint)
+  {
+    imagePoint[0]=fu_*distpoint[0]+cu_;
+    imagePoint[1]=fv_*distpoint[1]+cv_;
+    if isInImage(imagePoint)
+    {
+      return ProjectionStatus::Successful;
+    }
+    else
+    {
+      return ProjectionStatus::OutsideImage;
+    }
+  }
+  
+  //throw std::runtime_error("not implemented");
   return ProjectionStatus::Invalid;
 }
 

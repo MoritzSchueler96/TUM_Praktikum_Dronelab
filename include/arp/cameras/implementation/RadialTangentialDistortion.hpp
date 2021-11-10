@@ -70,8 +70,13 @@ bool RadialTangentialDistortion::distort(
     Eigen::Vector2d * pointDistorted) const
 {
   // TODO: implement
-  throw std::runtime_error("not implemented");
-  return false;
+  double r= pointUndistorted.norm();
+  double fact= 1+ k1_*r+k2_*r*r;
+  pointDistorted[0]=fact*pointUndistorted[0]+2*p1_*pointUndistorted[0]*pointUndistorted[1]+p2_*(r+2*pointUndistorted[0]*pointUndistorted[0]);
+  pointDistorted[1]=fact*pointUndistorted[1]+2*p2_*pointUndistorted[0]*pointUndistorted[1]+p1_*(r+2*pointUndistorted[1]*pointUndistorted[1]);
+  
+  //throw std::runtime_error("not implemented");
+  return true;
 
 }
 bool RadialTangentialDistortion::distort(
