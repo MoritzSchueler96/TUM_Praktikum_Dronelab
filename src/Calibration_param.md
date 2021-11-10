@@ -1,8 +1,12 @@
+## Install Calibration Toolchain
 sudo apt-get install python3-rosdep
+sudo rosdep init
+rosdep update
 rosdep install camera_calibration
 sudo nano /opt/ros/noetic/lib/camera_calibration/cameracalibrator.py
-    change to python3
+    Change first line from: "!/usr/bin/python" to "!/usr/bin/python3"
 
+## Run calibration
 start terminal
 roscore
 start terminal 
@@ -13,7 +17,7 @@ rosrun camera_calibration cameracalibrator.py --size 5x5 --square 0.16 \
 --no-service-check image:=/ardrone/front/image_raw \
 camera:=/ardrone/front
 
-
+## Calibration Results
 camera matrix
 582.047949 0.000000 316.339374
 0.000000 579.300111 205.835304
