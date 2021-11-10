@@ -70,10 +70,10 @@ bool RadialTangentialDistortion::distort(
     Eigen::Vector2d * pointDistorted) const
 {
   // TODO: implement
-  double r= pointUndistorted.norm();
-  double fact= 1+ k1_*r+k2_*r*r;
-  pointDistorted[0]=fact*pointUndistorted[0]+2*p1_*pointUndistorted[0]*pointUndistorted[1]+p2_*(r+2*pointUndistorted[0]*pointUndistorted[0]);
-  pointDistorted[1]=fact*pointUndistorted[1]+2*p2_*pointUndistorted[0]*pointUndistorted[1]+p1_*(r+2*pointUndistorted[1]*pointUndistorted[1]);
+  double r_squared = pointUndistorted.dot(pointUndistorted);
+  double fact = 1 + k1_ * r_squared + k2_ * pow(r_squared, 2);
+  pointDistorted[0] = fact * pointUndistorted[0] + 2*p1_ * pointUndistorted[0] * pointUndistorted[1] + p2_ * (r_squared + 2*pow(pointUndistorted[0], 2));
+  pointDistorted[1] = fact * pointUndistorted[1] + 2*p2_ * pointUndistorted[0] * pointUndistorted[1] + p1_ * (r_squared + 2*pow(pointUndistorted[1], 2));
   
   //throw std::runtime_error("not implemented");
   return true;
@@ -84,7 +84,22 @@ bool RadialTangentialDistortion::distort(
     Eigen::Matrix2d * pointJacobian) const
 {
   // TODO: implement
-  throw std::runtime_error("not implemented");
+  // call distort function to get Distorted Point
+  self::distort(pointUndistorted, pointDistorted)
+  // get coordinates of point
+  double x1 = pointUndistorted[0]
+  double x2 = pointUndistorted[1]
+  // 
+  double r_squared = pointUndistorted.dot(pointUndistorted);
+  double fact = 1 + k1_ * r_squared + k2_ * pow(r_squared, 2);
+  double dfact = (2*k1_ + 4*k2_ * r_squared)
+  // Calculate Jacobian
+  pointJacobian[0][0] = fact + pow(x1, 2) * dfact + 2*p1_ * x2 + 6*p2_ * x1
+  pointJacobian[0][1] = x1 * x2 * dfact + 2*p1_ * x1 + 2*p2_ * x2
+  pointJacobian[1][0] = pointJacobian[0][1]
+  pointJacobian[1][1] = fact + pow(x2, 2) * dfact + 2*p2_ * x1 + 6*p1_ * x2
+
+  // throw std::runtime_error("not implemented");
   return false;
 }
 
