@@ -99,8 +99,7 @@ bool RadialTangentialDistortion::distort(
   pointJacobian[1][0] = pointJacobian[0][1]
   pointJacobian[1][1] = fact + pow(x2, 2) * dfact + 2*p2_ * x1 + 6*p1_ * x2
 
-  // throw std::runtime_error("not implemented");
-  return false;
+  return true;
 }
 
 bool RadialTangentialDistortion::undistort(

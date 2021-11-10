@@ -199,7 +199,39 @@ ProjectionStatus PinholeCamera<DISTORTION_T>::project(
     Eigen::Matrix<double, 2, 3> * pointJacobian) const
 {
   // TODO: implement in practical No. 3
-  throw std::runtime_error("not implemented");
+  //throw std::runtime_error("not implemented");
+
+  Eigen::Vector2d calc_point, distpoint;
+  Eigen::Matrix<double,2,2> U, D;
+  Eigen::Matrix<double,2,3> P;
+  Eigen::Matrix<int, 2,3> h;
+  h<<1 0 0,
+      0 1 0;
+  //Project Point to unit plane 
+  calc_point=1/point[3]*h*point;
+  //calculate Jacobian of projection
+  P<<1/point[3], 0, -point[1]/pow(point[3],2),
+  0,1/point[3], -point[2]/pow(point[3],2);
+  //distort point and get Disytortion Jacobian
+  if distortion_.distort(&calc_point, &distpoint, &D)
+  {
+    //Scale Point on image plane
+    imagePoint[0]=fu_*distpoint[0]+cu_;
+    imagePoint[1]=fv_*distpoint[1]+cv_;
+    //calculate Jacobian of scaling
+    U<<fu_, 0,
+        0, fv_;
+    //calculate global Jacobian, chain rule
+    pointJacobian=U*D*P;
+    if isInImage(imagePoint)
+    {
+      return ProjectionStatus::Successful;
+    }
+    else
+    {
+      return ProjectionStatus::OutsideImage;
+    }
+  }
   return ProjectionStatus::Invalid;
 }
 
@@ -212,6 +244,25 @@ bool PinholeCamera<DISTORTION_T>::backProject(
     const Eigen::Vector2d & imagePoint, Eigen::Vector3d * direction) const
 {
   // TODO: implement
+  Eigen::Vector2d calc_point, distpoint;
+  Eigen::Matrix3d h;
+  if !(isInImage(imagePoint))
+  {
+    return ProjectionStatus::OutsideImage;
+  }
+  calc_point[0]=one_over_fu_*(imagePoint[0]-cu_);
+  calc_point[1]=one_over_fv_*(imagePoint[1]-cv_);
+  if distortion_.undistort(&calc_point, &distpoint)
+  {
+    direction=(distpoint,1);
+    if isInImage(imagePoint)
+    {
+      return ProjectionStatus::Successful;
+    }
+    else
+    {
+      return ProjectionStatus::OutsideImage;
+    }
   throw std::runtime_error("not implemented");
   return success;
 }
