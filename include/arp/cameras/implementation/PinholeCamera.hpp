@@ -166,14 +166,17 @@ ProjectionStatus PinholeCamera<DISTORTION_T>::project(
     const Eigen::Vector3d & point, Eigen::Vector2d * imagePoint) const
 {
   // TODO: implement
-  //  y_1     1 0 0    x_1
-  // (    )= (      )*(x_2)
-  //  y_2     0 1 0    x_3
+ if(point[2]==0)
+  {
+    return ProjectionStatus::Invalid;
+  }
   Eigen::Vector2d calc_point, distpoint;
   calc_point<<1/point[2]*point[0], 1/point[2]*point[1];
   if (distortion_.distort(calc_point, &distpoint))
   {
     *imagePoint<<fu_*distpoint[0]+cu_, fv_*distpoint[1]+cv_;
+    //std::cout<<"fu"<<fu_<<"cu"<<cu_<<"fv"<<fv_<<"cv"<<cv_<<"\n";
+
     if (isInImage(*imagePoint))
     {
       return ProjectionStatus::Successful;
@@ -200,7 +203,10 @@ ProjectionStatus PinholeCamera<DISTORTION_T>::project(
   Eigen::Vector2d calc_point, distpoint;
   Eigen::Matrix<double,2,2> U, D;
   Eigen::Matrix<double,2,3> P;
-  
+  if(point[2]==0)
+  {
+    return ProjectionStatus::Invalid;
+  }
   //Project Point to unit plane 
   calc_point<<1/point[2]*point[0], 1/point[2]*point[1];
   //calculate Jacobian of projection
