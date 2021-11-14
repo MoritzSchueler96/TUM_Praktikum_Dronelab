@@ -34,13 +34,13 @@
   <!-- Launch estimator / control arp_node. -->
   <node name="arp_node" pkg="ardrone_practicals" type="arp_node" output="screen">
     <!-- Camera parameters-->
-    <param name="fu" value="0" />
-    <param name="fv" value="0" />
-    <param name="cu" value="0" />
-    <param name="cv" value="0" />
-    <param name="k1" value="0" />
-    <param name="k2" value="0" />
-    <param name="p1" value="0" />
-    <param name="p2" value="0" />
+    <param name="fu" value="582.047949" />
+    <param name="fv" value="579.300111" />
+    <param name="cu" value="316.339374" />
+    <param name="cv" value="205.835304" />
+    <param name="k1" value="-0.562099" />
+    <param name="k2" value="0.358005" />
+    <param name="p1" value="-0.011755" />
+    <param name="p2" value="-0.001345" />
   </node>
 </launch>
