@@ -251,7 +251,7 @@ bool PinholeCamera<DISTORTION_T>::backProject(
   calc_point<< one_over_fu_*(imagePoint[0]-cu_), one_over_fv_*(imagePoint[1]-cv_);
   if (distortion_.undistort(calc_point, &distpoint))
   {
-    *direction<<distpoint(0),distpoint(1),1;    
+    *direction<<distpoint[0],distpoint[1],1;    
     return true;
 
   }
