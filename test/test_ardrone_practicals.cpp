@@ -60,8 +60,18 @@ TEST(PinholeCamera, OutofImage)
   Eigen::Vector2d imagePoint;
   // project
   auto test= pinholeCamera.project(point_D,&imagePoint);
-  // now they should align:
   EXPECT_TRUE(test==arp::cameras::ProjectionStatus::OutsideImage);
+}
+TEST(PinholeCamera, InsideImage)
+{
+  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> pinholeCamera = 
+      arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion>::testObject();
+  auto point_D = pinholeCamera.createRandomVisiblePoint();
+  Eigen::Vector2d imagePoint;
+  // project
+  auto test= pinholeCamera.project(point_D,&imagePoint);
+  // now they should align:
+  EXPECT_TRUE(test==arp::cameras::ProjectionStatus::Successful);
 }
 TEST(PinholeCamera, ZeroDepth)
 {
@@ -72,6 +82,49 @@ TEST(PinholeCamera, ZeroDepth)
   Eigen::Vector2d imagePoint;
   // project
   auto test= pinholeCamera.project(point_D,&imagePoint);
+  EXPECT_TRUE(test==arp::cameras::ProjectionStatus::Behind);
+}
+TEST(PinholeCamera, BehindCamera)
+{
+  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> pinholeCamera = 
+      arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion>::testObject();
+  auto point_D = pinholeCamera.createRandomVisiblePoint();
+  point_D[2]=-10;
+  Eigen::Vector2d imagePoint;
+  // project
+  auto test= pinholeCamera.project(point_D,&imagePoint);
+  EXPECT_TRUE(test==arp::cameras::ProjectionStatus::Behind);
+}
+TEST(PinholeCamera, InvalidImagePointProject)
+{
+  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> pinholeCamera = 
+      arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion>::testObject();
+  // Eigen::Vector3d *point_D = NULL;
+  auto point_D = pinholeCamera.createRandomVisiblePoint();
+  Eigen::Vector2d *imagePoint = NULL;
+  // project
+  auto test= pinholeCamera.project(point_D, imagePoint);
+  EXPECT_TRUE(test==arp::cameras::ProjectionStatus::Invalid);
+}
+TEST(PinholeCamera, InvalidDirectionBackProject)
+{
+  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> pinholeCamera = 
+      arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion>::testObject();
+  Eigen::Vector2d imagePoint;
+  Eigen::Vector3d *direction = NULL;
+  // back project
+  auto test= pinholeCamera.backProject(imagePoint, direction);
+  EXPECT_TRUE(test==false);
+}
+TEST(PinholeCamera, InvalidJacobian)
+{
+  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> pinholeCamera = 
+      arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion>::testObject();
+  auto point_D = pinholeCamera.createRandomVisiblePoint();
+  Eigen::Vector2d imagePoint;
+  Eigen::Matrix<double, 2, 3> *pointJacobian = NULL;
+  // project
+  auto test= pinholeCamera.project(point_D,&imagePoint, pointJacobian);
   // now they should align:
   EXPECT_TRUE(test==arp::cameras::ProjectionStatus::Invalid);
 }
