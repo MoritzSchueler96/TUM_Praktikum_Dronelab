@@ -17,6 +17,9 @@
 #include <std_srvs/Empty.h>
 
 #include <arp/Autopilot.hpp>
+#include <arp/cameras/PinholeCamera.hpp>
+#include "arp/cameras/RadialTangentialDistortion.hpp"
+
 #define IMAGE_WIDTH 1920
 #define IMAGE_HEIGHT 960
 #define FONT_SCALING 1.5
@@ -83,6 +86,90 @@ int main(int argc, char **argv)
   SDL_RenderPresent(renderer);
   SDL_Texture * texture;
 
+  // read camera calibration parameters
+  double fu;
+  double fv;
+  double cu;
+  double cv;
+  double k1;
+  double k2;
+  double p1;
+  double p2;
+
+  std::cout << "" << std::endl;
+  std::cout << "Read camera parameters..." << std::endl;
+  bool suc = nh.getParam("/arp_node/fu", fu);
+  std::cout << "Read parameter fu...    value=" << fu;
+  if(suc) {
+    std::cout << " [ OK ]" << std::endl;
+  } else {
+    std::cout << " [FAIL]" << std::endl;
+  }
+  suc = nh.getParam("/arp_node/fv", fv);
+  std::cout << "Read parameter fv...    value=" << fv;
+  if(suc) {
+    std::cout << " [ OK ]" << std::endl;
+  } else {
+    std::cout << " [FAIL]" << std::endl;
+  }
+  suc = nh.getParam("/arp_node/cu", cu);
+  std::cout << "Read parameter cu...    value=" << cu;
+  if(suc) {
+    std::cout << "   [ OK ]" << std::endl;
+  } else {
+    std::cout << "   [FAIL]" << std::endl;
+  }
+  suc = nh.getParam("/arp_node/cv", cv);
+  std::cout << "Read parameter cv...    value=" << cv;
+  if(suc) {
+    std::cout << "     [ OK ]" << std::endl;
+  } else {
+    std::cout << "     [FAIL]" << std::endl;
+  }
+  suc = nh.getParam("/arp_node/k1", k1);
+  std::cout << "Read parameter k1...    value=" << k1;
+  if(suc) {
+    std::cout << "       [ OK ]" << std::endl;
+  } else {
+    std::cout << "       [FAIL]" << std::endl;
+  }
+  suc = nh.getParam("/arp_node/k2", k2);
+  std::cout << "Read parameter k2...    value=" << k2;
+  if(suc) {
+    std::cout << "       [ OK ]" << std::endl;
+  } else {
+    std::cout << "       [FAIL]" << std::endl;
+  }
+  suc = nh.getParam("/arp_node/p1", p1);
+  std::cout << "Read parameter p1...    value=" << p1;
+  if(suc) {
+    std::cout << "       [ OK ]" << std::endl;
+  } else {
+    std::cout << "       [FAIL]" << std::endl;
+  }
+  suc = nh.getParam("/arp_node/p2", p2);
+  std::cout << "Read parameter p2...    value=" << p2;
+  if(suc) {
+    std::cout << "       [ OK ]" << std::endl;
+  } else {
+    std::cout << "       [FAIL]" << std::endl;
+  }
+
+  // setup camera model
+  const arp::cameras::RadialTangentialDistortion distortion(k1, k2, p1, p2);
+  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> phcam(IMAGE_WIDTH, IMAGE_HEIGHT, fu, fv, cu, cv, distortion);
+  suc = phcam.initialiseUndistortMaps(IMAGE_WIDTH, IMAGE_HEIGHT, fu, fv, cu, cv);
+  std::cout << "Initialize undistort maps...";
+  if(suc) {
+    std::cout << "          [ OK ]" << std::endl;
+  } else {
+    std::cout << "          [FAIL]" << std::endl;
+  }
+  std::cout << "" << std::endl;
+
+  // deactivate camera model by default
+  bool cameraModelApplied = false; 
+  
   // enter main event loop
   std::cout << "===== Hello AR Drone ====" << std::endl;
   cv::Mat image;
@@ -115,6 +202,13 @@ int main(int argc, char **argv)
           cv::Size image_size= image.size();
           std::string display="state: "+std::to_string(droneStatus);
           cv::putText(image, display, cv::Point(10*FONT_SCALING, 50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING*2, FONT_COLOR, 2, false); //putText( image, text, org, font, fontScale, color, thickness, lineType, bottomLeftOrigin)
+          // create text to show whether camera model is applied or not
+          if(cameraModelApplied){
+              cv::putText(image, "P: Camera Model (On)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              phcam.undistortImage(image, image);
+          } else {
+              cv::putText(image, "P: Camera Model (Off)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+          }
           //creates text of Batterie charge in 0.1% and add it to picture
           std::stringstream stream;
           stream<< std::fixed<<std::setprecision(1)<<droneBattery <<"%";
@@ -134,7 +228,7 @@ int main(int argc, char **argv)
 
           }
           else if(droneStatus==2){
-              cv::putText(image, "T: Taking off; ESC: Stop", cv::Point(image_size.width/2-200*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "T: Taking off; ESC: Stop", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
           }
           else
           {
@@ -194,6 +288,13 @@ int main(int argc, char **argv)
       }
     }
 
+    // Press P to toggle application of camera model
+    if (state[SDL_SCANCODE_P]) {
+      std:sleep(1);
+      cameraModelApplied = cameraModelApplied ^ 1;
+      std::cout << "Toggle Camera Model...  status=" << cameraModelApplied << std::endl;
+    }
+
     // TODO: process moving commands when in state 3,4, or 7
     if(droneStatus==3||droneStatus==4||droneStatus==7) {
         double forward=0;
@@ -203,49 +304,50 @@ int main(int argc, char **argv)
         //UP Arrow: move drone forward
         if (state[SDL_SCANCODE_UP]&&!state[SDL_SCANCODE_DOWN]) {
             forward+=1;
-            std::cout << "Forward ";
+            std::cout << "Forward ...     ";
 
         }
         //Down Arrow: move drone backwards
         if (state[SDL_SCANCODE_DOWN]&&!state[SDL_SCANCODE_UP]) {
-            std::cout << "Backwards ";
+            std::cout << "Backwards ...   ";
             forward-=1;
         }
         //Right Arrow: move drone right
         if (state[SDL_SCANCODE_RIGHT]&&!state[SDL_SCANCODE_LEFT]) {
-            std::cout << "Right ";
+            std::cout << "Right ...       ";
             left-=1;
         }
         //Left Arrow: move drone left
         if (state[SDL_SCANCODE_LEFT]&&!state[SDL_SCANCODE_RIGHT]) {
-            std::cout << "Left ";
+            std::cout << "Left ...        ";
             left+=1;
         }
         //'W': move drone Up
         if (state[SDL_SCANCODE_W]&&!state[SDL_SCANCODE_S]) {
-            std::cout << "Up ";
+            std::cout << "Up ...          ";
             up+=1;
         }
         //'S': move drone Down
         if (state[SDL_SCANCODE_S]&&!state[SDL_SCANCODE_W]) {
-            std::cout << "Down ";
+            std::cout << "Down ...        ";
             up-=1;
         }
         //'A': yaw drone left
         if (state[SDL_SCANCODE_A]&&!state[SDL_SCANCODE_D]) {
-            std::cout << "Rotate Left ";
+            std::cout << "Rotate Left ... ";
             rotateLeft+=1;
         }
         //'D': yaw drone right
         if (state[SDL_SCANCODE_D]&& !state[SDL_SCANCODE_A]) {
-            std::cout << "Rotate Right ";
+            std::cout << "Rotate Right ...";
             rotateLeft-=1;
         }
         if(forward==0&&left==0&&up==0&rotateLeft==0) {
-            std::cout << "Hover ";
+            std::cout << "Hover ...       ";
         }
-        std::cout << "...  status=" << droneStatus;
-        std::cout << "...  battery=" << droneBattery;
+        std::cout << std::setprecision(2) << std::fixed;
+        std::cout << "     status=" << droneStatus;
+        std::cout << "...             battery=" << droneBattery;
         //forward moving instructions to Autopilot class
         bool success = autopilot.manualMove(forward, left, up, rotateLeft);
         if (success) {
