@@ -70,40 +70,50 @@ bool RadialTangentialDistortion::distort(
     Eigen::Vector2d * pointDistorted) const
 {
   // TODO: implement
-  double r_squared = pointUndistorted.dot(pointUndistorted);
-  double fact = 1 + k1_ * r_squared + k2_ * pow(r_squared, 2);
-  *pointDistorted<< fact * pointUndistorted[0] + 2*p1_ * pointUndistorted[0] * pointUndistorted[1] + 
-          p2_ * (r_squared + 2*pow(pointUndistorted[0], 2)), 
-          fact * pointUndistorted[1] + 2*p2_ * pointUndistorted[0] * pointUndistorted[1] + 
-          p1_ * (r_squared + 2*pow(pointUndistorted[1], 2));
-  
+  bool success = false;
+  // check for null pointers
+  if(pointDistorted){
+      double r_squared = pointUndistorted.dot(pointUndistorted);
+      double fact = 1 + k1_ * r_squared + k2_ * pow(r_squared, 2);
+      *pointDistorted << fact * pointUndistorted[0] + 2*p1_ * pointUndistorted[0] * pointUndistorted[1] + 
+              p2_ * (r_squared + 2*pow(pointUndistorted[0], 2)), 
+              fact * pointUndistorted[1] + 2*p2_ * pointUndistorted[0] * pointUndistorted[1] + 
+              p1_ * (r_squared + 2*pow(pointUndistorted[1], 2));
+      success = true;
+  }
   //throw std::runtime_error("not implemented");
-  return true;
-
+  return success;
 }
+
 bool RadialTangentialDistortion::distort(
     const Eigen::Vector2d & pointUndistorted, Eigen::Vector2d * pointDistorted,
     Eigen::Matrix2d * pointJacobian) const
 {
   // TODO: implement
+  bool success = false;
   // call distort function to get Distorted Point
-  RadialTangentialDistortion::distort(pointUndistorted, pointDistorted);
-  // get coordinates of point
-  double x1 = pointUndistorted[0];
-  double x2 = pointUndistorted[1];
-  // 
-  double r_squared = pointUndistorted.dot(pointUndistorted);
-  double fact = 1 + k1_ * r_squared + k2_ * pow(r_squared, 2);
-  double dfact = (2*k1_ + 4*k2_ * r_squared);
-  // Calculate Jacobian
-  double J_00=fact + pow(x1, 2) * dfact + 2*p1_ * x2 + 6*p2_ * x1;
-  double J_01=x1 * x2 * dfact + 2*p1_ * x1 + 2*p2_ * x2;
-  double J_11=fact + pow(x2, 2) * dfact + 2*p2_ * x1 + 6*p1_ * x2;
+  if(RadialTangentialDistortion::distort(pointUndistorted, pointDistorted)){
+      // check for null pointer
+      if(pointJacobian){
+          // get coordinates of point
+          double x1 = pointUndistorted[0];
+          double x2 = pointUndistorted[1];
+          // Calculate intermediate results
+          double r_squared = pointUndistorted.dot(pointUndistorted);
+          double fact = 1 + k1_ * r_squared + k2_ * pow(r_squared, 2);
+          double dfact = (2*k1_ + 4*k2_ * r_squared);
+          // Calculate Jacobian
+          double J_00 = fact + pow(x1, 2) * dfact + 2*p1_ * x2 + 6*p2_ * x1;
+          double J_01 = x1 * x2 * dfact + 2*p1_ * x1 + 2*p2_ * x2;
+          double J_11 = fact + pow(x2, 2) * dfact + 2*p2_ * x1 + 6*p1_ * x2;
 
-  *pointJacobian<< J_00, J_01,
-                  J_01, J_11; 
-
-  return true;
+          *pointJacobian << J_00, J_01,
+                            J_01, J_11; 
+                
+          success = true;
+      }
+  }
+  return success;
 }
 
 bool RadialTangentialDistortion::undistort(
