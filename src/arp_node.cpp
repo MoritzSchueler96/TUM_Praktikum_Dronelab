@@ -95,16 +95,19 @@ int main(int argc, char **argv)
   double k2;
   double p1;
   double p2;
+  bool suc = false;
 
+  std::cout << std::setprecision(3) << std::fixed;
   std::cout << "" << std::endl;
   std::cout << "Read camera parameters..." << std::endl;
-  bool suc = nh.getParam("/arp_node/fu", fu);
+  suc = nh.getParam("/arp_node/fu", fu);
   std::cout << "Read parameter fu...    value=" << fu;
   if(suc) {
     std::cout << " [ OK ]" << std::endl;
   } else {
     std::cout << " [FAIL]" << std::endl;
   }
+  suc = false;
   suc = nh.getParam("/arp_node/fv", fv);
   std::cout << "Read parameter fv...    value=" << fv;
   if(suc) {
@@ -112,53 +115,61 @@ int main(int argc, char **argv)
   } else {
     std::cout << " [FAIL]" << std::endl;
   }
+  suc = false;
   suc = nh.getParam("/arp_node/cu", cu);
   std::cout << "Read parameter cu...    value=" << cu;
+  if(suc) {
+    std::cout << " [ OK ]" << std::endl;
+  } else {
+    std::cout << " [FAIL]" << std::endl;
+  }
+  suc = false;
+  suc = nh.getParam("/arp_node/cv", cv);
+  std::cout << "Read parameter cv...    value=" << cv;
+  if(suc) {
+    std::cout << " [ OK ]" << std::endl;
+  } else {
+    std::cout << " [FAIL]" << std::endl;
+  }
+  suc = false;
+  suc = nh.getParam("/arp_node/k1", k1);
+  std::cout << "Read parameter k1...    value=" << k1;
   if(suc) {
     std::cout << "   [ OK ]" << std::endl;
   } else {
     std::cout << "   [FAIL]" << std::endl;
   }
-  suc = nh.getParam("/arp_node/cv", cv);
-  std::cout << "Read parameter cv...    value=" << cv;
-  if(suc) {
-    std::cout << "     [ OK ]" << std::endl;
-  } else {
-    std::cout << "     [FAIL]" << std::endl;
-  }
-  suc = nh.getParam("/arp_node/k1", k1);
-  std::cout << "Read parameter k1...    value=" << k1;
-  if(suc) {
-    std::cout << "       [ OK ]" << std::endl;
-  } else {
-    std::cout << "       [FAIL]" << std::endl;
-  }
+  suc = false;
   suc = nh.getParam("/arp_node/k2", k2);
   std::cout << "Read parameter k2...    value=" << k2;
   if(suc) {
-    std::cout << "       [ OK ]" << std::endl;
+    std::cout << "   [ OK ]" << std::endl;
   } else {
-    std::cout << "       [FAIL]" << std::endl;
+    std::cout << "   [FAIL]" << std::endl;
   }
+  suc = false;
   suc = nh.getParam("/arp_node/p1", p1);
   std::cout << "Read parameter p1...    value=" << p1;
   if(suc) {
-    std::cout << "       [ OK ]" << std::endl;
+    std::cout << "   [ OK ]" << std::endl;
   } else {
-    std::cout << "       [FAIL]" << std::endl;
+    std::cout << "   [FAIL]" << std::endl;
   }
+  suc = false;
   suc = nh.getParam("/arp_node/p2", p2);
   std::cout << "Read parameter p2...    value=" << p2;
   if(suc) {
-    std::cout << "       [ OK ]" << std::endl;
+    std::cout << "   [ OK ]" << std::endl;
   } else {
-    std::cout << "       [FAIL]" << std::endl;
+    std::cout << "   [FAIL]" << std::endl;
   }
 
   // setup camera model
   const arp::cameras::RadialTangentialDistortion distortion(k1, k2, p1, p2);
   arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> phcam(IMAGE_WIDTH, IMAGE_HEIGHT, fu, fv, cu, cv, distortion);
   suc = phcam.initialiseUndistortMaps(IMAGE_WIDTH, IMAGE_HEIGHT, fu, fv, cu, cv);
+  std::cout << "" << std::endl;
+  std::cout << "Setup Camera..." << std::endl;
   std::cout << "Initialize undistort maps...";
   if(suc) {
     std::cout << "          [ OK ]" << std::endl;
@@ -167,8 +178,8 @@ int main(int argc, char **argv)
   }
   std::cout << "" << std::endl;
 
-  // deactivate camera model by default
-  bool cameraModelApplied = false; 
+  // activate camera model by default
+  bool cameraModelApplied = true; 
   
   // enter main event loop
   std::cout << "===== Hello AR Drone ====" << std::endl;
