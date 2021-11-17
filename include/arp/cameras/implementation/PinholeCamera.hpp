@@ -168,16 +168,23 @@ ProjectionStatus PinholeCamera<DISTORTION_T>::project(
   // TODO: implement
   // check for null pointers
   if(imagePoint){
+      // check if point is behind camera
       if(point[2] <= 0)
       {
         return ProjectionStatus::Behind;
       }
+
+      // Project Point to unit plane 
       Eigen::Vector2d calc_point, distpoint;
       calc_point << 1/point[2] * point[0], 1/point[2] * point[1];
+
+      // distort point
       if (distortion_.distort(calc_point, &distpoint))
       {
+        //Scale Point on image plane
         *imagePoint<<fu_*distpoint[0]+cu_, fv_*distpoint[1]+cv_;
 
+        // check if point lies on the image plane
         if (isInImage(*imagePoint))
         {
           return ProjectionStatus::Successful;
@@ -203,25 +210,32 @@ ProjectionStatus PinholeCamera<DISTORTION_T>::project(
   Eigen::Matrix<double,2,3> P;
   // check for null pointers
   if(imagePoint && pointJacobian){
+
+      // check if point is behind camera
       if(point[2] <= 0){
         return ProjectionStatus::Behind;
       }
+
       //Project Point to unit plane 
       calc_point << 1/point[2] * point[0], 1/point[2] * point[1];
+
       //calculate Jacobian of projection
       P << 1/point[2], 0, -point[0]/pow(point[2],2),
            0, 1/point[2], -point[1]/pow(point[2],2);
+
       //distort point and get Distortion Jacobian
       if (distortion_.distort(calc_point, &distpoint, &D)){
+
           //Scale Point on image plane
           *imagePoint << fu_ * int(distpoint[0]) + cu_, fv_ * int(distpoint[1]) + cv_;
           //calculate Jacobian of scaling
           U << fu_, 0,
-              0, fv_;
+               0, fv_;
           //calculate global Jacobian, chain rule
           Eigen::Matrix<double,2,2> temp = U * D;
-
           *pointJacobian << temp * P;
+
+        // check if point lies on the image plane
           if (isInImage(*imagePoint)){
               return ProjectionStatus::Successful;
           } else {
@@ -249,8 +263,11 @@ bool PinholeCamera<DISTORTION_T>::backProject(
       
       // calculate back projection
       calc_point << one_over_fu_ * (imagePoint[0] - cu_), one_over_fv_ * (imagePoint[1] - cv_);
+
+      // undistort point
       if (distortion_.undistort(calc_point, &distpoint))
       {
+        // create 3d direction vector - no unique matching to point possible due to scaling
         *direction << distpoint[0], distpoint[1], 1;    
         success = true;
       }
