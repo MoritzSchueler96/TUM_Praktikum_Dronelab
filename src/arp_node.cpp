@@ -60,7 +60,10 @@ class Subscriber
   cv::Mat lastImage_;
   std::mutex imageMutex_;
 };
-
+ 
+ /// \brief Read Cam Parameter from launch file and initialize Cam Model
+  /// @param[in] nh NodeHandle to read parameters from launch file.
+  /// @param[out] camMod Initialized camera model  
 arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamera(ros::NodeHandle& nh){
   // read camera calibration parameters
   double fu;
@@ -142,8 +145,8 @@ arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamer
 
   // setup camera model
   const arp::cameras::RadialTangentialDistortion distortion(k1, k2, p1, p2);
-  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> phcam(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, fu, fv, cu, cv, distortion);
-  success = phcam.initialiseUndistortMaps(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, fu, fv, cu, cv);
+  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> camMod(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, fu, fv, cu, cv, distortion);
+  success = camMod.initialiseUndistortMaps(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, fu, fv, cu, cv);
   std::cout << "" << std::endl;
   std::cout << "Setup Camera..." << std::endl;
   std::cout << "Initialize undistort maps...";
@@ -154,7 +157,7 @@ arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamer
   }
   std::cout << "" << std::endl;
 
-  return phcam;
+  return camMod;
 }
 
 int main(int argc, char **argv)
@@ -217,23 +220,33 @@ int main(int argc, char **argv)
           cv::Size image_size= image.size();
           // create text to show whether camera model is applied or not
           if(cameraModelApplied){
-              phcam.undistortImage(image, image);
-              // resize image
+              cv::Mat tempImage;
+              if( !(phcam.undistortImage(tempImage, image)))
+              {
+                std::cout << "Undistortion failed" << std::endl;
+              }
+              else
+              {
+                image=tempImage;
+              }
+              // resize image to full HD
               cv::resize(image, image,cv::Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_INTER_CUBIC);
               image_size= image.size();
               cv::putText(image, "P: Camera Model (On)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-          //generate Text for drone state and add it to picture
           } else {
+              // resize image to full HD
               cv::resize(image, image,cv::Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_INTER_CUBIC);
               image_size= image.size();
               cv::putText(image, "P: Camera Model (Off)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
           }
+          //generate Text for drone state and add it to picture
           std::string display="state: "+std::to_string(droneStatus);
           cv::putText(image, display, cv::Point(10*FONT_SCALING, 50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING*2, FONT_COLOR, 2, false); //putText( image, text, org, font, fontScale, color, thickness, lineType, bottomLeftOrigin)
           //creates text of Batterie charge in 0.1% and add it to picture
           std::stringstream stream;
           stream<< std::fixed<<std::setprecision(1)<<droneBattery <<"%";
           auto color = FONT_COLOR;
+          // change font color to red if low battery
           if(droneBattery<10){
               color= cv::Scalar(0,0,255);
           }
