@@ -221,7 +221,7 @@ int main(int argc, char **argv)
           // create text to show whether camera model is applied or not
           if(cameraModelApplied){
               cv::Mat tempImage;
-              if( !(phcam.undistortImage(tempImage, image)))
+              if( !(phcam.undistortImage(image, tempImage)))
               {
                 std::cout << "Undistortion failed" << std::endl;
               }
