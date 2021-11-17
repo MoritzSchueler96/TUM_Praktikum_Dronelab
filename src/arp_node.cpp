@@ -61,6 +61,102 @@ class Subscriber
   std::mutex imageMutex_;
 };
 
+arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamera(ros::NodeHandle& nh){
+  // read camera calibration parameters
+  double fu;
+  double fv;
+  double cu;
+  double cv;
+  double k1;
+  double k2;
+  double p1;
+  double p2;
+  bool success = false;
+
+  std::cout << std::setprecision(3) << std::fixed;
+  std::cout << "" << std::endl;
+  std::cout << "Read camera parameters..." << std::endl;
+  success = nh.getParam("/arp_node/fu", fu);
+  std::cout << "Read parameter fu...    value=" << fu;
+  if(success) {
+    std::cout << " [ OK ]" << std::endl;
+  } else {
+    std::cout << " [FAIL]" << std::endl;
+  }
+  success = false;
+  success = nh.getParam("/arp_node/fv", fv);
+  std::cout << "Read parameter fv...    value=" << fv;
+  if(success) {
+    std::cout << " [ OK ]" << std::endl;
+  } else {
+    std::cout << " [FAIL]" << std::endl;
+  }
+  success = false;
+  success = nh.getParam("/arp_node/cu", cu);
+  std::cout << "Read parameter cu...    value=" << cu;
+  if(success) {
+    std::cout << " [ OK ]" << std::endl;
+  } else {
+    std::cout << " [FAIL]" << std::endl;
+  }
+  success = false;
+  success = nh.getParam("/arp_node/cv", cv);
+  std::cout << "Read parameter cv...    value=" << cv;
+  if(success) {
+    std::cout << " [ OK ]" << std::endl;
+  } else {
+    std::cout << " [FAIL]" << std::endl;
+  }
+  success = false;
+  success = nh.getParam("/arp_node/k1", k1);
+  std::cout << "Read parameter k1...    value=" << k1;
+  if(success) {
+    std::cout << "   [ OK ]" << std::endl;
+  } else {
+    std::cout << "   [FAIL]" << std::endl;
+  }
+  success = false;
+  success = nh.getParam("/arp_node/k2", k2);
+  std::cout << "Read parameter k2...    value=" << k2;
+  if(success) {
+    std::cout << "   [ OK ]" << std::endl;
+  } else {
+    std::cout << "   [FAIL]" << std::endl;
+  }
+  success = false;
+  success = nh.getParam("/arp_node/p1", p1);
+  std::cout << "Read parameter p1...    value=" << p1;
+  if(success) {
+    std::cout << "   [ OK ]" << std::endl;
+  } else {
+    std::cout << "   [FAIL]" << std::endl;
+  }
+  success = false;
+  success = nh.getParam("/arp_node/p2", p2);
+  std::cout << "Read parameter p2...    value=" << p2;
+  if(success) {
+    std::cout << "   [ OK ]" << std::endl;
+  } else {
+    std::cout << "   [FAIL]" << std::endl;
+  }
+
+  // setup camera model
+  const arp::cameras::RadialTangentialDistortion distortion(k1, k2, p1, p2);
+  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> phcam(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, fu, fv, cu, cv, distortion);
+  success = phcam.initialiseUndistortMaps(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, fu, fv, cu, cv);
+  std::cout << "" << std::endl;
+  std::cout << "Setup Camera..." << std::endl;
+  std::cout << "Initialize undistort maps...";
+  if(success) {
+    std::cout << "          [ OK ]" << std::endl;
+  } else {
+    std::cout << "          [FAIL]" << std::endl;
+  }
+  std::cout << "" << std::endl;
+
+  return phcam;
+}
+
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "arp_node");
@@ -88,98 +184,8 @@ int main(int argc, char **argv)
   SDL_RenderPresent(renderer);
   SDL_Texture * texture;
 
-  // read camera calibration parameters
-  double fu;
-  double fv;
-  double cu;
-  double cv;
-  double k1;
-  double k2;
-  double p1;
-  double p2;
-  bool suc = false;
-
-  std::cout << std::setprecision(3) << std::fixed;
-  std::cout << "" << std::endl;
-  std::cout << "Read camera parameters..." << std::endl;
-  suc = nh.getParam("/arp_node/fu", fu);
-  std::cout << "Read parameter fu...    value=" << fu;
-  if(suc) {
-    std::cout << " [ OK ]" << std::endl;
-  } else {
-    std::cout << " [FAIL]" << std::endl;
-  }
-  suc = false;
-  suc = nh.getParam("/arp_node/fv", fv);
-  std::cout << "Read parameter fv...    value=" << fv;
-  if(suc) {
-    std::cout << " [ OK ]" << std::endl;
-  } else {
-    std::cout << " [FAIL]" << std::endl;
-  }
-  suc = false;
-  suc = nh.getParam("/arp_node/cu", cu);
-  std::cout << "Read parameter cu...    value=" << cu;
-  if(suc) {
-    std::cout << " [ OK ]" << std::endl;
-  } else {
-    std::cout << " [FAIL]" << std::endl;
-  }
-  suc = false;
-  suc = nh.getParam("/arp_node/cv", cv);
-  std::cout << "Read parameter cv...    value=" << cv;
-  if(suc) {
-    std::cout << " [ OK ]" << std::endl;
-  } else {
-    std::cout << " [FAIL]" << std::endl;
-  }
-  suc = false;
-  suc = nh.getParam("/arp_node/k1", k1);
-  std::cout << "Read parameter k1...    value=" << k1;
-  if(suc) {
-    std::cout << "   [ OK ]" << std::endl;
-  } else {
-    std::cout << "   [FAIL]" << std::endl;
-  }
-  suc = false;
-  suc = nh.getParam("/arp_node/k2", k2);
-  std::cout << "Read parameter k2...    value=" << k2;
-  if(suc) {
-    std::cout << "   [ OK ]" << std::endl;
-  } else {
-    std::cout << "   [FAIL]" << std::endl;
-  }
-  suc = false;
-  suc = nh.getParam("/arp_node/p1", p1);
-  std::cout << "Read parameter p1...    value=" << p1;
-  if(suc) {
-    std::cout << "   [ OK ]" << std::endl;
-  } else {
-    std::cout << "   [FAIL]" << std::endl;
-  }
-  suc = false;
-  suc = nh.getParam("/arp_node/p2", p2);
-  std::cout << "Read parameter p2...    value=" << p2;
-  if(suc) {
-    std::cout << "   [ OK ]" << std::endl;
-  } else {
-    std::cout << "   [FAIL]" << std::endl;
-  }
-
   // setup camera model
-  const arp::cameras::RadialTangentialDistortion distortion(k1, k2, p1, p2);
-  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> phcam(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, fu, fv, cu, cv, distortion);
-  suc = phcam.initialiseUndistortMaps(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, fu, fv, cu, cv);
-  std::cout << "" << std::endl;
-  std::cout << "Setup Camera..." << std::endl;
-  std::cout << "Initialize undistort maps...";
-  if(suc) {
-    std::cout << "          [ OK ]" << std::endl;
-  } else {
-    std::cout << "          [FAIL]" << std::endl;
-  }
-  std::cout << "" << std::endl;
-
+  auto phcam = setupCamera(nh);
   // activate camera model by default
   bool cameraModelApplied = true; 
   
