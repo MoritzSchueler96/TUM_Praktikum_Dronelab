@@ -22,6 +22,8 @@
 
 #define IMAGE_WIDTH 1920
 #define IMAGE_HEIGHT 960
+#define CAM_IMAGE_WIDTH 640
+#define CAM_IMAGE_HEIGHT 480
 #define FONT_SCALING 1.5
 #define FONT_COLOR cv::Scalar(0,255,0)
 
@@ -166,8 +168,8 @@ int main(int argc, char **argv)
 
   // setup camera model
   const arp::cameras::RadialTangentialDistortion distortion(k1, k2, p1, p2);
-  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> phcam(IMAGE_WIDTH, IMAGE_HEIGHT, fu, fv, cu, cv, distortion);
-  suc = phcam.initialiseUndistortMaps(IMAGE_WIDTH, IMAGE_HEIGHT, fu, fv, cu, cv);
+  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> phcam(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, fu, fv, cu, cv, distortion);
+  suc = phcam.initialiseUndistortMaps(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, fu, fv, cu, cv);
   std::cout << "" << std::endl;
   std::cout << "Setup Camera..." << std::endl;
   std::cout << "Initialize undistort maps...";
@@ -205,21 +207,23 @@ int main(int argc, char **argv)
       // render image, if there is a new one available
       if(subscriber.getLastImage(image)) {
           
-          // resize image
-          cv::resize(image, image,cv::Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_INTER_CUBIC);
-
           // TODO: add overlays to the cv::Mat image, e.g. text
-          //generate Text for drone state and add it to picture
           cv::Size image_size= image.size();
-          std::string display="state: "+std::to_string(droneStatus);
-          cv::putText(image, display, cv::Point(10*FONT_SCALING, 50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING*2, FONT_COLOR, 2, false); //putText( image, text, org, font, fontScale, color, thickness, lineType, bottomLeftOrigin)
           // create text to show whether camera model is applied or not
           if(cameraModelApplied){
-              cv::putText(image, "P: Camera Model (On)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
               phcam.undistortImage(image, image);
+              // resize image
+              cv::resize(image, image,cv::Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_INTER_CUBIC);
+              image_size= image.size();
+              cv::putText(image, "P: Camera Model (On)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+          //generate Text for drone state and add it to picture
           } else {
+              cv::resize(image, image,cv::Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_INTER_CUBIC);
+              image_size= image.size();
               cv::putText(image, "P: Camera Model (Off)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
           }
+          std::string display="state: "+std::to_string(droneStatus);
+          cv::putText(image, display, cv::Point(10*FONT_SCALING, 50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING*2, FONT_COLOR, 2, false); //putText( image, text, org, font, fontScale, color, thickness, lineType, bottomLeftOrigin)
           //creates text of Batterie charge in 0.1% and add it to picture
           std::stringstream stream;
           stream<< std::fixed<<std::setprecision(1)<<droneBattery <<"%";
@@ -300,9 +304,10 @@ int main(int argc, char **argv)
     }
 
     // Press P to toggle application of camera model
-    if (state[SDL_SCANCODE_P]) {
-      std:sleep(1);
+    if (droneStatus==2 && state[SDL_SCANCODE_P]) {
+
       cameraModelApplied = cameraModelApplied ^ 1;
+      sleep(1);
       std::cout << "Toggle Camera Model...  status=" << cameraModelApplied << std::endl;
     }
 
