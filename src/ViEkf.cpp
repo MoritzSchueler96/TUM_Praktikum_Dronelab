@@ -177,8 +177,20 @@ bool ViEkf::predict(uint64_t from_timestampMicroseconds,
     // i.e. we do x_k = f(x_k_minus_1).
     // Also, we compute the matrix F (linearisation of f()) related to
     // delta_chi_k = F * delta_chi_k_minus_1.
-
+    Eigen::Matrix<double, 15,15> F_k;
+    kinematics::RobotState x_k;
+    //calculate next state
+    Imu::stateTransition(x_,it_k_minus_1, it_k, x_k, F_k );
+    //update internal state
+    x_=x_k;
     // TODO: propagate covariance matrix P_
+    double sigma_gyr= sigma_c_gyr_*sigma_c_gyr_*delta_t;
+    double sigma_acc= sigma_c_acc_*sigma_c_acc_*delta_t;
+    double sigma_gw = sigma_c_gw_ *sigma_c_gw_ *delta_t;
+    double sigma_aw = sigma_c_aw_ *sigma_c_aw_ *delta_t;
+    Eigen::DiagonalMatrix<double, 15> LQL_T(0,0,0,sigma_gyr,sigma_gyr,sigma_gyr,sigma_acc,sigma_acc,sigma_acc,sigma_gw,sigma_gw,sigma_gw,sigma_aw,sigma_aw,sigma_aw);
+    //wenn es Diagonal Matrix nicht gibt, als Vektor anlegen und mit LQL_T.asDiagonal() verwenden
+    P_=F_k*P_*F_k.transpose()+LQL_T;
 
   }
   return false;  // TODO: change to true once implemented
