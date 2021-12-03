@@ -16,7 +16,7 @@ ViEkf::ViEkf()
     : cameraModel_(0, 0, 0, 0, 0, 0,
                    arp::cameras::RadialTangentialDistortion(0,0,0,0))
 {
-  x_.r_W.setZero();
+  x_.t_WS.setZero();
   x_.q_WS.setIdentity();
   x_.v_W.setZero();
   x_.b_g.setZero();
@@ -251,7 +251,7 @@ bool ViEkf::update(const Detection & detection){
   // first w.r.t. q and then d_alpha.
 
   // pose: world to sensor transformation
-  kinematics::Transformation T_WS(x_.r_W,x_.q_WS);
+  kinematics::Transformation T_WS(x_.t_WS,x_.q_WS);
 
   // landmark in World frame
   Eigen::Vector4d hp_W(0,0,0,1);

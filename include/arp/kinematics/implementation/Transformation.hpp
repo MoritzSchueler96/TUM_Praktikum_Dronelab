@@ -83,41 +83,41 @@ __inline__ Eigen::Matrix3d rightJacobian(const Eigen::Vector3d & PhiVec) {
 
 inline Transformation::Transformation(const Transformation & other)
     : parameters_(other.parameters_),
-      r_(&parameters_[0]),
+      t_(&parameters_[0]),
       q_(&parameters_[3]),
-      C_(other.C_) {
+      R_(other.R_) {
 
 }
 
 inline Transformation::Transformation(Transformation && other)
     : parameters_(std::move(other.parameters_)),
-      r_(&parameters_[0]),
+      t_(&parameters_[0]),
       q_(&parameters_[3]),
-      C_(std::move(other.C_)) {
+      R_(std::move(other.R_)) {
 
 }
 
 inline Transformation::Transformation()
-    : r_(&parameters_[0]),
+    : t_(&parameters_[0]),
       q_(&parameters_[3]),
-      C_(Eigen::Matrix3d::Identity()) {
-  r_ = Eigen::Vector3d(0.0, 0.0, 0.0);
+      R_(Eigen::Matrix3d::Identity()) {
+  t_ = Eigen::Vector3d(0.0, 0.0, 0.0);
   q_ = Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
 }
 
-inline Transformation::Transformation(const Eigen::Vector3d & r_AB,
+inline Transformation::Transformation(const Eigen::Vector3d & t_AB,
                                       const Eigen::Quaterniond& q_AB)
-    : r_(&parameters_[0]),
+    : t_(&parameters_[0]),
       q_(&parameters_[3]) {
-  r_ = r_AB;
+  t_ = t_AB;
   q_ = q_AB.normalized();
-  updateC();
+  updateR();
 }
 inline Transformation::Transformation(const Eigen::Matrix4d & T_AB)
-    : r_(&parameters_[0]),
+    : t_(&parameters_[0]),
       q_(&parameters_[3]),
-      C_(T_AB.topLeftCorner<3, 3>()) {
-  r_ = (T_AB.topRightCorner<3, 1>());
+      R_(T_AB.topLeftCorner<3, 3>()) {
+  t_ = (T_AB.topRightCorner<3, 1>());
   q_ = (T_AB.topLeftCorner<3, 3>());
   assert(fabs(T_AB(3, 0)) < 1.0e-12);
   assert(fabs(T_AB(3, 1)) < 1.0e-12);
@@ -133,28 +133,28 @@ inline bool Transformation::setCoeffs(
     const Eigen::MatrixBase<Derived_coeffs> & coeffs) {
   EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(Derived_coeffs, 7);
   parameters_ = coeffs;
-  updateC();
+  updateR();
   return true;
 }
 
 // The underlying transformation
 inline Eigen::Matrix4d Transformation::T() const {
   Eigen::Matrix4d T_ret;
-  T_ret.topLeftCorner<3, 3>() = C_;
-  T_ret.topRightCorner<3, 1>() = r_;
+  T_ret.topLeftCorner<3, 3>() = R_;
+  T_ret.topRightCorner<3, 1>() = t_;
   T_ret.bottomLeftCorner<1, 3>().setZero();
   T_ret(3, 3) = 1.0;
   return T_ret;
 }
 
 // return the rotation matrix
-inline const Eigen::Matrix3d & Transformation::C() const {
-  return C_;
+inline const Eigen::Matrix3d & Transformation::R() const {
+  return R_;
 }
 
 // return the translation vector
-inline const Eigen::Map<Eigen::Vector3d> & Transformation::r() const {
-  return r_;
+inline const Eigen::Map<Eigen::Vector3d> & Transformation::t() const {
+  return t_;
 }
 
 inline const Eigen::Map<Eigen::Quaterniond> & Transformation::q() const {
@@ -163,13 +163,13 @@ inline const Eigen::Map<Eigen::Quaterniond> & Transformation::q() const {
 
 inline Eigen::Matrix<double, 3, 4> Transformation::T3x4() const {
   Eigen::Matrix<double, 3, 4> T3x4_ret;
-  T3x4_ret.topLeftCorner<3, 3>() = C_;
-  T3x4_ret.topRightCorner<3, 1>() = r_;
+  T3x4_ret.topLeftCorner<3, 3>() = R_;
+  T3x4_ret.topRightCorner<3, 1>() = t_;
   return T3x4_ret;
 }
 // Return a copy of the transformation inverted.
 inline Transformation Transformation::inverse() const {
-  return Transformation(-(C_.transpose() * r_), q_.inverse());
+  return Transformation(-(R_.transpose() * t_), q_.inverse());
 }
 
 // Set this to a random transformation.
@@ -182,29 +182,29 @@ inline void Transformation::setRandom(double translationMaxMeters,
   // Create a random unit-length axis.
   Eigen::Vector3d axis = rotationMaxRadians * Eigen::Vector3d::Random();
   // Create a random rotation angle in radians.
-  Eigen::Vector3d r = translationMaxMeters * Eigen::Vector3d::Random();
-  r_ = r;
+  Eigen::Vector3d t = translationMaxMeters * Eigen::Vector3d::Random();
+  t_ = t;
   q_ = Eigen::AngleAxisd(axis.norm(), axis.normalized());
-  updateC();
+  updateR();
 }
 
 // Setters
 inline void Transformation::set(const Eigen::Matrix4d & T_AB) {
-  r_ = (T_AB.topRightCorner<3, 1>());
+  t_ = (T_AB.topRightCorner<3, 1>());
   q_ = (T_AB.topLeftCorner<3, 3>());
-  updateC();
+  updateR();
 }
-inline void Transformation::set(const Eigen::Vector3d & r_AB,
+inline void Transformation::set(const Eigen::Vector3d & t_AB,
                                 const Eigen::Quaternion<double> & q_AB) {
-  r_ = r_AB;
+  t_ = t_AB;
   q_ = q_AB.normalized();
-  updateC();
+  updateR();
 }
 // Set this transformation to identity
 inline void Transformation::setIdentity() {
   q_.setIdentity();
-  r_.setZero();
-  C_.setIdentity();
+  t_.setZero();
+  R_.setIdentity();
 }
 
 inline Transformation Transformation::Identity() {
@@ -214,31 +214,31 @@ inline Transformation Transformation::Identity() {
 // operator*
 inline Transformation Transformation::operator*(
     const Transformation & rhs) const {
-  return Transformation(C_ * rhs.r_ + r_, q_ * rhs.q_);
+  return Transformation(R_ * rhs.t_ + t_, q_ * rhs.q_);
 }
 inline Eigen::Vector3d Transformation::operator*(
     const Eigen::Vector3d & rhs) const {
-  return C_ * rhs;
+  return R_ * rhs;
 }
 inline Eigen::Vector4d Transformation::operator*(
     const Eigen::Vector4d & rhs) const {
   const double s = rhs[3];
   Eigen::Vector4d retVec;
-  retVec.head<3>() = C_ * rhs.head<3>() + r_ * s;
+  retVec.head<3>() = R_ * rhs.head<3>() + t_ * s;
   retVec[3] = s;
   return retVec;
 }
 
 inline Transformation& Transformation::operator=(const Transformation & rhs) {
   parameters_ = rhs.parameters_;
-  C_ = rhs.C_;
-  r_ = Eigen::Map<Eigen::Vector3d>(&parameters_[0]);
+  R_ = rhs.R_;
+  t_ = Eigen::Map<Eigen::Vector3d>(&parameters_[0]);
   q_ = Eigen::Map<Eigen::Quaterniond>(&parameters_[3]);
   return *this;
 }
 
-inline void Transformation::updateC() {
-  C_ = q_.toRotationMatrix();
+inline void Transformation::updateR() {
+  R_ = q_.toRotationMatrix();
 }
 
 // apply small update:
@@ -246,14 +246,14 @@ template<typename Derived_delta>
 inline bool Transformation::oplus(
     const Eigen::MatrixBase<Derived_delta> & delta) {
   EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(Derived_delta, 6);
-  r_ += delta.template head<3>();
+  t_ += delta.template head<3>();
   Eigen::Vector4d dq;
   double halfnorm = 0.5 * delta.template tail<3>().norm();
   dq.template head<3>() = sinc(halfnorm) * 0.5 * delta.template tail<3>();
   dq[3] = cos(halfnorm);
   q_ = (Eigen::Quaterniond(dq) * q_);
   q_.normalize();
-  updateC();
+  updateR();
   return true;
 }
 

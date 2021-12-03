@@ -10,7 +10,7 @@ namespace kinematics {
 
 struct RobotState {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  Eigen::Vector3d r_W;  ///< The position relative to the W frame.
+  Eigen::Vector3d t_WS;  ///< The position relative to the W frame.
   Eigen::Quaterniond q_WS;  ///< The quaternion of rotation W-S.
   Eigen::Vector3d v_W;  ///< The velocity expressed in W frame.
   Eigen::Vector3d b_g;  ///< The gyro bias.

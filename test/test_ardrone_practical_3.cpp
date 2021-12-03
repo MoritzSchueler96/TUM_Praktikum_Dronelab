@@ -20,8 +20,6 @@ namespace { // anonymous namespace to protect local definitions (e.g. ImuTest)
 class ImuTest final : public arp::kinematics::Imu {
   public:
    typedef arp::kinematics::Imu Base;
-   using Base::continuousTimeNonlinear;
-   using Base::continuousTimeLinearised;
 };
 
 // We require a derived class, since the to-be-tested functions are declared protected and
@@ -37,7 +35,7 @@ TEST(ImuKinematics, numericDifferencesDiscreteTime)
 {
   // generate random state
   arp::kinematics::RobotState state;
-  state.r_W.setRandom();
+  state.t_WS.setRandom();
   state.q_WS.coeffs() = Eigen::Vector4d::Random();
   state.v_W.setRandom();
   state.b_g.setRandom();
@@ -65,13 +63,13 @@ TEST(ImuKinematics, numericDifferencesDiscreteTime)
   for(size_t i=0; i<3; ++i) {
     arp::kinematics::RobotState x_1_p, x_1_m;
     arp::kinematics::RobotState x_0_p = state;
-    x_0_p.r_W[i] += delta;
+    x_0_p.t_WS[i] += delta;
     ImuTest::stateTransition(x_0_p, measurement_0, measurement_1, x_1_p);
     arp::kinematics::RobotState x_0_m = state;
-    x_0_m.r_W[i] -= delta;
+    x_0_m.t_WS[i] -= delta;
     ImuTest::stateTransition(x_0_m, measurement_0, measurement_1, x_1_m);
     Eigen::Matrix<double,16,1> delta_x;
-    delta_x.head<3>() = (x_1_p.r_W-x_1_m.r_W)/(2.0*delta);
+    delta_x.head<3>() = (x_1_p.t_WS-x_1_m.t_WS)/(2.0*delta);
     delta_x.segment<4>(3) = (x_1_p.q_WS.coeffs()-x_1_m.q_WS.coeffs())/(2.0*delta);
     delta_x.segment<3>(7) = (x_1_p.v_W-x_1_m.v_W)/(2.0*delta);
     delta_x.segment<3>(10) = (x_1_p.b_g-x_1_m.b_g)/(2.0*delta);
@@ -93,7 +91,7 @@ TEST(ImuKinematics, numericDifferencesDiscreteTime)
     x_0_m.q_WS = (arp::kinematics::deltaQ(-deltaAlpha) * x_0_m.q_WS);
     ImuTest::stateTransition(x_0_m, measurement_0, measurement_1, x_1_m);
     Eigen::Matrix<double,16,1> delta_x;
-    delta_x.head<3>() = (x_1_p.r_W-x_1_m.r_W)/(2.0*delta);
+    delta_x.head<3>() = (x_1_p.t_WS-x_1_m.t_WS)/(2.0*delta);
     delta_x.segment<4>(3) = (x_1_p.q_WS.coeffs()-x_1_m.q_WS.coeffs())/(2.0*delta);
     delta_x.segment<3>(7) = (x_1_p.v_W-x_1_m.v_W)/(2.0*delta);
     delta_x.segment<3>(10) = (x_1_p.b_g-x_1_m.b_g)/(2.0*delta);
@@ -113,7 +111,7 @@ TEST(ImuKinematics, numericDifferencesDiscreteTime)
     x_0_m.v_W[i] -= delta;
     ImuTest::stateTransition(x_0_m, measurement_0, measurement_1, x_1_m);
     Eigen::Matrix<double,16,1> delta_x;
-    delta_x.head<3>() = (x_1_p.r_W-x_1_m.r_W)/(2.0*delta);
+    delta_x.head<3>() = (x_1_p.t_WS-x_1_m.t_WS)/(2.0*delta);
     delta_x.segment<4>(3) = (x_1_p.q_WS.coeffs()-x_1_m.q_WS.coeffs())/(2.0*delta);
     delta_x.segment<3>(7) = (x_1_p.v_W-x_1_m.v_W)/(2.0*delta);
     delta_x.segment<3>(10) = (x_1_p.b_g-x_1_m.b_g)/(2.0*delta);
@@ -133,7 +131,7 @@ TEST(ImuKinematics, numericDifferencesDiscreteTime)
     x_0_m.b_g[i] -= delta;
     ImuTest::stateTransition(x_0_m, measurement_0, measurement_1, x_1_m);
     Eigen::Matrix<double,16,1> delta_x;
-    delta_x.head<3>() = (x_1_p.r_W-x_1_m.r_W)/(2.0*delta);
+    delta_x.head<3>() = (x_1_p.t_WS-x_1_m.t_WS)/(2.0*delta);
     delta_x.segment<4>(3) = (x_1_p.q_WS.coeffs()-x_1_m.q_WS.coeffs())/(2.0*delta);
     delta_x.segment<3>(7) = (x_1_p.v_W-x_1_m.v_W)/(2.0*delta);
     delta_x.segment<3>(10) = (x_1_p.b_g-x_1_m.b_g)/(2.0*delta);
@@ -153,7 +151,7 @@ TEST(ImuKinematics, numericDifferencesDiscreteTime)
     x_0_m.b_a[i] -= delta;
     ImuTest::stateTransition(x_0_m, measurement_0, measurement_1, x_1_m);
     Eigen::Matrix<double,16,1> delta_x;
-    delta_x.head<3>() = (x_1_p.r_W-x_1_m.r_W)/(2.0*delta);
+    delta_x.head<3>() = (x_1_p.t_WS-x_1_m.t_WS)/(2.0*delta);
     delta_x.segment<4>(3) = (x_1_p.q_WS.coeffs()-x_1_m.q_WS.coeffs())/(2.0*delta);
     delta_x.segment<3>(7) = (x_1_p.v_W-x_1_m.v_W)/(2.0*delta);
     delta_x.segment<3>(10) = (x_1_p.b_g-x_1_m.b_g)/(2.0*delta);
@@ -188,7 +186,7 @@ TEST(ViEkfTest, predictState) {
 
   // initialise random state
   arp::kinematics::RobotState state;
-  state.r_W << 0.902131,   1.60338,   2.64148;
+  state.t_WS << 0.902131,   1.60338,   2.64148;
   state.q_WS.coeffs() << 5.2336,  -2.66092,  0.702473,  -2.00367;
   state.q_WS.normalize();
   state.v_W << -2.29765,  0.704136,   1.51915;
@@ -248,13 +246,13 @@ TEST(ViEkfTest, predictState) {
 
   // with own computation:
   arp::kinematics::RobotState newState2;
-  newState2.r_W << 0.856562,   1.61761,   2.67016;
+  newState2.t_WS << 0.856562,   1.61761,   2.67016;
   newState2.q_WS.coeffs() << 0.853628, -0.414882, 0.0963025, -0.299862;
   newState2.v_W << -2.25908,  0.7198,    1.3482;
   newState2.b_g << 3.82437,  0.499508,   2.02314;
   newState2.b_a << -1.28832,   1.77941,  0.307377;
 
-  EXPECT_TRUE((newState.r_W-newState2.r_W).norm()<1.0e-4);
+  EXPECT_TRUE((newState.t_WS-newState2.t_WS).norm()<1.0e-4);
   EXPECT_TRUE((newState.q_WS.coeffs()-newState2.q_WS.coeffs()).norm()<1.0e-4);
   EXPECT_TRUE((newState.v_W-newState2.v_W).norm()<1.0e-4);
   EXPECT_TRUE((newState.b_g-newState2.b_g).norm()<1.0e-4);
@@ -278,7 +276,7 @@ TEST(ViEkfTest, updateState) {
 
   // initialise random state
   arp::kinematics::RobotState state;
-  state.r_W << 0.902131,   1.60338,   2.64148;
+  state.t_WS << 0.902131,   1.60338,   2.64148;
   state.q_WS.coeffs() << 5.2336,  -2.66092,  0.702473,  -2.00367;
   state.q_WS.normalize();
   state.v_W << -2.29765,  0.704136,   1.51915;
@@ -314,7 +312,7 @@ TEST(ViEkfTest, updateState) {
   pinholeCamera.project(point_C,&imagePoint);
 
   // compute landmark in world coordinates
-  arp::kinematics::Transformation T_WS(state.r_W, state.q_WS);
+  arp::kinematics::Transformation T_WS(state.t_WS, state.q_WS);
   Eigen::Vector4d hp_W = T_WS*T_SC*hp_C;
   
   // apply the update
@@ -328,13 +326,13 @@ TEST(ViEkfTest, updateState) {
 
   // with own computation: TODO this needs to be recomputed
   arp::kinematics::RobotState newState2;
-  newState2.r_W <<  0.902192, 1.60335,  2.64146;
+  newState2.t_WS <<  0.902192, 1.60335,  2.64146;
   newState2.q_WS.coeffs() << 0.83826, -0.426184,  0.112569, -0.320961;
   newState2.v_W << -2.29762,  0.704153,  1.51912;
   newState2.b_g <<  3.82441,  0.499508,  2.02315;
   newState2.b_a << -1.28833,  1.77946,  0.307319;
 
-  EXPECT_TRUE((newState.r_W-newState2.r_W).norm()<2.0e-5);
+  EXPECT_TRUE((newState.t_WS-newState2.t_WS).norm()<2.0e-5);
   EXPECT_TRUE((newState.q_WS.coeffs()-newState2.q_WS.coeffs()).norm()<2.0e-5);
   EXPECT_TRUE((newState.v_W-newState2.v_W).norm()<2.0e-5);
   EXPECT_TRUE((newState.b_g-newState2.b_g).norm()<2.0e-5);
@@ -344,9 +342,9 @@ TEST(ViEkfTest, updateState) {
 } // namespace
 
 // Run all the tests that were declared with TEST()
-int main(int argc, char **argv){
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+//int main(int argc, char **argv){
+//  testing::InitGoogleTest(&argc, argv);
+//  return RUN_ALL_TESTS();
+//}
 
 

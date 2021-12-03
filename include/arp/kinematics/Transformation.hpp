@@ -66,7 +66,7 @@ Eigen::Matrix3d rightJacobian(const Eigen::Vector3d & PhiVec);
 
 /// \brief A class that does homogeneous transformations.
 /// This relates a frame A and B: T_AB; it consists of
-///   translation r_AB (represented in frame A) and
+///   translation t_AB (represented in frame A) and
 ///   Quaternion q_AB (as an Eigen Quaternion).
 /// see also the RSS'13 / IJRR'14 paper or the Thesis.
 /// Follows some of the functionality of the SchweizerMesser library by Paul Furgale,
@@ -90,9 +90,9 @@ class Transformation
   Transformation(Transformation && other);
 
   /// \brief Construct from a translation and quaternion.
-  /// @param[in] r_AB The translation r_AB (represented in frame A).
+  /// @param[in] t_AB The translation t_AB (represented in frame A).
   /// @param[in] q_AB The Quaternion q_AB (as an Eigen Quaternion).
-  Transformation(const Eigen::Vector3d & r_AB, const Eigen::Quaterniond& q_AB);
+  Transformation(const Eigen::Vector3d & t_AB, const Eigen::Quaterniond& q_AB);
 
   /// \brief Construct from a homogeneous transformation matrix.
   /// @param[in] T_AB The homogeneous transformation matrix.
@@ -103,13 +103,13 @@ class Transformation
 
   /// \brief Parameter setting, all 7.
   /// \tparam Derived_coeffs Deducible matrix type.
-  /// @param[in] coeffs The parameters as [r_AB,q_AB], q_AB as [x,y,z,w] (Eigen internal convention).
+  /// @param[in] coeffs The parameters as [t_AB,q_AB], q_AB as [x,y,z,w] (Eigen internal convention).
   template<typename Derived_coeffs>
   bool setCoeffs(const Eigen::MatrixBase<Derived_coeffs> & coeffs);
 
   /// \brief Parameter setting, all 7.
   /// \tparam Derived_coeffs Deducible matrix type.
-  /// @param[in] parameters The parameters as [r_AB,q_AB], q_AB as [x,y,z,w] (Eigen internal convention).
+  /// @param[in] parameters The parameters as [t_AB,q_AB], q_AB as [x,y,z,w] (Eigen internal convention).
   template<typename Derived_coeffs>
   bool setParameters(const Eigen::MatrixBase<Derived_coeffs> & parameters)
   {
@@ -120,10 +120,10 @@ class Transformation
   Eigen::Matrix4d T() const;
 
   /// \brief Returns the rotation matrix (cached).
-  const Eigen::Matrix3d & C() const;
+  const Eigen::Matrix3d & R() const;
 
-  /// \brief Returns the translation vector r_AB (represented in frame A).
-  const Eigen::Map<Eigen::Vector3d> & r() const;
+  /// \brief Returns the translation vector t_AB (represented in frame A).
+  const Eigen::Map<Eigen::Vector3d> & t() const;
 
   /// \brief Returns the Quaternion q_AB (as an Eigen Quaternion).
   const Eigen::Map<Eigen::Quaterniond> & q() const;
@@ -131,13 +131,13 @@ class Transformation
   /// \brief Get the upper 3x4 part of the homogeneous transformation matrix T_AB.
   Eigen::Matrix<double, 3, 4> T3x4() const;
 
-  /// \brief The coefficients (parameters) as [r_AB,q_AB], q_AB as [x,y,z,w] (Eigen internal convention).
+  /// \brief The coefficients (parameters) as [t_AB,q_AB], q_AB as [x,y,z,w] (Eigen internal convention).
   const Eigen::Matrix<double, 7, 1> & coeffs() const
   {
     return parameters_;
   }
 
-  /// \brief The parameters (coefficients) as [r_AB,q_AB], q_AB as [x,y,z,w] (Eigen internal convention).
+  /// \brief The parameters (coefficients) as [t_AB,q_AB], q_AB as [x,y,z,w] (Eigen internal convention).
   const Eigen::Matrix<double, 7, 1> & parameters() const
   {
     return parameters_;
@@ -162,9 +162,9 @@ class Transformation
   void set(const Eigen::Matrix4d & T_AB);
 
   /// \brief Set from a translation and quaternion.
-  /// @param[in] r_AB The translation r_AB (represented in frame A).
+  /// @param[in] t_AB The translation t_AB (represented in frame A).
   /// @param[in] q_AB The Quaternion q_AB (as an Eigen Quaternion).
-  void set(const Eigen::Vector3d & r_AB, const Eigen::Quaternion<double>& q_AB);
+  void set(const Eigen::Vector3d & t_AB, const Eigen::Quaternion<double>& q_AB);
 
   /// \brief Set this transformation to identity
   void setIdentity();
@@ -180,7 +180,7 @@ class Transformation
   /// @param[in] rhs The right-hand side transformation for this to be multiplied with.
   Transformation operator*(const Transformation & rhs) const;
 
-  /// \brief Transform a direction as v_A = C_AB*v_B (with rhs = hp_B)..
+  /// \brief Transform a direction as v_A = R_AB*v_B (with rhs = hp_B)..
   /// \warning This only applies the rotation!
   /// @param[in] rhs The right-hand side direction for this to be multiplied with.
   Eigen::Vector3d operator*(const Eigen::Vector3d & rhs) const;
@@ -225,11 +225,11 @@ class Transformation
 
  protected:
   /// \brief Update the caching of the rotation matrix.
-  void updateC();
+  void updateR();
   Eigen::Matrix<double, 7, 1> parameters_;  ///< Concatenated parameters [r;q].
-  Eigen::Map<Eigen::Vector3d> r_;  ///< Translation {_A}r_{B}.
+  Eigen::Map<Eigen::Vector3d> t_;  ///< Translation {_A}t_{B}.
   Eigen::Map<Eigen::Quaterniond> q_;  ///< Quaternion q_{AB}.
-  Eigen::Matrix3d C_; ///< The cached DCM C_{AB}.
+  Eigen::Matrix3d R_; ///< The cached DCM R_{AB}.
 };
 
 }  // namespace kinematics

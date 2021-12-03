@@ -31,7 +31,7 @@ public:
   void publish(uint64_t timeMicroseconds,
                     const arp::kinematics::RobotState& x)
   {
-    arp::kinematics::Transformation T_WS(x.r_W, x.q_WS);
+    arp::kinematics::Transformation T_WS(x.t_WS, x.q_WS);
     geometry_msgs::PoseStamped poseMsg;
     poseMsg.header.frame_id = "world";
     // rviz can't handle original timestamps. won't matter, it's visualisation only...
@@ -45,10 +45,10 @@ public:
     poseMsg.pose.orientation.w = q.w();
 
     // fill position
-    Eigen::Vector3d r = T_WS.r();
-    poseMsg.pose.position.x = r[0];
-    poseMsg.pose.position.y = r[1];
-    poseMsg.pose.position.z = r[2];
+    Eigen::Vector3d t = T_WS.t();
+    poseMsg.pose.position.x = t[0];
+    poseMsg.pose.position.y = t[1];
+    poseMsg.pose.position.z = t[2];
 
     //publish stamped transform
     pubPose_.publish(poseMsg);

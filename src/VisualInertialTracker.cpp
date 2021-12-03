@@ -93,7 +93,7 @@ void VisualInertialTracker::processingLoop()
       bool successGetState = estimator_->getState(cameraMeasurement.timestampMicroseconds, xi);
       Eigen::Vector3d dir(0,1,0);
       if(successGetState) {
-        dir = estimator_->T_SC().inverse().C()*xi.q_WS.inverse().toRotationMatrix()*Eigen::Vector3d(0,0,-1);
+        dir = estimator_->T_SC().inverse().R()*xi.q_WS.inverse().toRotationMatrix()*Eigen::Vector3d(0,0,-1);
       }
       bool ransacSuccess = frontend_->detectAndMatch(
           cameraMeasurement.image, dir, detections, T_CW, visualisationImage);
@@ -108,7 +108,7 @@ void VisualInertialTracker::processingLoop()
           kinematics::RobotState x;
           Eigen::Matrix<double, 15, 15> P =
               Eigen::Matrix<double, 15, 15>::Identity();
-          x.r_W = T_WS.r();
+          x.t_WS = T_WS.t();
           x.q_WS = T_WS.q();
           x.v_W.setZero();
           x.b_g.setZero();
