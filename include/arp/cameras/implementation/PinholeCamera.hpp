@@ -243,7 +243,7 @@ ProjectionStatus PinholeCamera<DISTORTION_T>::project(
           }
       }
   }
-  return ProjectionStatus::Invalid;
+return ProjectionStatus::Invalid;
 }
 
 /////////////////////////////////////////
@@ -273,6 +273,7 @@ bool PinholeCamera<DISTORTION_T>::backProject(
       }
   }
   return success;
+
 }
 
 

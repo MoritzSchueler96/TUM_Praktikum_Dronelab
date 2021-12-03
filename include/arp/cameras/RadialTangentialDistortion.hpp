@@ -84,7 +84,6 @@ class RadialTangentialDistortion : public DistortionBase
   /// @param[in]  pointUndistorted  The undistorted normalised (!) image point.
   /// @param[out] pointDistorted    The distorted normalised (!) image point.
   /// @param[out] pointJacobian     The Jacobian w.r.t. changes on the image point.
-  /// @param[out] parameterJacobian The Jacobian w.r.t. changes on the intrinsics vector.
   /// @return     True on success (no singularity)
   inline bool distort(const Eigen::Vector2d & pointUndistorted,
                       Eigen::Vector2d * pointDistorted,

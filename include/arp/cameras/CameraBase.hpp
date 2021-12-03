@@ -53,6 +53,16 @@
 /// \brief arp Main namespace of this package.
 namespace arp {
 
+/// \brief A simple struct containing all the necessary information about a
+///        keypoint detection.
+struct Detection {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  Eigen::Vector2d keypoint; ///< The 2d keypoint detection.
+  Eigen::Vector3d landmark; ///< The 3d landmark in World coordinates.
+  uint64_t landmarkId; ///< The corresponding landmark ID.
+};
+typedef std::vector<Detection, Eigen::aligned_allocator<Detection>> DetectionVec;
+
 /// \brief cameras Namespace for camera-related functionality.
 namespace cameras {
 
