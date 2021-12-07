@@ -167,7 +167,7 @@ ProjectionStatus PinholeCamera<DISTORTION_T>::project(
 {
   // TODO: implement
   // check for null pointers
-  if(imagePoint){
+  if((imagePoint)&&(abs(z)<1e-12)){
       // check if point is behind camera
       if(point[2] <= 0)
       {
@@ -227,7 +227,7 @@ ProjectionStatus PinholeCamera<DISTORTION_T>::project(
       if (distortion_.distort(calc_point, &distpoint, &D)){
 
           //Scale Point on image plane
-          *imagePoint << fu_ * int(distpoint[0]) + cu_, fv_ * int(distpoint[1]) + cv_;
+          *imagePoint << fu_ * distpoint[0] + cu_, fv_ * distpoint[1] + cv_;
           //calculate Jacobian of scaling
           U << fu_, 0,
                0, fv_;

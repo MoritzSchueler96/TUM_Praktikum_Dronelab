@@ -177,6 +177,10 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   detectAndDescribe(grayScale, extractionDirection, keypoints, descriptors);
 
   // TODO match to map:
+  std::vector<cv::Point3d> worldPoints;
+  std::vector<cv::Point2d> imagePoints;
+  std::vector<uint64_t> lmID;
+  std::vector<int> keypoints_matched;
   for(size_t k = 0; k < keypoints.size(); ++k) { // go through all keypoints in the frame
     bool matched = false;
     uchar* keypointDescriptor = descriptors.data + k*48; // descriptors are 48 bytes long
@@ -185,17 +189,61 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
         const float dist = brisk::Hamming::PopcntofXORed(
                 keypointDescriptor, lmDescriptor.data, 3); // compute desc. distance: 3 for 3x128bit (=48 bytes)
         // TODO check if a match and process accordingly
+        if( abs(dist) <60)
+        {
+          matched=true;
+          worldPoints.push_back(cv::Point3d(lm.second.point(0),lm.second.point(1), lm.second.point(2)) );
+          imagePoints.push_back(keypoints[k].pt);
+          lmID.push_back(lm.first);
+        }
       }
     }
+    if (matched==true)
+    {
+      keypoints_matched.push_back( k);
+    }
+  }
+  std::vector<int> inliers;
+  // TODO run RANSAC (to remove outliers and get pose T_CW estimate)
+  bool returnvalue= ransac(worldPoints, imagePoints, T_CW, inliers);
+  
+  // TODO set detections
+  for(auto & index: inliers)
+  {
+    Detection newDetection;
+    Eigen::Vector2d keypoint(imagePoints[index].x,imagePoints[index].y);
+    Eigen::Vector3d landmark(worldPoints[index].x,worldPoints[index].y,worldPoints[index].z);
+    newDetection.keypoint=keypoint;
+    newDetection.landmark=landmark;
+    newDetection.landmarkId=lmID[index];
+
+    //add detection
+    detections.push_back(newDetection);
+    
   }
 
-  // TODO run RANSAC (to remove outliers and get pose T_CW estimate)
-
-  // TODO set detections
-
   // TODO visualise by painting stuff into visualisationImage
-  
-  return false; // TODO return true if successful...
+  for(size_t k = 0; k < keypoints.size(); ++k)
+  {
+    auto color=cv::Scalar(25,25,25);
+    //check if point is a detection or only a matched landmark
+    if(std::find(inliers.begin(),inliers.end(),k)!=inliers.end()) 
+    {
+      color=cv::Scalar(0,0,255);
+    }
+    else
+    {
+      if (std::find(keypoints_matched.begin(),keypoints_matched.end(),k)!=keypoints_matched.end())
+      {
+        color=cv::Scalar(255,0,0);
+      }
+    }
+    
+    cv::circle(visualisationImage, imagePoints[k], 2, color, 1);
+
+  }
+
+  return returnvalue; // TODO return true if successful...
 }
 
 }  // namespace arp
