@@ -322,7 +322,7 @@ bool ViEkf::update(const Detection & detection){
   Eigen::Matrix<double, 15,1> delta_chi=K*y;
   // TODO: perform update. Note: multiplicative for the quaternion!!
   x_.t_WS=x_.t_WS+delta_chi.head<3>();  ///< The position relative to the W frame.
-  x_.q_WS=x_.q_WS*arp::kinematics::deltaQ((delta_chi.segment<3>(3)));  ///< The quaternion of rotation W-S.
+  x_.q_WS=arp::kinematics::deltaQ((delta_chi.segment<3>(3)))*x_.q_WS;  ///< The quaternion of rotation W-S.
   x_.q_WS.normalize();
   x_.v_W=x_.v_W+delta_chi.segment<3>(6);  ///< The velocity expressed in W frame.
   x_.b_g=x_.b_g+delta_chi.segment<3>(9);  ///< The gyro bias.
