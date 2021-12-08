@@ -166,6 +166,8 @@ TEST(ImuKinematics, numericDifferencesDiscreteTime)
   //std::cout << "F=\n" << F << std::endl;
   if((F-F_numDiff).norm()>=1.0e-5)
     std::cout << "Wrong Jacobian: F - F_numDiff = " << std::endl << (F-F_numDiff) << std::endl;
+    //std::cout << "F_numDiff = " << std::endl << (F_numDiff) << std::endl;
+    //std::cout << "F = " << std::endl << (F) << std::endl;
   // now num-diff should match analytical
   EXPECT_TRUE((F-F_numDiff).norm()<1.0e-5);
 }
