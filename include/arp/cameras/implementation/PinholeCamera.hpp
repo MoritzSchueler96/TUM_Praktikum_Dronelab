@@ -173,6 +173,10 @@ ProjectionStatus PinholeCamera<DISTORTION_T>::project(
       {
         return ProjectionStatus::Behind;
       }
+      if(abs(point[2])<1e-12)
+      {
+        return ProjectionStatus::Invalid;
+      }
 
       // check for unstable points
       if(abs(point[2])<1e-12){
