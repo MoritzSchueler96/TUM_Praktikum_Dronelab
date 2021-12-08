@@ -273,14 +273,31 @@ bool ViEkf::update(const Detection & detection){
   // TODO: transform the corner point from world frame into the camera frame
   // (remember the camera projection will assume the point is represented
   // in camera coordinates):
+  //Transform world point to Sensor coordiantes and then to camera, inverted transfomartion
+  // we need T_CS*T_SW*hp_W
+  Eigen::Vector4d hp_C(0,0,0,1);
+  hp_C=T_SC_.inverse()*T_WS.inverse()*hp_W;
 
   // TODO: calculate the reprojection error y (residual)
   // using the PinholeCamera::project
-  const Eigen::Vector2d y;  // = TODO
-
-  // TODO: check validity of projection -- return false if not successful!
+  Eigen::Vector2d y;  // = TODO
+  Eigen::Matrix<double, 2, 3> U;
+  Eigen::Vector2d h_x;
+  if (cameraModel_.project(hp_C.head<3>(), &h_x, &U)!=arp::cameras::ProjectionStatus::Successful)
+  {
+      // TODO: check validity of projection -- return false if not successful!
+    return false;
+  }
+    
+  y=detection.keypoint-h_x;
 
   // TODO: calculate measurement Jacobian H
+  Eigen::Matrix<double,3,3> R_CS= T_SC_.R();
+  Eigen::Matrix<double,3,3> R_WS_transpose=T_WS.R().transpose();
+  Eigen::Matrix<double, 2,15> H;
+  Eigen::Matrix3d cross_l= R_WS_transpose*arp::kinematics::crossMx(detection.landmark-T_WS.t());
+
+  H<< U*R_CS*(-R_WS_transpose), U*R_CS*cross_l, Eigen::Matrix<double, 2, 9>::Zero();
 
   // Obtain the measurement covariance form parameters:
   const double r = sigma_imagePoint_ * sigma_imagePoint_;
@@ -288,22 +305,31 @@ bool ViEkf::update(const Detection & detection){
 
   // TODO: compute residual covariance S
   Eigen::Matrix2d S;  // = TODO
+  S=H*P_*H.transpose()+R;
+  
+
 
   // chi2 test
   if(y.transpose()*S.inverse()*y > 40.0){
     std::cout << "Rejecting measurement " << std::endl;
     return false;
   }
-
   // TODO: compute Kalman gain K
+  Eigen::MatrixXd K=P_*H.transpose()*S.inverse();
+
 
   // TODO: compute increment Delta_chi
-
+  Eigen::Matrix<double, 15,1> delta_chi=K*y;
   // TODO: perform update. Note: multiplicative for the quaternion!!
-
+  x_.t_WS=x_.t_WS+delta_chi.head<3>();  ///< The position relative to the W frame.
+  x_.q_WS=x_.q_WS*arp::kinematics::deltaQ((delta_chi.segment<3>(3)));  ///< The quaternion of rotation W-S.
+  x_.q_WS.normalize();
+  x_.v_W=x_.v_W+delta_chi.segment<3>(6);  ///< The velocity expressed in W frame.
+  x_.b_g=x_.b_g+delta_chi.segment<3>(9);  ///< The gyro bias.
+  x_.b_a=x_.b_a+delta_chi.tail<3>();  ///< The accelerometer bias.
   // TODO: update to covariance matrix:
-
-  return false;  // TODO: change to true once implemented...
+  P_=(Eigen::Matrix<double,15,15>::Identity()-K*H)*P_;
+  return true;  // TODO: change to true once implemented...
 }
 
 }  // namespace arp
