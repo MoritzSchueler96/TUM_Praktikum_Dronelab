@@ -167,11 +167,16 @@ ProjectionStatus PinholeCamera<DISTORTION_T>::project(
 {
   // TODO: implement
   // check for null pointers
-  if((imagePoint)&&(abs(z)<1e-12)){
+  if(imagePoint){
       // check if point is behind camera
       if(point[2] <= 0)
       {
         return ProjectionStatus::Behind;
+      }
+
+      // check for unstable points
+      if(abs(point[2])<1e-12){
+        return ProjectionStatus::Invalid;
       }
 
       // Project Point to unit plane 
@@ -214,6 +219,11 @@ ProjectionStatus PinholeCamera<DISTORTION_T>::project(
       // check if point is behind camera
       if(point[2] <= 0){
         return ProjectionStatus::Behind;
+      }
+
+      // check for unstable points
+      if(abs(point[2])<1e-12){
+        return ProjectionStatus::Invalid;
       }
 
       //Project Point to unit plane 
