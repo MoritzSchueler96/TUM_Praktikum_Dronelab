@@ -20,12 +20,20 @@
 #include <arp/cameras/PinholeCamera.hpp>
 #include "arp/cameras/RadialTangentialDistortion.hpp"
 
+#include <arp/Frontend.hpp>
+#include <arp/StatePublisher.hpp>
+#include <arp/StatePublisher.hpp>
+#include <arp/VisualInertialTracker.hpp>
+#include <ros/package.h>
+
 #define IMAGE_WIDTH 1920
 #define IMAGE_HEIGHT 960
 #define CAM_IMAGE_WIDTH 640
 #define CAM_IMAGE_HEIGHT 480
 #define FONT_SCALING 1.5
 #define FONT_COLOR cv::Scalar(0,255,0)
+#define CAM_MODEL true
+#define ENABLE_FUSION true
 
 class Subscriber
 {
@@ -51,21 +59,40 @@ class Subscriber
     return true;
   }
 
+  void setVIT(arp::VisualInertialTracker& vit){
+    vit_ = &vit;
+  }
+
   void imuCallback(const sensor_msgs::ImuConstPtr& msg)
   {
     // -- for later use
+    ROS_INFO("Imu Seq: [%d]", msg->header.seq);
+    ROS_INFO( "Accel: %.3f,%.3f,%.3f [m/s^2] - Ang. vel: %.3f,%.3f,%.3f [deg/sec]",
+              msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z,
+              msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z);
+
+    uint64_t timeMicroseconds = uint64_t(msg->header.stamp.sec) * 1000000ll
+        + msg->header.stamp.nsec / 1000;
+    
+    Eigen::Vector3d acc_S;
+    acc_S << msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z;
+    Eigen::Vector3d omega_S;
+    omega_S << msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z;
+    if(!vit_){
+      vit_->addImuMeasurement(timeMicroseconds, omega_S, acc_S);
+      cv::Mat img;
+      getLastImage(img);
+      vit_->addImage(timeMicroseconds, img);
+    }
   }
 
  private:
   cv::Mat lastImage_;
   std::mutex imageMutex_;
+  arp::VisualInertialTracker* vit_ = nullptr;
 };
- 
- /// \brief Read Cam Parameter from launch file and initialize Cam Model
-  /// @param[in] nh NodeHandle to read parameters from launch file.
-  /// @param[out] camMod Initialized camera model  
-arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamera(ros::NodeHandle& nh){
-  // read camera calibration parameters
+
+struct camParams{
   double fu;
   double fv;
   double cu;
@@ -74,79 +101,103 @@ arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamer
   double k2;
   double p1;
   double p2;
+};
+ 
+ /// \brief Read Cam Parameters from launch file
+  /// @param[in] nh NodeHandle to read parameters from launch file.
+  /// @param[in] cp Struct with camera parameters to store values.
+  /// @param[out] success Whether Parameters were read successfully.
+bool readCameraParameters(ros::NodeHandle& nh, camParams& cp){
   bool success = false;
+  bool ret = true;
 
   std::cout << std::setprecision(3) << std::fixed;
   std::cout << "" << std::endl;
   std::cout << "Read camera parameters..." << std::endl;
-  success = nh.getParam("/arp_node/fu", fu);
-  std::cout << "Read parameter fu...    value=" << fu;
+  success = nh.getParam("/arp_node/fu", cp.fu);
+  std::cout << "Read parameter fu...    value=" << cp.fu;
   if(success) {
     std::cout << " [ OK ]" << std::endl;
   } else {
     std::cout << " [FAIL]" << std::endl;
+    ret = false;
   }
   success = false;
-  success = nh.getParam("/arp_node/fv", fv);
-  std::cout << "Read parameter fv...    value=" << fv;
+  success = nh.getParam("/arp_node/fv", cp.fv);
+  std::cout << "Read parameter fv...    value=" << cp.fv;
   if(success) {
     std::cout << " [ OK ]" << std::endl;
   } else {
     std::cout << " [FAIL]" << std::endl;
+    ret = false;
   }
   success = false;
-  success = nh.getParam("/arp_node/cu", cu);
-  std::cout << "Read parameter cu...    value=" << cu;
+  success = nh.getParam("/arp_node/cu", cp.cu);
+  std::cout << "Read parameter cu...    value=" << cp.cu;
   if(success) {
     std::cout << " [ OK ]" << std::endl;
   } else {
     std::cout << " [FAIL]" << std::endl;
+    ret = false;
   }
   success = false;
-  success = nh.getParam("/arp_node/cv", cv);
-  std::cout << "Read parameter cv...    value=" << cv;
+  success = nh.getParam("/arp_node/cv", cp.cv);
+  std::cout << "Read parameter cv...    value=" << cp.cv;
   if(success) {
     std::cout << " [ OK ]" << std::endl;
   } else {
     std::cout << " [FAIL]" << std::endl;
+    ret = false;
   }
   success = false;
-  success = nh.getParam("/arp_node/k1", k1);
-  std::cout << "Read parameter k1...    value=" << k1;
+  success = nh.getParam("/arp_node/k1", cp.k1);
+  std::cout << "Read parameter k1...    value=" << cp.k1;
   if(success) {
     std::cout << "   [ OK ]" << std::endl;
   } else {
     std::cout << "   [FAIL]" << std::endl;
+    ret = false;
   }
   success = false;
-  success = nh.getParam("/arp_node/k2", k2);
-  std::cout << "Read parameter k2...    value=" << k2;
+  success = nh.getParam("/arp_node/k2", cp.k2);
+  std::cout << "Read parameter k2...    value=" << cp.k2;
   if(success) {
     std::cout << "   [ OK ]" << std::endl;
   } else {
     std::cout << "   [FAIL]" << std::endl;
+    ret = false;
   }
   success = false;
-  success = nh.getParam("/arp_node/p1", p1);
-  std::cout << "Read parameter p1...    value=" << p1;
+  success = nh.getParam("/arp_node/p1", cp.p1);
+  std::cout << "Read parameter p1...    value=" << cp.p1;
   if(success) {
     std::cout << "   [ OK ]" << std::endl;
   } else {
     std::cout << "   [FAIL]" << std::endl;
+    ret = false;
   }
   success = false;
-  success = nh.getParam("/arp_node/p2", p2);
-  std::cout << "Read parameter p2...    value=" << p2;
+  success = nh.getParam("/arp_node/p2", cp.p2);
+  std::cout << "Read parameter p2...    value=" << cp.p2;
   if(success) {
     std::cout << "   [ OK ]" << std::endl;
   } else {
     std::cout << "   [FAIL]" << std::endl;
+    ret = false;
   }
 
+  return ret;
+}
+
+ /// \brief Read Cam Parameter from launch file and initialize Cam Model
+  /// @param[in] nh NodeHandle.
+  /// @param[in] cp Struct with camera parameters.
+  /// @param[out] camMod Initialized camera model  
+arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamera(ros::NodeHandle& nh, const camParams cp){
   // setup camera model
-  const arp::cameras::RadialTangentialDistortion distortion(k1, k2, p1, p2);
-  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> camMod(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, fu, fv, cu, cv, distortion);
-  success = camMod.initialiseUndistortMaps(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, fu, fv, cu, cv);
+  const arp::cameras::RadialTangentialDistortion distortion(cp.k1, cp.k2, cp.p1, cp.p2);
+  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> camMod(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, distortion);
+  auto success = camMod.initialiseUndistortMaps(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv);
   std::cout << "" << std::endl;
   std::cout << "Setup Camera..." << std::endl;
   std::cout << "Initialize undistort maps...";
@@ -158,6 +209,47 @@ arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamer
   std::cout << "" << std::endl;
 
   return camMod;
+}
+
+bool setupVisualInertialTracker(ros::NodeHandle& nh, camParams& cp, arp::VisualInertialTracker& vit){
+  arp::Frontend frontend(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2);
+
+  // load map
+  std::string path = ros::package::getPath("ardrone_practicals");
+  std::string mapFile;
+  if(!nh.getParam("arp_node/map", mapFile))
+  ROS_FATAL("error loading parameter");
+  std::string mapPath = path+"/maps/"+mapFile;
+  if(!frontend.loadMap(mapPath))
+  ROS_FATAL_STREAM("could not load map from " << mapPath << " !");
+  // state publisher -- provided for rviz visualisation of drone pose:
+  arp::StatePublisher pubState(nh);
+  
+  // set up EKF
+  arp::ViEkf viEkf;
+  Eigen::Matrix4d T_SC_mat;
+  std::vector<double> T_SC_array;
+  if(!nh.getParam("arp_node/T_SC", T_SC_array))
+  ROS_FATAL("error loading parameter");
+  T_SC_mat <<
+  T_SC_array[0], T_SC_array[1], T_SC_array[2], T_SC_array[3],
+  T_SC_array[4], T_SC_array[5], T_SC_array[6], T_SC_array[7],
+  T_SC_array[8], T_SC_array[9], T_SC_array[10], T_SC_array[11],
+  T_SC_array[12], T_SC_array[13], T_SC_array[14], T_SC_array[15];
+  arp::kinematics::Transformation T_SC(T_SC_mat);
+  viEkf.setCameraExtrinsics(T_SC);
+  viEkf.setCameraIntrinsics(frontend.camera());
+
+  // set up visual-inertial tracking
+  vit.setFrontend(frontend);
+  vit.setEstimator(viEkf);
+
+  // set up visualisation: publish poses to topic ardrone/vi_ekf_pose
+  vit.setVisualisationCallback(std::bind(
+  &arp::StatePublisher::publish, &pubState, std::placeholders::_1,
+  std::placeholders::_2));
+
+  return true;
 }
 
 int main(int argc, char **argv)
@@ -187,11 +279,30 @@ int main(int argc, char **argv)
   SDL_RenderPresent(renderer);
   SDL_Texture * texture;
 
+  // read camera parameters
+  camParams cp;
+  if(readCameraParameters(nh, cp)){
+    std::cout << "Camera Parameters read successfully..." << std::endl;
+  } else {
+    std::cout << "Failed to read some parameters..." << std::endl;
+  }
+
   // setup camera model
-  auto phcam = setupCamera(nh);
-  // activate camera model by default
-  bool cameraModelApplied = true; 
-  
+  auto phcam = setupCamera(nh, cp);
+  // activate camera model
+  bool cameraModelApplied = CAM_MODEL; 
+
+  // setup visual inertial tracker
+  arp::VisualInertialTracker vit;
+  if(setupVisualInertialTracker(nh, cp, vit)){
+    std::cout << "Setup Visual Inertial Tracker successfully..." << std::endl;
+  } else {
+    std::cout << "Failed to setup Visual Inertial Tracker..." << std::endl;
+  }
+  // enable sensor fusion
+  vit.enableFusion(ENABLE_FUSION);
+  subscriber.setVIT(vit);
+
   // enter main event loop
   std::cout << "===== Hello AR Drone ====" << std::endl;
   cv::Mat image;
@@ -203,8 +314,6 @@ int main(int argc, char **argv)
     if (event.type == SDL_QUIT) {
       break;
     }
-
-
 
     //Multiple Key Capture Begins
     const Uint8 *state = SDL_GetKeyboardState(NULL);
@@ -232,12 +341,20 @@ int main(int argc, char **argv)
               // resize image to full HD
               cv::resize(image, image,cv::Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_INTER_CUBIC);
               image_size= image.size();
-              cv::putText(image, "P: Camera Model (On)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              if(droneStatus==2){
+                cv::putText(image, "P: Camera Model (On)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              } else {
+                cv::putText(image, "  Camera Model (On)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              }
           } else {
               // resize image to full HD
               cv::resize(image, image,cv::Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_INTER_CUBIC);
               image_size= image.size();
-              cv::putText(image, "P: Camera Model (Off)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              if(droneStatus==2){
+                cv::putText(image, "P: Camera Model (Off)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              } else {
+                cv::putText(image, "  Camera Model (Off)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              }
           }
           //generate Text for drone state and add it to picture
           std::string display="state: "+std::to_string(droneStatus);
