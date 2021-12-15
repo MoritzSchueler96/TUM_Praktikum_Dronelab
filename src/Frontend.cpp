@@ -183,10 +183,14 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   std::vector<cv::Point2d> imagePoints;
   std::vector<uint64_t> lmID;
   std::vector<int> keypoints_matched;
+  std::cout << " keypoints" << keypoints.size()<<"/ "<<landmarks_.size()<<std::endl;
   for(size_t k = 0; k < keypoints.size(); ++k) { // go through all keypoints in the frame
     bool matched = false;
     uchar* keypointDescriptor = descriptors.data + k*48; // descriptors are 48 bytes long
-    for(auto & lm : landmarks_) { // go through all landmarks in the map
+    for(auto & lm : landmarks_) { 
+      Eigen::Vector2d temp;
+      if(camera_.project(lm.second.point,&temp)==arp::cameras::ProjectionStatus::Successful)
+      {// go through all landmarks in the map
       for(auto lmDescriptor : lm.second.descriptors) { // check agains all available descriptors
         const float dist = brisk::Hamming::PopcntofXORed(
                 keypointDescriptor, lmDescriptor.data, 3); // compute desc. distance: 3 for 3x128bit (=48 bytes)
@@ -206,16 +210,17 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
       {
         break;
       }
+      }
     }
     if (matched==true)
     {
       keypoints_matched.push_back( k);
-      cv::circle(visualisationImage, keypoints[k].pt, 2, cv::Scalar(255,0,0), 1);
+      cv::circle(visualisationImage, keypoints[k].pt, 2, cv::Scalar(255,0,0), 1);//blue
     
     }
     else
     {
-      cv::circle(visualisationImage, keypoints[k].pt, 2, cv::Scalar(128,128,128), 1);
+      cv::circle(visualisationImage, keypoints[k].pt, 2, cv::Scalar(128,128,128), 1);//grey
     }
   }
   std::vector<int> inliers;
@@ -231,7 +236,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
     newDetection.keypoint=keypoint;
     newDetection.landmark=landmark;
     newDetection.landmarkId=lmID[index];
-    cv::circle(visualisationImage, imagePoints[index], 2, cv::Scalar(0,0,255), 1);
+    cv::circle(visualisationImage, imagePoints[index], 2, cv::Scalar(0,0,255), 1);//red
     //add detection
     detections.push_back(newDetection);
     

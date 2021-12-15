@@ -26,8 +26,8 @@
 #include <arp/VisualInertialTracker.hpp>
 #include <ros/package.h>
 
-#define IMAGE_WIDTH 640
-#define IMAGE_HEIGHT 360
+#define IMAGE_WIDTH 1920
+#define IMAGE_HEIGHT 960
 #define CAM_IMAGE_WIDTH 640
 #define CAM_IMAGE_HEIGHT 360
 #define FONT_SCALING 1.5
@@ -102,13 +102,7 @@ class Subscriber
     Eigen::Vector3d omega_S;
     omega_S << msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z;
     if(vit_){
-      /*if (omega_S.norm()>1)
-      {
-        ROS_INFO("Imu Seq: [%d]", msg->header.seq);
-        ROS_INFO( "Accel: %.3f,%.3f,%.3f [m/s^2] - Ang. vel: %.3f,%.3f,%.3f [deg/sec]",
-              msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z,
-              msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z);
-      }*/
+     
 
       vit_->addImuMeasurement(timeMicroseconds, omega_S, acc_S);
 

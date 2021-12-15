@@ -277,6 +277,7 @@ bool ViEkf::update(const Detection & detection){
   // we need T_CS*T_SW*hp_W
   Eigen::Vector4d hp_C(0,0,0,1);
   hp_C=T_SC_.inverse()*T_WS.inverse()*hp_W;
+  hp_C(3)=1;
 
   // TODO: calculate the reprojection error y (residual)
   // using the PinholeCamera::project
@@ -292,7 +293,7 @@ bool ViEkf::update(const Detection & detection){
   y=detection.keypoint-h_x;
 
   // TODO: calculate measurement Jacobian H
-  Eigen::Matrix<double,3,3> R_CS= T_SC_.R();
+  Eigen::Matrix<double,3,3> R_CS= T_SC_.inverse().R();
   Eigen::Matrix<double,3,3> R_WS_transpose=T_WS.R().transpose();
   Eigen::Matrix<double, 2,15> H;
   Eigen::Matrix3d cross_l= R_WS_transpose*arp::kinematics::crossMx(detection.landmark-T_WS.t());

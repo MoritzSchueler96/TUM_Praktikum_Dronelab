@@ -333,9 +333,9 @@ TEST(ViEkfTest, updateState) {
   newState2.b_a << -1.28833,  1.77946,  0.307319;
   std::cout << "New State = " << std::endl << newState.t_WS << std::endl<<newState.q_WS.coeffs() << std::endl;
   std::cout << newState.v_W << std::endl<< newState.b_g << std::endl<<newState.b_a << std::endl;
-std::cout << "tolerance:"<<2.0e-4<<"old tolerance"<<2.0e-5<<std::endl;
+  //std::cout << "tolerance:"<<2.0e-4<<"old tolerance"<<2.0e-5<<std::endl;
   //change from 2.0e-5 to 8.0e-5
-  double tol=8.0e-5;
+  double tol=2.0e-5;
   EXPECT_TRUE((newState.t_WS-newState2.t_WS).norm()<tol);
   EXPECT_TRUE((newState.q_WS.coeffs()-newState2.q_WS.coeffs()).norm()<tol);
   EXPECT_TRUE((newState.v_W-newState2.v_W).norm()<tol);
