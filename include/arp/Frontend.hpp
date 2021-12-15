@@ -67,6 +67,9 @@ class Frontend
     return camera_;
   }
 
+  /// \brief Enable/disable keypoints
+  void showKeypoints(bool enable) {displayKeypoints_ = enable;}
+
  protected:
   /// \brief Detects BRISK (HARRIS) keypoints and extracts descriptors along the extraction direction.
   int detectAndDescribe(
@@ -93,6 +96,8 @@ class Frontend
 
   std::shared_ptr<cv::FeatureDetector> detector_;  ///< the BRISK detector
   std::shared_ptr<cv::DescriptorExtractor> extractor_;  ///< the BRISK extractor
+
+  std::atomic_bool displayKeypoints_{true};
 
  private:
   Frontend() = delete;
