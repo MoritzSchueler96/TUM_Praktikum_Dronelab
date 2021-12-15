@@ -79,7 +79,6 @@ class VisualInertialTracker
   /// \brief This runs in a separate thread, synchronising and then calling
   ///        frontend and estimator functions.
   void processingLoop();
-
   void controllerLoop();
   void visualisationLoop();
 
