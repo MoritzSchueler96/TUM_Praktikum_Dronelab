@@ -99,6 +99,7 @@ void VisualInertialTracker::processingLoop()
       std::cout << "Ransac Success: "<<ransacSuccess << std::endl;    
       if (detections.size() > 0) {
         // feed to estimator (measurement update)
+        std::cout<<"Estimator init:"<<estimator_->isInitialised()<<std::endl;
         if (estimator_->isInitialised() && fusionEnabled_) {
           estimator_->addKeypointMeasurements(
               cameraMeasurement.timestampMicroseconds, detections);

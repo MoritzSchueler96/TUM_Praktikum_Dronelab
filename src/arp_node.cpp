@@ -60,7 +60,7 @@ class Subscriber
       return false;
     image = lastImage_.clone();
     i++;
-    if(vit_)
+    /*if(vit_)
     {
       cv::Mat test;
       if(vit_->getLastVisualisationImage(test))
@@ -76,7 +76,7 @@ class Subscriber
       }
       
       
-    } 
+    } */
     
     lastImage_ = cv::Mat();  // clear, only get same image once.
     return true;
@@ -382,7 +382,7 @@ int main(int argc, char **argv)
 
     auto droneBattery=autopilot.droneBattery();
       // render image, if there is a new one available
-      if(subscriber.getLastImage(image)) {
+      if(vit.getLastVisualisationImage(image)){//subscriber.getLastImage(image)) {
           
           // TODO: add overlays to the cv::Mat image, e.g. text
           cv::Size image_size= image.size();
