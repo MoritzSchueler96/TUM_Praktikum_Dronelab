@@ -52,17 +52,17 @@ void VisualInertialTracker::processingLoop()
 {
   // never end
   for (;;) {
-
+    
     // get camera measurement
     CameraMeasurement cameraMeasurement;
     if (!cameraMeasurementQueue_.PopBlocking(&cameraMeasurement)) {
       return;
     } else {
-
+      
       // get IMU measurement
       kinematics::ImuMeasurement imuMeasurement;
       uint64_t t = 0;
-
+      std::cout << "Processing started" << std::endl;
       while (t<cameraMeasurement.timestampMicroseconds) {
         if(!imuMeasurementQueue_.PopBlocking(&imuMeasurement)){
           return;
@@ -83,7 +83,6 @@ void VisualInertialTracker::processingLoop()
           }
         }
       }
-
       if (cameraMeasurement.timestampMicroseconds > t)
         std::cout << "BAD" << std::endl;
       DetectionVec detections;
@@ -97,6 +96,7 @@ void VisualInertialTracker::processingLoop()
       }
       bool ransacSuccess = frontend_->detectAndMatch(
           cameraMeasurement.image, dir, detections, T_CW, visualisationImage);
+      std::cout << "Ransac Success: "<<ransacSuccess << std::endl;    
       if (detections.size() > 0) {
         // feed to estimator (measurement update)
         if (estimator_->isInitialised() && fusionEnabled_) {

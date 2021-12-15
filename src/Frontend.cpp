@@ -105,7 +105,7 @@ int Frontend::detectAndDescribe(
 
   // run BRISK detector
   detector_->detect(grayscaleImage, keypoints);
-
+  
   // run BRISK descriptor extractor
   // orient the keypoints according to the extraction direction:
   Eigen::Vector3d ep;
@@ -158,7 +158,7 @@ bool Frontend::ransac(const std::vector<cv::Point3d>& worldPoints,
   }
   T_CW = kinematics::Transformation(T_CW_mat);
 
-  return ransacSuccess && (double(inliers.size())/double(imagePoints.size()) > 0.7);
+  return ransacSuccess && (double(inliers.size())/double(imagePoints.size()) > 0.7);//0.7
 }
 
 bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extractionDirection, 
@@ -169,6 +169,8 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
 
   // to gray:
   cv::Mat grayScale;
+
+ 
   cv::cvtColor(image, grayScale, CV_BGR2GRAY);
 
   // run BRISK detector and descriptor extractor:
@@ -191,16 +193,29 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
         // TODO check if a match and process accordingly
         if( abs(dist) <60)
         {
+          //std::cout << "Distance" <<dist<< std::endl;
+        
           matched=true;
           worldPoints.push_back(cv::Point3d(lm.second.point(0),lm.second.point(1), lm.second.point(2)) );
           imagePoints.push_back(keypoints[k].pt);
           lmID.push_back(lm.first);
+          break;
         }
+      }
+      if(matched==true)
+      {
+        break;
       }
     }
     if (matched==true)
     {
       keypoints_matched.push_back( k);
+      cv::circle(visualisationImage, keypoints[k].pt, 2, cv::Scalar(255,0,0), 1);
+    
+    }
+    else
+    {
+      cv::circle(visualisationImage, keypoints[k].pt, 2, cv::Scalar(128,128,128), 1);
     }
   }
   std::vector<int> inliers;
@@ -216,16 +231,18 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
     newDetection.keypoint=keypoint;
     newDetection.landmark=landmark;
     newDetection.landmarkId=lmID[index];
-
+    cv::circle(visualisationImage, imagePoints[index], 2, cv::Scalar(0,0,255), 1);
     //add detection
     detections.push_back(newDetection);
     
   }
-
+  std::cout << " inliers" << inliers.size()<<"/ "<<keypoints_matched.size()<<std::endl;
   // TODO visualise by painting stuff into visualisationImage
-  for(size_t k = 0; k < keypoints.size(); ++k)
+  //to safe runtime add points directly during calculation
+
+  /*for(auto k :keypoints_matched)
   {
-    auto color=cv::Scalar(25,25,25);
+    auto color=cv::Scalar(255,255,255);
     //check if point is a detection or only a matched landmark
     if(std::find(inliers.begin(),inliers.end(),k)!=inliers.end()) 
     {
@@ -240,8 +257,12 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
     }
     
     cv::circle(visualisationImage, imagePoints[k], 2, color, 1);
+    //cv::Size image_size= visualisationImage.size();
+    //cv::putText(visualisationImage, "Test", cv::Point(240, 180), cv::FONT_HERSHEY_SIMPLEX,1.5, cv::Scalar(0,255,0), 2, false);
+              
 
-  }
+  }*/
+  
 
   return returnvalue; // TODO return true if successful...
 }

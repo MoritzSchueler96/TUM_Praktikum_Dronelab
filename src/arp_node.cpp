@@ -26,10 +26,10 @@
 #include <arp/VisualInertialTracker.hpp>
 #include <ros/package.h>
 
-#define IMAGE_WIDTH 1920
-#define IMAGE_HEIGHT 960
+#define IMAGE_WIDTH 640
+#define IMAGE_HEIGHT 360
 #define CAM_IMAGE_WIDTH 640
-#define CAM_IMAGE_HEIGHT 480
+#define CAM_IMAGE_HEIGHT 360
 #define FONT_SCALING 1.5
 #define FONT_COLOR cv::Scalar(0,255,0)
 #define CAM_MODEL true
@@ -47,14 +47,37 @@ class Subscriber
     // -- for later use
     std::lock_guard<std::mutex> l(imageMutex_);
     lastImage_ = cv_bridge::toCvShare(msg, "bgr8")->image;
+    if(vit_){
+      vit_->addImage(timeMicroseconds, lastImage_);
+    }
   }
 
   bool getLastImage(cv::Mat& image)
   {
+    static int i=0;
     std::lock_guard<std::mutex> l(imageMutex_);
     if (lastImage_.empty())
       return false;
     image = lastImage_.clone();
+    i++;
+    if(vit_)
+    {
+      cv::Mat test;
+      if(vit_->getLastVisualisationImage(test))
+      {
+        std::cout << " [ vit image ]"<<i<< std::endl;
+        i=0;
+        image=test.clone();
+        lastImage_test=test;
+      }
+      if (!lastImage_test.empty())
+      {
+        image=lastImage_test.clone();
+      }
+      
+      
+    } 
+    
     lastImage_ = cv::Mat();  // clear, only get same image once.
     return true;
   }
@@ -66,10 +89,10 @@ class Subscriber
   void imuCallback(const sensor_msgs::ImuConstPtr& msg)
   {
     // -- for later use
-    ROS_INFO("Imu Seq: [%d]", msg->header.seq);
+    /*ROS_INFO("Imu Seq: [%d]", msg->header.seq);
     ROS_INFO( "Accel: %.3f,%.3f,%.3f [m/s^2] - Ang. vel: %.3f,%.3f,%.3f [deg/sec]",
               msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z,
-              msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z);
+              msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z);*/
 
     uint64_t timeMicroseconds = uint64_t(msg->header.stamp.sec) * 1000000ll
         + msg->header.stamp.nsec / 1000;
@@ -78,16 +101,24 @@ class Subscriber
     acc_S << msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z;
     Eigen::Vector3d omega_S;
     omega_S << msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z;
-    if(!vit_){
+    if(vit_){
+      /*if (omega_S.norm()>1)
+      {
+        ROS_INFO("Imu Seq: [%d]", msg->header.seq);
+        ROS_INFO( "Accel: %.3f,%.3f,%.3f [m/s^2] - Ang. vel: %.3f,%.3f,%.3f [deg/sec]",
+              msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z,
+              msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z);
+      }*/
+
       vit_->addImuMeasurement(timeMicroseconds, omega_S, acc_S);
-      cv::Mat img;
-      getLastImage(img);
-      vit_->addImage(timeMicroseconds, img);
+
+      
     }
   }
 
  private:
   cv::Mat lastImage_;
+  cv::Mat lastImage_test;
   std::mutex imageMutex_;
   arp::VisualInertialTracker* vit_ = nullptr;
 };
@@ -212,7 +243,8 @@ arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamer
 }
 
 bool setupVisualInertialTracker(ros::NodeHandle& nh, camParams& cp, arp::VisualInertialTracker& vit){
-  arp::Frontend frontend(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2);
+  //CAM_IMAGE_HEIGHT
+  arp::Frontend frontend(CAM_IMAGE_WIDTH,CAM_IMAGE_HEIGHT , cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2);
 
   // load map
   std::string path = ros::package::getPath("ardrone_practicals");
@@ -257,14 +289,71 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "arp_node");
   ros::NodeHandle nh;
   image_transport::ImageTransport it(nh);
+  // read camera parameters
+  camParams cp;
+  if(readCameraParameters(nh, cp)){
+    std::cout << "Camera Parameters read successfully..." << std::endl;
+  } else {
+    std::cout << "Failed to read some parameters..." << std::endl;
+  }
+  // setup camera model
+  auto phcam = setupCamera(nh, cp);
+  // activate camera model
+  bool cameraModelApplied = CAM_MODEL; 
+  // setup visual inertial tracker
+  arp::VisualInertialTracker vit;
+  /*if(setupVisualInertialTracker(nh, cp, vit)){
+    std::cout << "Setup Visual Inertial Tracker successfully..." << std::endl;
+  } else {
+    std::cout << "Failed to setup Visual Inertial Tracker..." << std::endl;
+  }*/
+  arp::Frontend frontend(CAM_IMAGE_WIDTH,CAM_IMAGE_HEIGHT , cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2);
+
+  // load map
+  std::string path = ros::package::getPath("ardrone_practicals");
+  std::string mapFile;
+  if(!nh.getParam("arp_node/map", mapFile))
+  ROS_FATAL("error loading parameter");
+  std::string mapPath = path+"/maps/"+mapFile;
+  if(!frontend.loadMap(mapPath))
+  ROS_FATAL_STREAM("could not load map from " << mapPath << " !");
+  // state publisher -- provided for rviz visualisation of drone pose:
+  arp::StatePublisher pubState(nh);
+  
+  // set up EKF
+  arp::ViEkf viEkf;
+  Eigen::Matrix4d T_SC_mat;
+  std::vector<double> T_SC_array;
+  if(!nh.getParam("arp_node/T_SC", T_SC_array))
+  ROS_FATAL("error loading parameter");
+  T_SC_mat <<
+  T_SC_array[0], T_SC_array[1], T_SC_array[2], T_SC_array[3],
+  T_SC_array[4], T_SC_array[5], T_SC_array[6], T_SC_array[7],
+  T_SC_array[8], T_SC_array[9], T_SC_array[10], T_SC_array[11],
+  T_SC_array[12], T_SC_array[13], T_SC_array[14], T_SC_array[15];
+  arp::kinematics::Transformation T_SC(T_SC_mat);
+  viEkf.setCameraExtrinsics(T_SC);
+  viEkf.setCameraIntrinsics(frontend.camera());
+
+  // set up visual-inertial tracking
+  vit.setFrontend(frontend);
+  vit.setEstimator(viEkf);
+
+  // set up visualisation: publish poses to topic ardrone/vi_ekf_pose
+  vit.setVisualisationCallback(std::bind(
+  &arp::StatePublisher::publish, &pubState, std::placeholders::_1,
+  std::placeholders::_2));
+  // enable sensor fusion
+  vit.enableFusion(ENABLE_FUSION);
 
   // setup inputs
   Subscriber subscriber;
+  subscriber.setVIT(vit);
   image_transport::Subscriber subImage = it.subscribe(
       "ardrone/front/image_raw", 2, &Subscriber::imageCallback, &subscriber);
   ros::Subscriber subImu = nh.subscribe("ardrone/imu", 50,
                                         &Subscriber::imuCallback, &subscriber);
-
+  
   // set up autopilot
   arp::Autopilot autopilot(nh);
 
@@ -278,30 +367,6 @@ int main(int argc, char **argv)
   SDL_RenderClear(renderer);
   SDL_RenderPresent(renderer);
   SDL_Texture * texture;
-
-  // read camera parameters
-  camParams cp;
-  if(readCameraParameters(nh, cp)){
-    std::cout << "Camera Parameters read successfully..." << std::endl;
-  } else {
-    std::cout << "Failed to read some parameters..." << std::endl;
-  }
-
-  // setup camera model
-  auto phcam = setupCamera(nh, cp);
-  // activate camera model
-  bool cameraModelApplied = CAM_MODEL; 
-
-  // setup visual inertial tracker
-  arp::VisualInertialTracker vit;
-  if(setupVisualInertialTracker(nh, cp, vit)){
-    std::cout << "Setup Visual Inertial Tracker successfully..." << std::endl;
-  } else {
-    std::cout << "Failed to setup Visual Inertial Tracker..." << std::endl;
-  }
-  // enable sensor fusion
-  vit.enableFusion(ENABLE_FUSION);
-  subscriber.setVIT(vit);
 
   // enter main event loop
   std::cout << "===== Hello AR Drone ====" << std::endl;

@@ -114,14 +114,11 @@ bool Imu::stateTransition(const RobotState & state_k_minus_1,
   
   if (jacobian) {
     // TODO: if requested, impement jacobian of trapezoidal integration with chain rule
-    //std::cout << "F_C_delta:" << std::endl << F_C_delta << std::endl;
-    //std::cout << "F_C:" << std::endl << F_C << std::endl;
     Eigen::Matrix<double, 15, 15> F_C =calcFc(state_k_minus_1, z_k_minus_1);
     Eigen::Matrix<double, 15, 15>F_C_delta =calcFc(state_delta_x1, z_k);
-    auto test=Eigen::Matrix<double, 15,15>::Identity()+0.5*dt*F_C+0.5*dt*F_C_delta*(Eigen::Matrix<double, 15,15>::Identity()+dt*F_C);
-    //std::cout << "Test" << std::endl << test << std::endl;
     
-    *jacobian=test;
+    *jacobian=Eigen::Matrix<double, 15,15>::Identity()+0.5*dt*F_C+0.5*dt*F_C_delta*(Eigen::Matrix<double, 15,15>::Identity()+dt*F_C);
+  
     return true;
   }
   return false;
