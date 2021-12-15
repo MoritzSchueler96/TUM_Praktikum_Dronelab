@@ -32,7 +32,8 @@
 #define CAM_IMAGE_HEIGHT 360
 #define FONT_SCALING 1.5
 #define FONT_COLOR cv::Scalar(0,255,0)
-#define CAM_MODEL true
+#define ENABLE_CAM_MODEL true
+#define SHOW_KEYPOINTS true
 #define ENABLE_FUSION true
 
 class Subscriber
@@ -54,30 +55,10 @@ class Subscriber
 
   bool getLastImage(cv::Mat& image)
   {
-    static int i=0;
     std::lock_guard<std::mutex> l(imageMutex_);
     if (lastImage_.empty())
       return false;
-    image = lastImage_.clone();
-    i++;
-    /*if(vit_)
-    {
-      cv::Mat test;
-      if(vit_->getLastVisualisationImage(test))
-      {
-        std::cout << " [ vit image ]"<<i<< std::endl;
-        i=0;
-        image=test.clone();
-        lastImage_test=test;
-      }
-      if (!lastImage_test.empty())
-      {
-        image=lastImage_test.clone();
-      }
-      
-      
-    } */
-    
+    image = lastImage_.clone();   
     lastImage_ = cv::Mat();  // clear, only get same image once.
     return true;
   }
@@ -89,11 +70,6 @@ class Subscriber
   void imuCallback(const sensor_msgs::ImuConstPtr& msg)
   {
     // -- for later use
-    /*ROS_INFO("Imu Seq: [%d]", msg->header.seq);
-    ROS_INFO( "Accel: %.3f,%.3f,%.3f [m/s^2] - Ang. vel: %.3f,%.3f,%.3f [deg/sec]",
-              msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z,
-              msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z);*/
-
     uint64_t timeMicroseconds = uint64_t(msg->header.stamp.sec) * 1000000ll
         + msg->header.stamp.nsec / 1000;
     
@@ -102,11 +78,7 @@ class Subscriber
     Eigen::Vector3d omega_S;
     omega_S << msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z;
     if(vit_){
-     
-
-      vit_->addImuMeasurement(timeMicroseconds, omega_S, acc_S);
-
-      
+      vit_->addImuMeasurement(timeMicroseconds, omega_S, acc_S);      
     }
   }
 
@@ -133,85 +105,35 @@ struct camParams{
   /// @param[in] cp Struct with camera parameters to store values.
   /// @param[out] success Whether Parameters were read successfully.
 bool readCameraParameters(ros::NodeHandle& nh, camParams& cp){
-  bool success = false;
-  bool ret = true;
 
   std::cout << std::setprecision(3) << std::fixed;
   std::cout << "" << std::endl;
   std::cout << "Read camera parameters..." << std::endl;
-  success = nh.getParam("/arp_node/fu", cp.fu);
+  if(!nh.getParam("/arp_node/fu", cp.fu)) ROS_FATAL("error loading parameter");
   std::cout << "Read parameter fu...    value=" << cp.fu;
-  if(success) {
-    std::cout << " [ OK ]" << std::endl;
-  } else {
-    std::cout << " [FAIL]" << std::endl;
-    ret = false;
-  }
-  success = false;
-  success = nh.getParam("/arp_node/fv", cp.fv);
-  std::cout << "Read parameter fv...    value=" << cp.fv;
-  if(success) {
-    std::cout << " [ OK ]" << std::endl;
-  } else {
-    std::cout << " [FAIL]" << std::endl;
-    ret = false;
-  }
-  success = false;
-  success = nh.getParam("/arp_node/cu", cp.cu);
-  std::cout << "Read parameter cu...    value=" << cp.cu;
-  if(success) {
-    std::cout << " [ OK ]" << std::endl;
-  } else {
-    std::cout << " [FAIL]" << std::endl;
-    ret = false;
-  }
-  success = false;
-  success = nh.getParam("/arp_node/cv", cp.cv);
-  std::cout << "Read parameter cv...    value=" << cp.cv;
-  if(success) {
-    std::cout << " [ OK ]" << std::endl;
-  } else {
-    std::cout << " [FAIL]" << std::endl;
-    ret = false;
-  }
-  success = false;
-  success = nh.getParam("/arp_node/k1", cp.k1);
-  std::cout << "Read parameter k1...    value=" << cp.k1;
-  if(success) {
-    std::cout << "   [ OK ]" << std::endl;
-  } else {
-    std::cout << "   [FAIL]" << std::endl;
-    ret = false;
-  }
-  success = false;
-  success = nh.getParam("/arp_node/k2", cp.k2);
-  std::cout << "Read parameter k2...    value=" << cp.k2;
-  if(success) {
-    std::cout << "   [ OK ]" << std::endl;
-  } else {
-    std::cout << "   [FAIL]" << std::endl;
-    ret = false;
-  }
-  success = false;
-  success = nh.getParam("/arp_node/p1", cp.p1);
-  std::cout << "Read parameter p1...    value=" << cp.p1;
-  if(success) {
-    std::cout << "   [ OK ]" << std::endl;
-  } else {
-    std::cout << "   [FAIL]" << std::endl;
-    ret = false;
-  }
-  success = false;
-  success = nh.getParam("/arp_node/p2", cp.p2);
-  std::cout << "Read parameter p2...    value=" << cp.p2;
-  if(success) {
-    std::cout << "   [ OK ]" << std::endl;
-  } else {
-    std::cout << "   [FAIL]" << std::endl;
-    ret = false;
-  }
 
-  return ret;
+  if(!nh.getParam("/arp_node/fv", cp.fv))ROS_FATAL("error loading parameter");
+  std::cout << "Read parameter fv...    value=" << cp.fv;
+  
+  if(!nh.getParam("/arp_node/cu", cp.cu))ROS_FATAL("error loading parameter");
+  std::cout << "Read parameter cu...    value=" << cp.cu;
+  
+  if(!nh.getParam("/arp_node/cv", cp.cv))ROS_FATAL("error loading parameter");
+  std::cout << "Read parameter cv...    value=" << cp.cv;
+  
+  if(!nh.getParam("/arp_node/k1", cp.k1))ROS_FATAL("error loading parameter");
+  std::cout << "Read parameter k1...    value=" << cp.k1;
+  
+  if(!nh.getParam("/arp_node/k2", cp.k2))ROS_FATAL("error loading parameter");
+  std::cout << "Read parameter k2...    value=" << cp.k2;
+  
+  if(!nh.getParam("/arp_node/p1", cp.p1))ROS_FATAL("error loading parameter");
+  std::cout << "Read parameter p1...    value=" << cp.p1;
+
+  if(!nh.getParam("/arp_node/p2", cp.p2))ROS_FATAL("error loading parameter");
+  std::cout << "Read parameter p2...    value=" << cp.p2;
+
+  return true;
 }
 
  /// \brief Read Cam Parameter from launch file and initialize Cam Model
@@ -222,24 +144,19 @@ arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamer
   // setup camera model
   const arp::cameras::RadialTangentialDistortion distortion(cp.k1, cp.k2, cp.p1, cp.p2);
   arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> camMod(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, distortion);
-  auto success = camMod.initialiseUndistortMaps(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv);
   std::cout << "" << std::endl;
   std::cout << "Setup Camera..." << std::endl;
-  std::cout << "Initialize undistort maps...";
-  if(success) {
-    std::cout << "          [ OK ]" << std::endl;
+  if(camMod.initialiseUndistortMaps(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv)){
+    std::cout << "Initialize undistort maps...";
   } else {
-    std::cout << "          [FAIL]" << std::endl;
+    ROS_FATAL("error initializing map");
   }
-  std::cout << "" << std::endl;
-
   return camMod;
 }
 
-bool setupVisualInertialTracker(ros::NodeHandle& nh, camParams& cp, arp::VisualInertialTracker& vit){
-  //CAM_IMAGE_HEIGHT
-  arp::Frontend frontend(CAM_IMAGE_WIDTH,CAM_IMAGE_HEIGHT , cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2);
-
+bool setupVisualInertialTracker(ros::NodeHandle& nh, arp::VisualInertialTracker& vit, arp::Frontend& frontend, arp::ViEkf& viEkf, arp::StatePublisher& pubState){
+  
+  // set up frontend
   // load map
   std::string path = ros::package::getPath("ardrone_practicals");
   std::string mapFile;
@@ -248,11 +165,8 @@ bool setupVisualInertialTracker(ros::NodeHandle& nh, camParams& cp, arp::VisualI
   std::string mapPath = path+"/maps/"+mapFile;
   if(!frontend.loadMap(mapPath))
   ROS_FATAL_STREAM("could not load map from " << mapPath << " !");
-  // state publisher -- provided for rviz visualisation of drone pose:
-  arp::StatePublisher pubState(nh);
   
   // set up EKF
-  arp::ViEkf viEkf;
   Eigen::Matrix4d T_SC_mat;
   std::vector<double> T_SC_array;
   if(!nh.getParam("arp_node/T_SC", T_SC_array))
@@ -293,52 +207,25 @@ int main(int argc, char **argv)
   // setup camera model
   auto phcam = setupCamera(nh, cp);
   // activate camera model
-  bool cameraModelApplied = CAM_MODEL; 
+  bool cameraModelApplied = ENABLE_CAM_MODEL; 
+  
   // setup visual inertial tracker
+  arp::Frontend frontend(CAM_IMAGE_WIDTH,CAM_IMAGE_HEIGHT , cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2);
+  arp::ViEkf viEkf;
   arp::VisualInertialTracker vit;
-  /*if(setupVisualInertialTracker(nh, cp, vit)){
+  arp::StatePublisher pubState(nh); // state publisher -- provided for rviz visualisation of drone pose:
+  if(setupVisualInertialTracker(nh, vit, frontend, viEkf, pubState)){
     std::cout << "Setup Visual Inertial Tracker successfully..." << std::endl;
   } else {
     std::cout << "Failed to setup Visual Inertial Tracker..." << std::endl;
-  }*/
-  arp::Frontend frontend(CAM_IMAGE_WIDTH,CAM_IMAGE_HEIGHT , cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2);
+  }
+  // display keypoints
+  bool displayKeypoints = SHOW_KEYPOINTS;
+  frontend.showKeypoints(displayKeypoints);
 
-  // load map
-  std::string path = ros::package::getPath("ardrone_practicals");
-  std::string mapFile;
-  if(!nh.getParam("arp_node/map", mapFile))
-  ROS_FATAL("error loading parameter");
-  std::string mapPath = path+"/maps/"+mapFile;
-  if(!frontend.loadMap(mapPath))
-  ROS_FATAL_STREAM("could not load map from " << mapPath << " !");
-  // state publisher -- provided for rviz visualisation of drone pose:
-  arp::StatePublisher pubState(nh);
-  
-  // set up EKF
-  arp::ViEkf viEkf;
-  Eigen::Matrix4d T_SC_mat;
-  std::vector<double> T_SC_array;
-  if(!nh.getParam("arp_node/T_SC", T_SC_array))
-  ROS_FATAL("error loading parameter");
-  T_SC_mat <<
-  T_SC_array[0], T_SC_array[1], T_SC_array[2], T_SC_array[3],
-  T_SC_array[4], T_SC_array[5], T_SC_array[6], T_SC_array[7],
-  T_SC_array[8], T_SC_array[9], T_SC_array[10], T_SC_array[11],
-  T_SC_array[12], T_SC_array[13], T_SC_array[14], T_SC_array[15];
-  arp::kinematics::Transformation T_SC(T_SC_mat);
-  viEkf.setCameraExtrinsics(T_SC);
-  viEkf.setCameraIntrinsics(frontend.camera());
-
-  // set up visual-inertial tracking
-  vit.setFrontend(frontend);
-  vit.setEstimator(viEkf);
-
-  // set up visualisation: publish poses to topic ardrone/vi_ekf_pose
-  vit.setVisualisationCallback(std::bind(
-  &arp::StatePublisher::publish, &pubState, std::placeholders::_1,
-  std::placeholders::_2));
-  // enable sensor fusion
-  vit.enableFusion(ENABLE_FUSION);
+  // enable / disable fusion
+  bool enableFusion = ENABLE_FUSION;
+  vit.enableFusion(enableFusion);
 
   // setup inputs
   Subscriber subscriber;
@@ -366,36 +253,31 @@ int main(int argc, char **argv)
   std::cout << "===== Hello AR Drone ====" << std::endl;
   cv::Mat image;
   while (ros::ok()) {
-    ros::spinOnce();
-    ros::Duration dur(0.04);
-    dur.sleep();
-    SDL_PollEvent(&event);
-    if (event.type == SDL_QUIT) {
-      break;
-    }
+      ros::spinOnce();
+      ros::Duration dur(0.04);
+      dur.sleep();
+      SDL_PollEvent(&event);
+      if (event.type == SDL_QUIT) {
+        break;
+      }
 
-    //Multiple Key Capture Begins
-    const Uint8 *state = SDL_GetKeyboardState(NULL);
+      //Multiple Key Capture Begins
+      const Uint8 *state = SDL_GetKeyboardState(NULL);
 
-    // check states!
-    auto droneStatus = autopilot.droneStatus();
+      // check states!
+      auto droneStatus = autopilot.droneStatus();
 
-    auto droneBattery=autopilot.droneBattery();
+      auto droneBattery=autopilot.droneBattery();
       // render image, if there is a new one available
-      if(vit.getLastVisualisationImage(image)){//subscriber.getLastImage(image)) {
-          
+      if(vit.getLastVisualisationImage(image))
+      {
           // TODO: add overlays to the cv::Mat image, e.g. text
           cv::Size image_size= image.size();
           // create text to show whether camera model is applied or not
           if(cameraModelApplied){
-              cv::Mat tempImage;
-              if( !(phcam.undistortImage(image, tempImage)))
+              if(!phcam.undistortImage(image, image))
               {
                 std::cout << "Undistortion failed" << std::endl;
-              }
-              else
-              {
-                image=tempImage;
               }
               // resize image to full HD
               cv::resize(image, image,cv::Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_INTER_CUBIC);
@@ -435,16 +317,15 @@ int main(int argc, char **argv)
               cv::putText(image, "^/ v: for-/ backward", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
               cv::putText(image, "</ >: left/ right", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
               cv::putText(image, "L: Landing; ESC: Stop", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-
           }
-          else if(droneStatus==2){
+          else if(droneStatus==2)
+          {
               cv::putText(image, "T: Taking off; ESC: Stop", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
           }
           else
           {
               cv::putText(image, "ESC: Stop", cv::Point(image_size.width/2-80*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
           }
-
 
           // https://stackoverflow.com/questions/22702630/converting-cvmat-to-sdl-texture
           // I'm using SDL_TEXTUREACCESS_STREAMING because it's for a video player, you should
@@ -498,12 +379,28 @@ int main(int argc, char **argv)
       }
     }
 
+    // TODO: Check if Key was pressed once
     // Press P to toggle application of camera model
     if (droneStatus==2 && state[SDL_SCANCODE_P]) {
-
       cameraModelApplied = cameraModelApplied ^ 1;
       sleep(1);
       std::cout << "Toggle Camera Model...  status=" << cameraModelApplied << std::endl;
+    }
+
+    // Press K to toggle depiction of key points
+    if (state[SDL_SCANCODE_K]) {
+      displayKeypoints = displayKeypoints ^ 1;
+      frontend.showKeypoints(displayKeypoints);
+      sleep(1);
+      std::cout << "Toggle Key points...  status=" << displayKeypoints << std::endl;
+    }
+
+    // Press F to toggle application of fusion
+    if (state[SDL_SCANCODE_F]) {
+      enableFusion = enableFusion ^ 1;
+      vit.enableFusion(enableFusion);
+      sleep(1);
+      std::cout << "Toggle Sensor Fusion...  status=" << displayKeypoints << std::endl;
     }
 
     // TODO: process moving commands when in state 3,4, or 7
