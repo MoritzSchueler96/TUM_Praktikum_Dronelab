@@ -272,31 +272,13 @@ int main(int argc, char **argv)
       if(vit.getLastVisualisationImage(image))
       {
           // TODO: add overlays to the cv::Mat image, e.g. text
-          cv::Size image_size= image.size();
-          // create text to show whether camera model is applied or not
-          if(cameraModelApplied){
-              if(!phcam.undistortImage(image, image))
-              {
-                std::cout << "Undistortion failed" << std::endl;
-              }
-              // resize image to full HD
-              cv::resize(image, image,cv::Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_INTER_CUBIC);
-              image_size= image.size();
-              if(droneStatus==2){
-                cv::putText(image, "P: Camera Model (On)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              } else {
-                cv::putText(image, "  Camera Model (On)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              }
-          } else {
-              // resize image to full HD
-              cv::resize(image, image,cv::Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_INTER_CUBIC);
-              image_size= image.size();
-              if(droneStatus==2){
-                cv::putText(image, "P: Camera Model (Off)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              } else {
-                cv::putText(image, "  Camera Model (Off)", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              }
+          if(cameraModelApplied && !phcam.undistortImage(image, image))
+          {
+            std::cout << "Undistortion failed" << std::endl;
           }
+          cv::resize(image, image,cv::Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_INTER_CUBIC);
+          cv::Size image_size= image.size();
+
           //generate Text for drone state and add it to picture
           std::string display="state: "+std::to_string(droneStatus);
           cv::putText(image, display, cv::Point(10*FONT_SCALING, 50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING*2, FONT_COLOR, 2, false); //putText( image, text, org, font, fontScale, color, thickness, lineType, bottomLeftOrigin)
@@ -316,10 +298,14 @@ int main(int argc, char **argv)
               cv::putText(image, "A/ D: yaw left/ right", cv::Point(10*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
               cv::putText(image, "^/ v: for-/ backward", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
               cv::putText(image, "</ >: left/ right", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "F: Toggle Sensor Fusion", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
               cv::putText(image, "L: Landing; ESC: Stop", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
           }
           else if(droneStatus==2)
           {
+              cv::putText(image, "K: Toggle Keypoints", cv::Point(10*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "P: Toggle Projection", cv::Point(10*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "F: Toggle Sensor Fusion", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
               cv::putText(image, "T: Taking off; ESC: Stop", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
           }
           else
