@@ -42,6 +42,7 @@
 #include <memory>
 #include <Eigen/Core>
 #include "arp/cameras/DistortionBase.hpp"
+#include <arp/globals.hpp>
 
 /// \brief arp Main namespace of this package.
 namespace arp {

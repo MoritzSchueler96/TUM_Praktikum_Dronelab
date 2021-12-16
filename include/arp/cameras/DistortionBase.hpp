@@ -41,6 +41,7 @@
 
 #include <Eigen/Core>
 #include <arp/cameras/CameraBase.hpp>
+#include <arp/globals.hpp>
 
 /// \brief arp Main namespace of this package.
 namespace arp {

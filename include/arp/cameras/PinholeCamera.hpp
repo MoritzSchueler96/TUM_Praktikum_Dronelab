@@ -53,6 +53,7 @@
 #include "arp/cameras/CameraBase.hpp"
 #include "arp/cameras/DistortionBase.hpp"
 #include "arp/cameras/NoDistortion.hpp"
+#include <arp/globals.hpp>
 
 /// \brief arp Main namespace of this package.
 namespace arp {

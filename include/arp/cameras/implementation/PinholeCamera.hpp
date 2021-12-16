@@ -163,7 +163,7 @@ bool PinholeCamera<DISTORTION_T>::undistortImage(const cv::Mat & srcImg,
 // Projects a Euclidean point to a 2d image point (projection).
 template<class DISTORTION_T>
 ProjectionStatus PinholeCamera<DISTORTION_T>::project(
-    const Eigen::Vector3d & point, Eigen::Vector2d * imagePoint) const
+    const Eigen::Vector3d & point, Eigen::Vector2d* imagePoint) const
 {
   // TODO: implement
   // check for null pointers

@@ -4,6 +4,7 @@
 #include <Eigen/Core>
 #include <arp/kinematics/Transformation.hpp>
 #include <arp/kinematics/operators.hpp>
+#include <arp/globals.hpp>
 
 namespace arp {
 namespace kinematics {

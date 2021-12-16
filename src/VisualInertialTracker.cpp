@@ -62,7 +62,7 @@ void VisualInertialTracker::processingLoop()
       // get IMU measurement
       kinematics::ImuMeasurement imuMeasurement;
       uint64_t t = 0;
-      std::cout << "Processing started" << std::endl;
+      if(logLevel >= logINFO) std::cout << "Processing started" << std::endl;
       while (t<cameraMeasurement.timestampMicroseconds) {
         if(!imuMeasurementQueue_.PopBlocking(&imuMeasurement)){
           return;
@@ -84,7 +84,7 @@ void VisualInertialTracker::processingLoop()
         }
       }
       if (cameraMeasurement.timestampMicroseconds > t)
-        std::cout << "BAD" << std::endl;
+        if(logLevel >= logWARNING) std::cout << "Warning: BAD" << std::endl;
       DetectionVec detections;
       kinematics::Transformation T_WS, T_CW;
       cv::Mat visualisationImage = cameraMeasurement.image.clone();
@@ -96,10 +96,10 @@ void VisualInertialTracker::processingLoop()
       }
       bool ransacSuccess = frontend_->detectAndMatch(
           cameraMeasurement.image, dir, detections, T_CW, visualisationImage);
-      std::cout << "Ransac Success: "<<ransacSuccess << std::endl;    
+      if(logLevel >= logINFO) std::cout << "Ransac Success: "<<ransacSuccess << std::endl;    
       if (detections.size() > 0) {
         // feed to estimator (measurement update)
-        std::cout<<"Estimator init:"<<estimator_->isInitialised()<<std::endl;
+        if(logLevel >= logINFO) std::cout<<"Estimator init:"<<estimator_->isInitialised()<<std::endl;
         if (estimator_->isInitialised() && fusionEnabled_) {
           estimator_->addKeypointMeasurements(
               cameraMeasurement.timestampMicroseconds, detections);
@@ -120,8 +120,7 @@ void VisualInertialTracker::processingLoop()
           P.block<3, 3>(6, 6) *= 0.01 * 0.01;  // 10 cm/s
           P.block<3, 3>(9, 9) *= (1.0 / 60.0) * (1.0 / 60.0);  // 1 degree/sec
           P.block<3, 3>(12, 12) *= 0.1;  // 1 m/s^2
-          //std::cout << "init \n" << T_WS.T() << std::endl;
-          std::cout << "init"<< std::endl;
+          if(logLevel >= logINFO) std::cout << "initialize estimator..."<< std::endl;
           estimator_->initialiseState(cameraMeasurement.timestampMicroseconds,
                                       x, P);
         }
@@ -177,7 +176,7 @@ void VisualInertialTracker::visualisationLoop()
   }
 }
 
-bool VisualInertialTracker::getLastVisualisationImage(cv::Mat & visualisationImage) {
+bool VisualInertialTracker::getLastVisualisationImage(cv::Mat& visualisationImage) {
   CameraMeasurement visualisation;
   bool success = cameraVisualisationQueue_.PopNonBlocking(&visualisation);
   visualisationImage = visualisation.image;

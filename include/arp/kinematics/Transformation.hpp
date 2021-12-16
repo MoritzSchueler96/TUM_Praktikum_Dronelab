@@ -44,6 +44,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include "arp/kinematics/operators.hpp"
+#include <arp/globals.hpp>
 
 /// \brief arp Main namespace of this package.
 namespace arp {

@@ -6,7 +6,6 @@
  */
 
 #include <opencv2/highgui/highgui.hpp>
-
 #include <arp/ViEkf.hpp>
 #include <arp/kinematics/Imu.hpp>
 
@@ -199,7 +198,7 @@ bool ViEkf::predict(uint64_t from_timestampMicroseconds,
 
 // Pass a set of keypoint measurements to trigger an update.
 bool ViEkf::addKeypointMeasurements(uint64_t timestampMicroseconds,
-                  const DetectionVec & detectionVec)
+                  const DetectionVec& detectionVec)
 {
   // let's do the propagation from last time to now:
   predict(timestampLastUpdateMicrosec_, timestampMicroseconds);
@@ -257,7 +256,7 @@ bool ViEkf::addKeypointMeasurements(uint64_t timestampMicroseconds,
 }
 
 // The EKF update.
-bool ViEkf::update(const Detection & detection){
+bool ViEkf::update(const Detection& detection){
 
   // We avoid the use of kinematics::Transformation here due to quaternion normalization and so forth.
   // This only matters in order to be able to check Jacobians with numeric differentiation chained,
@@ -308,11 +307,9 @@ bool ViEkf::update(const Detection & detection){
   Eigen::Matrix2d S;  // = TODO
   S=H*P_*H.transpose()+R;
   
-
-
   // chi2 test
   if(y.transpose()*S.inverse()*y > 40.0){
-    std::cout << "Rejecting measurement " << std::endl;
+    if(logLevel >= logRELEASE) std::cout << "Rejecting measurement " << std::endl;
     return false;
   }
   // TODO: compute Kalman gain K

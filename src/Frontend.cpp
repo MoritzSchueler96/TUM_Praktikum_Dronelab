@@ -13,7 +13,6 @@
 #include <ros/ros.h>
 
 #include <brisk/brisk.h>
-
 #include <arp/Frontend.hpp>
 
 #ifndef CV_AA
@@ -95,7 +94,7 @@ bool  Frontend::loadMap(std::string path) {
     landmarks_[id] = landmark;
     id++;
   }
-  std::cout << "loaded " << landmarks_.size() << " landmarks." << std::endl;
+  if(logLevel >= logRELEASE) std::cout << "Loaded " << landmarks_.size() << " landmarks..." << std::endl;
   return landmarks_.size() > 0;
 }
 
@@ -132,7 +131,7 @@ int Frontend::detectAndDescribe(
 
 bool Frontend::ransac(const std::vector<cv::Point3d>& worldPoints, 
                       const std::vector<cv::Point2d>& imagePoints, 
-                      kinematics::Transformation & T_CW, std::vector<int>& inliers) const {
+                      kinematics::Transformation& T_CW, std::vector<int>& inliers) const {
   if(worldPoints.size() != imagePoints.size()) {
     return false;
   }
@@ -182,7 +181,9 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   std::vector<uint64_t> lmID;
   std::vector<int> keypoints_matched;
   std::vector<Landmark> landmarks;
-  std::cout << " keypoints" << keypoints.size()<<"/ "<<landmarks_.size()<<std::endl;
+
+  if(logLevel == logDEBUG1) std::cout << " keypoints" << keypoints.size()<<"/ "<<landmarks_.size()<<std::endl;
+
   for(size_t k = 0; k < keypoints.size(); ++k) { // go through all keypoints in the frame
     bool matched = false;
     uchar* keypointDescriptor = descriptors.data + k*48; // descriptors are 48 bytes long
@@ -190,6 +191,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
     Eigen::Vector3d tempPoint3d;
     cv::Point2d tempPoint2d;
     int lmID_temp;
+
     for(auto & lm : landmarks_) { 
       Eigen::Vector2d temp;
       for(auto lmDescriptor : lm.second.descriptors) { // check agains all available descriptors
@@ -231,7 +233,8 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
     //add detection
     detections.push_back(newDetection);
   }
-  std::cout << " inliers" << inliers.size()<<"/ "<<worldPoints.size()<<std::endl;
+  if(logLevel == logDEBUG1) std::cout << " inliers" << inliers.size()<<"/ "<<worldPoints.size()<<std::endl;
+
   // TODO visualise by painting stuff into visualisationImage
   //to safe runtime add points directly during calculation
   return returnvalue; // TODO return true if successful...
