@@ -249,6 +249,9 @@ int main(int argc, char **argv)
   SDL_RenderPresent(renderer);
   SDL_Texture * texture;
 
+  // to get reliable button presses
+  bool pressed = false;
+
   // enter main event loop
   std::cout << "===== Hello AR Drone ====" << std::endl;
   cv::Mat image;
@@ -291,21 +294,25 @@ int main(int argc, char **argv)
               color= cv::Scalar(0,0,255);
           }
           cv::putText(image, stream.str(), cv::Point(image_size.width-200*FONT_SCALING, 50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING*2, color, 2, false);
-          
+          if (enableFusion)
+          {
+              cv::putText(image, "F: Sensor Fusion On", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+          } else {
+              cv::putText(image, "F: Sensor Fusion Off", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+          }
+          cv::putText(image, "K: Toggle Keypoints", cv::Point(10*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+          cv::putText(image, "P: Toggle Projection", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              
           // possible commands in buttom of picture, differentiate: drone is flying or not
           if(droneStatus==3||droneStatus==4||droneStatus==7) {
-              cv::putText(image, "W/ S: up/ down", cv::Point(10*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              cv::putText(image, "A/ D: yaw left/ right", cv::Point(10*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              cv::putText(image, "^/ v: for-/ backward", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              cv::putText(image, "</ >: left/ right", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              cv::putText(image, "F: Toggle Sensor Fusion", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "W/ S: up/ down", cv::Point(10*FONT_SCALING, image_size.height-90*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "A/ D: yaw left/ right", cv::Point(10*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "^/ v: for-/ backward", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-90*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "</ >: left/ right", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
               cv::putText(image, "L: Landing; ESC: Stop", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
           }
           else if(droneStatus==2)
           {
-              cv::putText(image, "K: Toggle Keypoints", cv::Point(10*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              cv::putText(image, "P: Toggle Projection", cv::Point(10*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              cv::putText(image, "F: Toggle Sensor Fusion", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
               cv::putText(image, "T: Taking off; ESC: Stop", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
           }
           else
@@ -367,26 +374,27 @@ int main(int argc, char **argv)
 
     // TODO: Check if Key was pressed once
     // Press P to toggle application of camera model
-    if (droneStatus==2 && state[SDL_SCANCODE_P]) {
-      cameraModelApplied = cameraModelApplied ^ 1;
-      sleep(1);
-      std::cout << "Toggle Camera Model...  status=" << cameraModelApplied << std::endl;
-    }
-
-    // Press K to toggle depiction of key points
-    if (state[SDL_SCANCODE_K]) {
-      displayKeypoints = displayKeypoints ^ 1;
-      frontend.showKeypoints(displayKeypoints);
-      sleep(1);
-      std::cout << "Toggle Key points...  status=" << displayKeypoints << std::endl;
-    }
-
-    // Press F to toggle application of fusion
-    if (state[SDL_SCANCODE_F]) {
-      enableFusion = enableFusion ^ 1;
-      vit.enableFusion(enableFusion);
-      sleep(1);
-      std::cout << "Toggle Sensor Fusion...  status=" << displayKeypoints << std::endl;
+    
+    while(SDL_PollEvent(&event))
+    {
+        if(state[SDL_SCANCODE_P] && pressed){
+            cameraModelApplied = cameraModelApplied ^ 1;
+            std::cout << "Toggle Camera Model...  status=" << cameraModelApplied << std::endl;
+            pressed = false;
+        } else if(state[SDL_SCANCODE_K] && pressed){
+            displayKeypoints = displayKeypoints ^ 1;
+            frontend.showKeypoints(displayKeypoints);
+            std::cout << "Toggle Key points...  status=" << displayKeypoints << std::endl;
+            pressed = false;
+        } else if(state[SDL_SCANCODE_F] && pressed){
+            enableFusion = enableFusion ^ 1;
+            vit.enableFusion(enableFusion);
+            std::cout << "Toggle Sensor Fusion...  status=" << enableFusion << std::endl;
+            pressed = false;
+        }
+        if(state[SDL_SCANCODE_P] || state[SDL_SCANCODE_K] || state[SDL_SCANCODE_F]){
+          pressed = true;
+        } 
     }
 
     // TODO: process moving commands when in state 3,4, or 7
