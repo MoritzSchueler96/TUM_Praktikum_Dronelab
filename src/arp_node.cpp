@@ -38,7 +38,7 @@
 #define ENABLE_FUSION true
 #define LOG_LEVEL logRELEASE
 
-// enum loglevel_e {logDEBUG, logERROR, logWARNING, logDEBUG1, logRELEASE, logDEBUG2, logINFO, logDEBUG3};
+// Possible Log Levels: logDEBUG, logERROR, logWARNING, logDEBUG1, logRELEASE, logDEBUG2, logINFO, logDEBUG3
 
 // if want only DEBUG -> if(logLevel == logDEBUG)
 // if want debug, warning and error -> if(logLevel == logDEBUG1)
