@@ -36,7 +36,7 @@
 #define ENABLE_CAM_MODEL true
 #define SHOW_KEYPOINTS true
 #define ENABLE_FUSION true
-#define LOG_LEVEL logRELEASE
+#define LOG_LEVEL logDEBUG1 //logRELEASE
 
 // Possible Log Levels: logDEBUG, logERROR, logWARNING, logDEBUG1, logRELEASE, logDEBUG2, logINFO, logDEBUG3
 

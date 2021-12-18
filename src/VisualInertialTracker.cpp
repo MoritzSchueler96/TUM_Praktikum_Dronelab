@@ -100,6 +100,8 @@ void VisualInertialTracker::processingLoop()
       if(successGetState && estimator_->isInitialised()) {
         needsReInitialisation = false;
       }
+        if(logLevel == logDEBUG1) std::cout << " getState" << successGetState<<"/ "<<estimator_->isInitialised()<<std::endl;
+
       bool ransacSuccess = frontend_->detectAndMatch(
       cameraMeasurement.image, dir, detections, T_CW, visualisationImage, needsReInitialisation);
       if(logLevel >= logINFO) std::cout << "Ransac Success: "<<ransacSuccess << std::endl;    

@@ -4,7 +4,7 @@
   <!-- Launch simulator. -->
   <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
   <include file="$(find sjtu_drone)/launch/simple.launch">
-    <arg name="world_name" value="$(find sjtu_drone)/worlds/garching_kitchen.world"/><!--skokloster_castle-->
+    <arg name="world_name" value="$(find sjtu_drone)/worlds/skokloster_castle.world"/><!--skokloster_castle garching_kitchen-->
   </include>
   
   <!-- Launch visualisation. -->
@@ -29,7 +29,7 @@
     <param name="p2" value="0" />
     <rosparam param="T_SC">[0.0, 0.0, 1.0, 0.2, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]</rosparam>
     <!-- Make sure to match the map to the world loaded above! -->
-    <param name="map" value="okvis2-slam-final_map_garching.csv" /><!--okvis2-slam-final_map_skokloster-->
+    <param name="map" value="okvis2-slam-final_map_skokloster.csv" /><!--okvis2-slam-final_map_skokloster okvis2-slam-final_map_garching-->
   </node>
 
 </launch>
