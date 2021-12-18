@@ -194,17 +194,20 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
 
     for(auto & lm : landmarks_) { 
       Eigen::Vector2d temp;
-      for(auto lmDescriptor : lm.second.descriptors) { // check agains all available descriptors
-        const float dist = brisk::Hamming::PopcntofXORed(
-                keypointDescriptor, lmDescriptor.data, 3); // compute desc. distance: 3 for 3x128bit (=48 bytes)
-        // TODO check if a match and process accordingly
-        if(dist<bestDist)
-        {
-          tempPoint3d=lm.second.point;
-          tempPoint2d=keypoints[k].pt;
-          lmID_temp=lm.first;
-          bestDist=dist;
-          matched=true;
+      if (needsReInitialisation || camera_.project(T_CW*lm.second.point,&temp )==arp::cameras::ProjectionStatus::Successful)
+      {
+        for(auto lmDescriptor : lm.second.descriptors) { // check agains all available descriptors
+          const float dist = brisk::Hamming::PopcntofXORed(
+                  keypointDescriptor, lmDescriptor.data, 3); // compute desc. distance: 3 for 3x128bit (=48 bytes)
+          // TODO check if a match and process accordingly
+          if(dist<bestDist)
+          {
+            tempPoint3d=lm.second.point;
+            tempPoint2d=keypoints[k].pt;
+            lmID_temp=lm.first;
+            bestDist=dist;
+            matched=true;
+          }
         }
       }
     }
