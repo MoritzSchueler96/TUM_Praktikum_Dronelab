@@ -57,10 +57,11 @@ class Frontend
   ///                                Use (0,1,0) if in vision-only case.
   /// \parameter detections The obtained detections.
   /// \parameter visualisationImage An image to visualise stuff into. Can be the input image.
+  /// \parameter needsReInitialisation If true, T_CW *cannot* be used for efficient matching.
   /// \return True on success of RANSAC, i.e. T_CW will be valid.
   bool detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extractionDirection,
                       DetectionVec & detections, kinematics::Transformation & T_CW, 
-                      cv::Mat & visualisationImage);
+                      cv::Mat & visualisationImage, bool needsReInitialisation);
 
   /// \brief Camera model accessor.
   /// \return Const reference to the underlying camera projection model.

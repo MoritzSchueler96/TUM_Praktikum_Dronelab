@@ -162,7 +162,7 @@ bool Frontend::ransac(const std::vector<cv::Point3d>& worldPoints,
 
 bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extractionDirection, 
                               DetectionVec & detections, kinematics::Transformation & T_CW, 
-                              cv::Mat & visualisationImage)
+                              cv::Mat & visualisationImage, bool needsReInitialisation)
 {
   detections.clear(); // make sure empty
 
