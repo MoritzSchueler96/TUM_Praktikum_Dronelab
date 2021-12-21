@@ -1,13 +1,16 @@
 
 #include <gtest/gtest.h>
+#include <arp/globals.hpp>
 // Bring in my package's API, which is what I'm testing
 #include "arp/cameras/PinholeCamera.hpp"
 #include "arp/cameras/RadialTangentialDistortion.hpp"
+
 // Bring in gtest
 
 
 #include <iostream>
-
+#define LOG_LEVEL logDEBUG1 //logRELEASE
+loglevel_e logLevel = LOG_LEVEL;
 // Test the projection and unprojection
 TEST(PinholeCamera, projectBackProject)
 {

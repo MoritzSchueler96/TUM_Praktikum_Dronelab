@@ -36,7 +36,7 @@
 #define ENABLE_CAM_MODEL true
 #define SHOW_KEYPOINTS true
 #define ENABLE_FUSION true
-#define LOG_LEVEL logDEBUG1 //logRELEASE
+#define LOG_LEVEL logRELEASE //logRELEASE
 
 // Possible Log Levels: logDEBUG, logERROR, logWARNING, logDEBUG1, logRELEASE, logDEBUG2, logINFO, logDEBUG3
 
@@ -47,7 +47,7 @@
 // if want all -> if(logLevel == logDEBUG3)
 
 // set log level
-loglevel_e logLevel = LOG_LEVEL;
+loglevel_e logLevel= LOG_LEVEL;
 
 class Subscriber
 {

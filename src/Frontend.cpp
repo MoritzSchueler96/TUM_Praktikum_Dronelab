@@ -49,7 +49,7 @@ Frontend::Frontend(int imageWidth, int imageHeight,
   distCoeffs_.at<double>(3) = p2;
   
   // BRISK detector and descriptor
-  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(10, 0, 100, 100));//10,0,100,2000
+  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(10, 0, 100, 200));//10,0,100,2000
   //working limit 25-35 for castle, kitchen 
   extractor_.reset(new brisk::BriskDescriptorExtractor(true, false));
 }
@@ -182,21 +182,27 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   std::vector<uint64_t> lmID;
   std::vector<int> keypoints_matched;
   std::vector<Landmark> landmarks;
-std::vector<uint64_t> lms;
-int lappen=0;
+  std::vector<uint64_t> lms;
+  int reduceLandmarks=0;
+  //loop to decide which landmarks are visible
+  //is done before keypoint loop to reduce runtime (visibility check only once instead for each keypoint)
   for(auto & lm : landmarks_)
   {
-    lappen++;
+    reduceLandmarks++;
     Eigen::Vector2d temp;
-      if (needsReInitialisation || camera_.project(T_CW*lm.second.point,&temp )==arp::cameras::ProjectionStatus::Successful)
+    //if pose T_CW is valid, check if landmark visible and add it to the list
+    //if pose T_CW is invalid, add all landmarks
+    if (needsReInitialisation || camera_.project(T_CW*lm.second.point,&temp )==arp::cameras::ProjectionStatus::Successful)
+    {
+      //for castle simulation 12000 landmarks are too much
+      //therefore reduction of landmarks by factor 4, only if pose T_CW is invalid
+      if(reduceLandmarks>needsReInitialisation*3)
       {
-        if(lappen>needsReInitialisation*3)
-        {
-          lms.push_back(lm.first);
-          lappen=0;
-        }
-        
+        lms.push_back(lm.first);
+        reduceLandmarks=0;
       }
+      
+    }
   }
 
   if(logLevel == logDEBUG1) std::cout << " landmarks" << landmarks_.size()<<"/ "<<lms.size()<<std::endl;
@@ -210,7 +216,7 @@ int lappen=0;
     Eigen::Vector3d tempPoint3d;
     cv::Point2d tempPoint2d;
     int lmID_temp;
-
+    //loop through visible landmarks
     for(auto & i : lms) { 
       //Eigen::Vector2d temp;
       //if (needsReInitialisation || camera_.project(T_CW*landmarks_[i].second.point,&temp )==arp::cameras::ProjectionStatus::Successful)
@@ -219,8 +225,10 @@ int lappen=0;
           const float dist = brisk::Hamming::PopcntofXORed(
                   keypointDescriptor, lmDescriptor.data, 3); // compute desc. distance: 3 for 3x128bit (=48 bytes)
           // TODO check if a match and process accordingly
+          //check if distance of landmark is below threshold or distance of already checked landmarks
           if(dist<bestDist)
           {
+            //cache actual best match
             tempPoint3d=landmarks_[i].point;
             tempPoint2d=keypoints[k].pt;
             lmID_temp=i;
@@ -232,11 +240,13 @@ int lappen=0;
     }
     if (matched==true)
     {
+      //write best matched point to list for ransac 
       worldPoints.push_back(cv::Point3d(tempPoint3d(0),tempPoint3d(1), tempPoint3d(2)) );
       imagePoints.push_back(keypoints[k].pt);
       lmID.push_back(lmID_temp);
       keypoints_matched.push_back( k);
-      if(displayKeypoints_) cv::circle(visualisationImage, tempPoint2d, 10, cv::Scalar(255,0,0), 1); //blue
+      //add marker of matched keypoints to visualisation Image
+      if(displayKeypoints_) cv::circle(visualisationImage, tempPoint2d, 10, cv::Scalar(0,0,255), 1); //red
     }
   }
   std::vector<int> inliers;
@@ -245,6 +255,7 @@ int lappen=0;
   if(logLevel == logDEBUG1) std::cout << " ransac" << returnvalue<<std::endl;
 
   // TODO set detections
+  //loop through to inlier points of ransac to return detections
   for(auto & index: inliers)
   {
     Detection newDetection;
@@ -253,7 +264,8 @@ int lappen=0;
     newDetection.keypoint=keypoint;
     newDetection.landmark=landmark;
     newDetection.landmarkId=lmID[index];
-    if(displayKeypoints_) cv::circle(visualisationImage, imagePoints[index], 10, cv::Scalar(0,0,255), 1); //red
+    //add inlier points to image 
+    if(displayKeypoints_) cv::circle(visualisationImage, imagePoints[index], 10, cv::Scalar(0,255,0), 1); //green
     //add detection
     detections.push_back(newDetection);
   }

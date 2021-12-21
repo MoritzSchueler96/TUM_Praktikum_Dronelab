@@ -1,4 +1,5 @@
 // Bring in my package's API, which is what I'm testing
+#include <arp/globals.hpp>
 #include "arp/ViEkf.hpp"
 #include "arp/cameras/PinholeCamera.hpp"
 #include "arp/cameras/RadialTangentialDistortion.hpp"
@@ -12,6 +13,7 @@
 
 #include <atomic>
 #include <iostream>
+
 
 namespace { // anonymous namespace to protect local definitions (e.g. ImuTest)
 

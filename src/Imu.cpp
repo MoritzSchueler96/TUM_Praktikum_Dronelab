@@ -56,6 +56,7 @@ RobotState calc_fc(const RobotState& state, const ImuMeasurement& z)
  /// \brief Adds two robot states.
   /// @param[in] state RobotState with current configuration.
   /// @param[in] delta Second RobotState to be added.
+  /// @param[in] normalize Decision if Quaternion needs normalization.
   /// @param[out] outState The calculated state.
 RobotState addRobotStates(const RobotState& state, const RobotState& delta, bool normalize)
 {
@@ -109,6 +110,12 @@ bool Imu::stateTransition(const RobotState& state_k_minus_1,
   }
   
   // TODO: implement trapezoidal integration
+  //Check if input Quaternion is normalized
+  if(abs(state_k_minus_1.q_WS.coeffs().norm()-1)>1e-10)
+  {
+    if(logLevel == logDEBUG1) std::cout << " Invalid state_k_minus_1"<<std::endl;
+    return false;
+  }
   RobotState delta_x1= multRobotState(calc_fc(state_k_minus_1,z_k_minus_1),dt);
   RobotState state_delta_x1=addRobotStates(state_k_minus_1, delta_x1, true);
 

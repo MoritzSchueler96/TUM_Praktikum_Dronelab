@@ -280,7 +280,7 @@ bool ViEkf::update(const Detection& detection){
   // TODO: transform the corner point from world frame into the camera frame
   // (remember the camera projection will assume the point is represented
   // in camera coordinates):
-  //Transform world point to Sensor coordiantes and then to camera, inverted transfomartion
+  //Transform world point to Sensor coordiantes and then to camera, inverted transformation
   // we need T_CS*T_SW*hp_W
   Eigen::Vector4d hp_C(0,0,0,1);
   hp_C=T_SC_.inverse()*T_WS.inverse()*hp_W;
@@ -296,7 +296,7 @@ bool ViEkf::update(const Detection& detection){
       // TODO: check validity of projection -- return false if not successful!
     return false;
   }
-    
+      
   y=detection.keypoint-h_x;
 
   // TODO: calculate measurement Jacobian H
