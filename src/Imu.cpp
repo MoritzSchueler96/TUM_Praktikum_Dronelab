@@ -24,64 +24,72 @@ Eigen::Matrix<double, 15, 15> calcFc(const RobotState& state, const ImuMeasureme
   Eigen::Matrix<double,3,3> cross_R_WS_a_s_ba=crossMx(R_WS_a_s_ba);
                                     
   Eigen::Matrix<double,15,15> F_c;
-  F_c<<  Zero, Zero, Eye, Zero, Zero,
-        Zero, Zero, Zero, -R_WS, Zero,
-        Zero, -cross_R_WS_a_s_ba, Zero, Zero, -R_WS,
-        Zero, Zero, Zero, Zero, Zero,
-        Zero, Zero, Zero, Zero, Zero;
+  F_c << Zero, Zero, Eye, Zero, Zero,
+         Zero, Zero, Zero, -R_WS, Zero,
+         Zero, -cross_R_WS_a_s_ba, Zero, Zero, -R_WS,
+         Zero, Zero, Zero, Zero, Zero,
+         Zero, Zero, Zero, Zero, Zero;
   return F_c;
 }
 
-
+ /// \brief Calculate fc from Robot State and IMU measurement
+  /// @param[in] state RobotState with current configuration.
+  /// @param[in] z latest IMU measurement.
+  /// @param[out] fc The calculated state derivative.
 RobotState calc_fc(const RobotState& state, const ImuMeasurement& z)
 {
-  RobotState returnvalue;
+  RobotState fc;
 
   Eigen::Quaterniond temp(0,0,0,0);
   temp.vec()=z.omega_S-state.b_g;
   temp.w()=0;
 
-  returnvalue.q_WS=(state.q_WS*temp);
-  returnvalue.q_WS.coeffs()*=0.5;
-  returnvalue.v_W=state.q_WS.toRotationMatrix()*(z.acc_S-state.b_a)+Eigen::Vector3d(0,0,-9.81);
-  returnvalue.t_WS=state.v_W;
-  returnvalue.b_a=Eigen::Vector3d::Zero();
-  returnvalue.b_g=Eigen::Vector3d::Zero();
-  return returnvalue;
+  fc.q_WS=(state.q_WS*temp);
+  fc.q_WS.coeffs()*=0.5;
+  fc.v_W=state.q_WS.toRotationMatrix()*(z.acc_S-state.b_a)+Eigen::Vector3d(0,0,-9.81);
+  fc.t_WS=state.v_W;
+  fc.b_a=Eigen::Vector3d::Zero();
+  fc.b_g=Eigen::Vector3d::Zero();
+  return fc;
 }
 
-
-RobotState AdditionState_delta(const RobotState& state, const RobotState& delta, bool normalize)
+ /// \brief Adds two robot states.
+  /// @param[in] state RobotState with current configuration.
+  /// @param[in] delta Second RobotState to be added.
+  /// @param[out] outState The calculated state.
+RobotState addRobotStates(const RobotState& state, const RobotState& delta, bool normalize)
 {
-  RobotState returnvalue;
-  returnvalue.t_WS=state.t_WS+delta.t_WS;
-  returnvalue.v_W=state.v_W+delta.v_W;
-  returnvalue.b_g=state.b_g+delta.b_g;
-  returnvalue.b_a=state.b_a+delta.b_a;
-  returnvalue.q_WS.coeffs()=delta.q_WS.coeffs()+state.q_WS.coeffs();
+  RobotState outState;
+  outState.t_WS=state.t_WS+delta.t_WS;
+  outState.v_W=state.v_W+delta.v_W;
+  outState.b_g=state.b_g+delta.b_g;
+  outState.b_a=state.b_a+delta.b_a;
+  outState.q_WS.coeffs()=delta.q_WS.coeffs()+state.q_WS.coeffs();
 
   if (normalize)
   {
-    returnvalue.q_WS.normalize();
+    outState.q_WS.normalize();
   }
 
-  return returnvalue;
+  return outState;
 }
 
-
-RobotState MultiplicationState(const RobotState& state, double factor)
+ /// \brief Multiplies a factor to a robot state.
+  /// @param[in] state RobotState with current configuration.
+  /// @param[in] factor factor to be multiplied with RobotState.
+  /// @param[out] outState The calculated state.
+RobotState multRobotState(const RobotState& state, double factor)
 {
-  RobotState returnvalue;
-  returnvalue.t_WS=factor*state.t_WS;
-  returnvalue.v_W=factor*state.v_W;
-  returnvalue.b_g=factor*state.b_g;
-  returnvalue.b_a=factor*state.b_a;
-  returnvalue.q_WS.vec()=factor*state.q_WS.vec();
-  returnvalue.q_WS.w()=factor*state.q_WS.w();
+  RobotState outState;
+  outState.t_WS=factor*state.t_WS;
+  outState.v_W=factor*state.v_W;
+  outState.b_g=factor*state.b_g;
+  outState.b_a=factor*state.b_a;
+  outState.q_WS.vec()=factor*state.q_WS.vec();
+  outState.q_WS.w()=factor*state.q_WS.w();
 
-  return returnvalue;
+  return outState;
 }
-
 
 bool Imu::stateTransition(const RobotState& state_k_minus_1,
                           const ImuMeasurement& z_k_minus_1,
@@ -101,12 +109,12 @@ bool Imu::stateTransition(const RobotState& state_k_minus_1,
   }
   
   // TODO: implement trapezoidal integration
-  RobotState delta_x1= MultiplicationState(calc_fc(state_k_minus_1,z_k_minus_1),dt);
-  RobotState state_delta_x1=AdditionState_delta(state_k_minus_1, delta_x1, true);
+  RobotState delta_x1= multRobotState(calc_fc(state_k_minus_1,z_k_minus_1),dt);
+  RobotState state_delta_x1=addRobotStates(state_k_minus_1, delta_x1, true);
 
-  RobotState delta_x2= MultiplicationState(calc_fc(state_delta_x1,z_k),dt);
-  RobotState delta_x=MultiplicationState(AdditionState_delta(delta_x1, delta_x2, false),0.5);
-  state_k=AdditionState_delta(state_k_minus_1, delta_x, true);
+  RobotState delta_x2= multRobotState(calc_fc(state_delta_x1,z_k),dt);
+  RobotState delta_x=multRobotState(addRobotStates(delta_x1, delta_x2, false),0.5);
+  state_k=addRobotStates(state_k_minus_1, delta_x, true);
   
   if (jacobian) {
     // TODO: if requested, impement jacobian of trapezoidal integration with chain rule

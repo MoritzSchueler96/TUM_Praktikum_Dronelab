@@ -149,7 +149,7 @@ bool readCameraParameters(ros::NodeHandle& nh, camParams& cp){
   return true;
 }
 
- /// \brief Read Cam Parameter from launch file and initialize Cam Model
+ /// \brief initialize Cam Model
   /// @param[in] nh NodeHandle.
   /// @param[in] cp Struct with camera parameters.
   /// @param[out] camMod Initialized camera model  
@@ -165,6 +165,13 @@ arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamer
   return camMod;
 }
 
+ /// \brief initialize Visual Inertial Tracker
+  /// @param[in] nh NodeHandle.
+  /// @param[in] vit Visual Inertial Tracker Objcet.
+  /// @param[in] frontend Frontend Object.
+  /// @param[in] viEkf Kalman Filter Object.
+  /// @param[in] pubState Publisher Object.
+  /// @param[out] success Whether setup was successfull. 
 bool setupVisualInertialTracker(ros::NodeHandle& nh, arp::VisualInertialTracker& vit, arp::Frontend& frontend, arp::ViEkf& viEkf, arp::StatePublisher& pubState){
   
   // set up frontend
@@ -225,7 +232,7 @@ int main(int argc, char **argv)
   bool cameraModelApplied = ENABLE_CAM_MODEL; 
   
   // setup visual inertial tracker
-  arp::Frontend frontend(CAM_IMAGE_WIDTH,CAM_IMAGE_HEIGHT , cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2);
+  arp::Frontend frontend(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2);
   arp::ViEkf viEkf;
   arp::VisualInertialTracker vit;
   arp::StatePublisher pubState(nh); // state publisher -- provided for rviz visualisation of drone pose:
@@ -290,31 +297,38 @@ int main(int argc, char **argv)
 
       // check states!
       auto droneStatus = autopilot.droneStatus();
-
       auto droneBattery=autopilot.droneBattery();
+
       // render image, if there is a new one available
       if(vit.getLastVisualisationImage(image))
       {
           // TODO: add overlays to the cv::Mat image, e.g. text
+
+          // apply camera model if enabled
           if(cameraModelApplied && !phcam.undistortImage(image, image))
           {
             if(logLevel >= logWARNING) std::cout << "Warning: Undistortion failed..." << std::endl;
           }
+          // resize image
           cv::resize(image, image,cv::Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_INTER_CUBIC);
           cv::Size image_size= image.size();
 
-          //generate Text for drone state and add it to picture
+          // generate Text for drone state and add it to picture
           std::string display="state: "+std::to_string(droneStatus);
           cv::putText(image, display, cv::Point(10*FONT_SCALING, 50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING*2, FONT_COLOR, 2, false); //putText( image, text, org, font, fontScale, color, thickness, lineType, bottomLeftOrigin)
-          //creates text of Batterie charge in 0.1% and add it to picture
+          
+          // creates text of Batterie charge in 0.1% and add it to picture
           std::stringstream stream;
           stream<< std::fixed<<std::setprecision(1)<<droneBattery <<"%";
           auto color = FONT_COLOR;
+
           // change font color to red if low battery
           if(droneBattery<10){
               color= cv::Scalar(0,0,255);
           }
           cv::putText(image, stream.str(), cv::Point(image_size.width-200*FONT_SCALING, 50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING*2, color, 2, false);
+          
+          // possible commands in buttom of picture, differentiate: drone is flying or not
           if (enableFusion)
           {
               cv::putText(image, "F: Sensor Fusion On", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
@@ -324,7 +338,6 @@ int main(int argc, char **argv)
           cv::putText(image, "K: Toggle Keypoints", cv::Point(10*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
           cv::putText(image, "P: Toggle Projection", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
               
-          // possible commands in buttom of picture, differentiate: drone is flying or not
           if(droneStatus==3||droneStatus==4||droneStatus==7) {
               cv::putText(image, "W/ S: up/ down", cv::Point(10*FONT_SCALING, image_size.height-90*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
               cv::putText(image, "A/ D: yaw left/ right", cv::Point(10*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
@@ -408,7 +421,7 @@ int main(int argc, char **argv)
         } 
     }
 
-    // TODO: process moving commands when in state 3,4, or 7
+    // TODO: process moving commands when in state 3, 4 or 7
     if(droneStatus==3||droneStatus==4||droneStatus==7) 
     {
         double forward=0;
@@ -469,7 +482,6 @@ int main(int argc, char **argv)
     }
 
   }
-
 
   // make sure to land the drone...
   bool success = autopilot.land();
