@@ -49,7 +49,8 @@ Frontend::Frontend(int imageWidth, int imageHeight,
   distCoeffs_.at<double>(3) = p2;
   
   // BRISK detector and descriptor
-  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(10, 0, 100, 2000));
+  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(10, 0, 100, 100));//10,0,100,2000
+  //working limit 25-35 for castle, kitchen 
   extractor_.reset(new brisk::BriskDescriptorExtractor(true, false));
 }
 
@@ -157,12 +158,12 @@ bool Frontend::ransac(const std::vector<cv::Point3d>& worldPoints,
   }
   T_CW = kinematics::Transformation(T_CW_mat);
 
-  return ransacSuccess && (double(inliers.size())/double(imagePoints.size()) > 0.7);//0.7
+  return ransacSuccess && (double(inliers.size())/double(imagePoints.size()) > 0.5);//0.7
 }
 
 bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extractionDirection, 
                               DetectionVec & detections, kinematics::Transformation & T_CW, 
-                              cv::Mat & visualisationImage)
+                              cv::Mat & visualisationImage, bool needsReInitialisation)
 {
   detections.clear(); // make sure empty
 
@@ -181,30 +182,51 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   std::vector<uint64_t> lmID;
   std::vector<int> keypoints_matched;
   std::vector<Landmark> landmarks;
+std::vector<uint64_t> lms;
+int lappen=0;
+  for(auto & lm : landmarks_)
+  {
+    lappen++;
+    Eigen::Vector2d temp;
+      if (needsReInitialisation || camera_.project(T_CW*lm.second.point,&temp )==arp::cameras::ProjectionStatus::Successful)
+      {
+        if(lappen>needsReInitialisation*3)
+        {
+          lms.push_back(lm.first);
+          lappen=0;
+        }
+        
+      }
+  }
 
-  if(logLevel == logDEBUG1) std::cout << " keypoints" << keypoints.size()<<"/ "<<landmarks_.size()<<std::endl;
+  if(logLevel == logDEBUG1) std::cout << " landmarks" << landmarks_.size()<<"/ "<<lms.size()<<std::endl;
+  if(logLevel == logDEBUG1) std::cout << " init" << needsReInitialisation<<std::endl;
+  if(logLevel == logDEBUG1) std::cout << " keypoints" << keypoints.size()<<std::endl;
 
   for(size_t k = 0; k < keypoints.size(); ++k) { // go through all keypoints in the frame
     bool matched = false;
     uchar* keypointDescriptor = descriptors.data + k*48; // descriptors are 48 bytes long
-    float bestDist=60.0;
+    float bestDist=60.0;//60 is given threshold
     Eigen::Vector3d tempPoint3d;
     cv::Point2d tempPoint2d;
     int lmID_temp;
 
-    for(auto & lm : landmarks_) { 
-      Eigen::Vector2d temp;
-      for(auto lmDescriptor : lm.second.descriptors) { // check agains all available descriptors
-        const float dist = brisk::Hamming::PopcntofXORed(
-                keypointDescriptor, lmDescriptor.data, 3); // compute desc. distance: 3 for 3x128bit (=48 bytes)
-        // TODO check if a match and process accordingly
-        if(dist<bestDist)
-        {
-          tempPoint3d=lm.second.point;
-          tempPoint2d=keypoints[k].pt;
-          lmID_temp=lm.first;
-          bestDist=dist;
-          matched=true;
+    for(auto & i : lms) { 
+      //Eigen::Vector2d temp;
+      //if (needsReInitialisation || camera_.project(T_CW*landmarks_[i].second.point,&temp )==arp::cameras::ProjectionStatus::Successful)
+      {
+        for(auto lmDescriptor : landmarks_[i].descriptors) { // check agains all available descriptors
+          const float dist = brisk::Hamming::PopcntofXORed(
+                  keypointDescriptor, lmDescriptor.data, 3); // compute desc. distance: 3 for 3x128bit (=48 bytes)
+          // TODO check if a match and process accordingly
+          if(dist<bestDist)
+          {
+            tempPoint3d=landmarks_[i].point;
+            tempPoint2d=keypoints[k].pt;
+            lmID_temp=i;
+            bestDist=dist;
+            matched=true;
+          }
         }
       }
     }
@@ -220,6 +242,8 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   std::vector<int> inliers;
   // TODO run RANSAC (to remove outliers and get pose T_CW estimate)
   bool returnvalue= ransac(worldPoints, imagePoints, T_CW, inliers);
+  if(logLevel == logDEBUG1) std::cout << " ransac" << returnvalue<<std::endl;
+
   // TODO set detections
   for(auto & index: inliers)
   {
