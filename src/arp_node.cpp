@@ -47,7 +47,7 @@
 // if want all -> if(logLevel == logDEBUG3)
 
 // set log level
-loglevel_e logLevel= LOG_LEVEL;
+loglevel_e logLevel = LOG_LEVEL;
 
 class Subscriber
 {

@@ -9,8 +9,8 @@
 
 
 #include <iostream>
-#define LOG_LEVEL logDEBUG1 //logRELEASE
-loglevel_e logLevel = LOG_LEVEL;
+loglevel_e logLevel = logRELEASE;
+
 // Test the projection and unprojection
 TEST(PinholeCamera, projectBackProject)
 {
