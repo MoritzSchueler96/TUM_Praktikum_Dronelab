@@ -170,7 +170,7 @@ bool setupVisualInertialTracker(ros::NodeHandle& nh, arp::VisualInertialTracker&
   ROS_FATAL_STREAM("could not load map from " << mapPath << " !");
   
   // set up EKF
-  ROS_INFO("Setup EKF...");
+  ROS_DEBUG("Setup EKF...");
   Eigen::Matrix4d T_SC_mat;
   std::vector<double> T_SC_array;
   if(!nh.getParam("arp_node/T_SC", T_SC_array))
@@ -185,7 +185,7 @@ bool setupVisualInertialTracker(ros::NodeHandle& nh, arp::VisualInertialTracker&
   viEkf.setCameraIntrinsics(frontend.camera());
 
   // set up visual-inertial tracking
-  ROS_INFO("Setup VIT...");
+  ROS_DEBUG("Setup VIT...");
   vit.setFrontend(frontend);
   vit.setEstimator(viEkf);
 
@@ -203,6 +203,13 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
   image_transport::ImageTransport it(nh);
 
+  /*
+  if( ros::console::set_logger_level("ros.ardrone_practicals.debug", ros::console::levels::Debug) ) {
+    ros::console::notifyLoggerLevelsChanged();
+  }
+  ROS_INFO_NAMED("custom", "Help");
+  */
+ 
   // read camera parameters
   camParams cp;
   ROS_INFO("Read camera parameters...");
@@ -412,50 +419,50 @@ int main(int argc, char **argv)
         double rotateLeft=0;
         //UP Arrow: move drone forward
         if (state[SDL_SCANCODE_UP]&&!state[SDL_SCANCODE_DOWN]) {
-            ROS_INFO("Forward ...     ");
+            ROS_DEBUG_NAMED("custom", "Forward ...     ");
             forward+=1;
 
         }
         //Down Arrow: move drone backwards
         if (state[SDL_SCANCODE_DOWN]&&!state[SDL_SCANCODE_UP]) {
-            ROS_INFO("Backwards ...   ");
+            ROS_DEBUG_NAMED("custom", "Backwards ...   ");
             forward-=1;
         }
         //Right Arrow: move drone right
         if (state[SDL_SCANCODE_RIGHT]&&!state[SDL_SCANCODE_LEFT]) {
-            ROS_INFO("Right ...       ");
+            ROS_DEBUG_NAMED("custom", "Right ...       ");
             left-=1;
         }
         //Left Arrow: move drone left
         if (state[SDL_SCANCODE_LEFT]&&!state[SDL_SCANCODE_RIGHT]) {
-            ROS_INFO("Left ...        ");
+            ROS_DEBUG_NAMED("custom", "Left ...        ");
             left+=1;
         }
         //'W': move drone Up
         if (state[SDL_SCANCODE_W]&&!state[SDL_SCANCODE_S]) {
-            ROS_INFO("Up ...          ");
+            ROS_DEBUG_NAMED("custom", "Up ...          ");
             up+=1;
         }
         //'S': move drone Down
         if (state[SDL_SCANCODE_S]&&!state[SDL_SCANCODE_W]) {
-            ROS_INFO("Down ...        ");
+            ROS_DEBUG_NAMED("custom", "Down ...        ");
             up-=1;
         }
         //'A': yaw drone left
         if (state[SDL_SCANCODE_A]&&!state[SDL_SCANCODE_D]) {
-            ROS_INFO("Rotate Left ... ");
+            ROS_DEBUG_NAMED("custom", "Rotate Left ... ");
             rotateLeft+=1;
         }
         //'D': yaw drone right
         if (state[SDL_SCANCODE_D]&& !state[SDL_SCANCODE_A]) {
-            ROS_INFO("Rotate Right ...");
+            ROS_DEBUG_NAMED("custom", "Rotate Right ...");
             rotateLeft-=1;
         }
-        if(forward==0&&left==0&&up==0&rotateLeft==0) ROS_INFO("Hover ...       ");
+        if(forward==0&&left==0&&up==0&rotateLeft==0) ROS_DEBUG_NAMED("custom", "Hover ...       ");
 
         std::cout << std::setprecision(2) << std::fixed;
-        ROS_INFO_STREAM("     status=" << droneStatus);
-        ROS_INFO_STREAM("...             battery=" << droneBattery);
+        ROS_DEBUG_STREAM_NAMED("custom", "     status=" << droneStatus);
+        ROS_DEBUG_STREAM_NAMED("custom", "...             battery=" << droneBattery);
 
         //forward moving instructions to Autopilot class
         if (!autopilot.manualMove(forward, left, up, rotateLeft)) ROS_WARN("Warning: Drone Movement failed...");

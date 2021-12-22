@@ -170,7 +170,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   static bool oldIni;
   if(oldIni!=needsReInitialisation)
   {
-    ROS_INFO_STREAM("Re-Init: " << needsReInitialisation);
+    ROS_INFO_STREAM_NAMED("custom", "Re-Init: " << needsReInitialisation);
     oldIni=needsReInitialisation;
   }
   
@@ -214,7 +214,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
       reduceLandmarks++;
       reduceLmCnt++;
       if (reduceLmCnt > 750000){
-        ROS_DEBUG_STREAM("skip: " << skipThres << "cnt: " << reduceLmCnt);
+        ROS_DEBUG_STREAM_NAMED("custom", "skip: " << skipThres << "cnt: " << reduceLmCnt);
         reduceLmCnt = 0;
         skipThres = std::min(skipThres+1, 4);
       }
