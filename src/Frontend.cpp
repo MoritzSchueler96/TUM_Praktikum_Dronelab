@@ -10,6 +10,7 @@
 #include <sstream>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/calib3d.hpp>
+#include <opencv2/core/eigen.hpp>
 #include <ros/ros.h>
 
 #include <brisk/brisk.h>
@@ -49,7 +50,7 @@ Frontend::Frontend(int imageWidth, int imageHeight,
   distCoeffs_.at<double>(3) = p2;
   
   // BRISK detector and descriptor
-  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(10, 0, 100, 200));//10,0,100,2000
+  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(10, 0, 100, 500));//10,0,100,2000
   //working limit 25-35 for castle, kitchen 
   extractor_.reset(new brisk::BriskDescriptorExtractor(true, false));
 }
@@ -184,44 +185,46 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   std::vector<Landmark> landmarks;
   std::vector<uint64_t> lms;
   int reduceLandmarks=0;
-  //loop to decide which landmarks are visible
-  //is done before keypoint loop to reduce runtime (visibility check only once instead for each keypoint)
-  for(auto & lm : landmarks_)
-  {
-    reduceLandmarks++;
-    Eigen::Vector2d temp;
-    //if pose T_CW is valid, check if landmark visible and add it to the list
-    //if pose T_CW is invalid, add all landmarks
-    if (needsReInitialisation || camera_.project(T_CW*lm.second.point,&temp )==arp::cameras::ProjectionStatus::Successful)
-    {
-      //for castle simulation 12000 landmarks are too much
-      //therefore reduction of landmarks by factor 4, only if pose T_CW is invalid
-      if(reduceLandmarks>needsReInitialisation*3)
-      {
-        lms.push_back(lm.first);
-        reduceLandmarks=0;
-      }
-      
-    }
-  }
 
   if(logLevel == logDEBUG1) std::cout << " landmarks" << landmarks_.size()<<"/ "<<lms.size()<<std::endl;
   if(logLevel == logDEBUG1) std::cout << " init" << needsReInitialisation<<std::endl;
   if(logLevel == logDEBUG1) std::cout << " keypoints" << keypoints.size()<<std::endl;
 
-  for(size_t k = 0; k < keypoints.size(); ++k) { // go through all keypoints in the frame
+  //loop through landmarks
+  for(auto & lm : landmarks_) { 
+    Eigen::Vector2d temp;
+    Eigen::Vector4d temp4d;
+
+    temp4d << lm.second.point, 1.0;
+
+    std::cout << "T_CW: " << T_CW.T() << "lm.sc.pt: " << lm.second.point << "temp4d: " << temp4d << std::endl;
+    // skip invisible landmarks
+    /*
+    if (!needsReInitialisation && !(camera_.project(T_CW*lm.second.point, &temp)==arp::cameras::ProjectionStatus::Successful)){
+      continue;
+    }*/
+    camera_.project(T_CW*lm.second.point, &temp);
+    
     bool matched = false;
-    uchar* keypointDescriptor = descriptors.data + k*48; // descriptors are 48 bytes long
     float bestDist=60.0;//60 is given threshold
     Eigen::Vector3d tempPoint3d;
     cv::Point2d tempPoint2d;
     int lmID_temp;
-    //loop through visible landmarks
-    for(auto & i : lms) { 
-      //Eigen::Vector2d temp;
-      //if (needsReInitialisation || camera_.project(T_CW*landmarks_[i].second.point,&temp )==arp::cameras::ProjectionStatus::Successful)
+    int keyID_temp;
+
+    for(size_t k = 0; k < keypoints.size(); ++k) { // go through all keypoints in the frame
+      uchar* keypointDescriptor = descriptors.data + k*48; // descriptors are 48 bytes long
       {
-        for(auto lmDescriptor : landmarks_[i].descriptors) { // check agains all available descriptors
+        Eigen::Vector2d t2d;
+        std::cout << "key: " << keypoints[k].pt << "temp: " << temp << std::endl; 
+        cv2eigen(keypoints[k].pt, t2d);
+        std::cout << "key: " << t2d << "temp: " << temp << std::endl; 
+        std::cout << "diff: " << temp - t2d << "norm: " << (temp - t2d).norm() << std::endl;
+        if((temp - t2d).norm() > 30.0){
+            std::cout << "bad" << std::endl;
+            continue;
+        }
+        for(auto lmDescriptor : lm.second.descriptors) { // check agains all available descriptors
           const float dist = brisk::Hamming::PopcntofXORed(
                   keypointDescriptor, lmDescriptor.data, 3); // compute desc. distance: 3 for 3x128bit (=48 bytes)
           // TODO check if a match and process accordingly
@@ -229,9 +232,10 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
           if(dist<bestDist)
           {
             //cache actual best match
-            tempPoint3d=landmarks_[i].point;
+            tempPoint3d=lm.second.point;
             tempPoint2d=keypoints[k].pt;
-            lmID_temp=i;
+            lmID_temp=lm.first;
+            keyID_temp = k;
             bestDist=dist;
             matched=true;
           }
@@ -242,9 +246,9 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
     {
       //write best matched point to list for ransac 
       worldPoints.push_back(cv::Point3d(tempPoint3d(0),tempPoint3d(1), tempPoint3d(2)) );
-      imagePoints.push_back(keypoints[k].pt);
+      imagePoints.push_back(tempPoint2d);
       lmID.push_back(lmID_temp);
-      keypoints_matched.push_back( k);
+      keypoints_matched.push_back(keyID_temp);
       //add marker of matched keypoints to visualisation Image
       if(displayKeypoints_) cv::circle(visualisationImage, tempPoint2d, 10, cv::Scalar(0,0,255), 1); //red
     }
