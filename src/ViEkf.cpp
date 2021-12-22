@@ -317,7 +317,7 @@ bool ViEkf::update(const Detection& detection){
   
   // chi2 test
   if(y.transpose()*S.inverse()*y > 40.0){
-    if(logLevel >= logRELEASE) std::cout << "Rejecting measurement " << std::endl;
+    if(logLevel >= logINFO) std::cout << "Rejecting measurement " << std::endl;
     return false;
   }
   // TODO: compute Kalman gain K

@@ -36,7 +36,7 @@
 #define ENABLE_CAM_MODEL true
 #define SHOW_KEYPOINTS true
 #define ENABLE_FUSION true
-#define LOG_LEVEL logRELEASE //logRELEASE
+#define LOG_LEVEL logRELEASE
 
 // Possible Log Levels: logDEBUG, logERROR, logWARNING, logDEBUG1, logRELEASE, logDEBUG2, logINFO, logDEBUG3
 
@@ -231,8 +231,18 @@ int main(int argc, char **argv)
   // activate camera model
   bool cameraModelApplied = ENABLE_CAM_MODEL; 
   
+  // setup frontend
+  std::string map;
+  int numKeypoints;
+  if(!nh.getParam("/arp_node/map", map)) ROS_FATAL("error loading map");
+  if (map == "okvis2-slam-final_map_garching.csv") {
+    numKeypoints = 2000;
+  } else {
+    numKeypoints = 400;
+  }
+  arp::Frontend frontend(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2, numKeypoints);
+  
   // setup visual inertial tracker
-  arp::Frontend frontend(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2);
   arp::ViEkf viEkf;
   arp::VisualInertialTracker vit;
   arp::StatePublisher pubState(nh); // state publisher -- provided for rviz visualisation of drone pose:
