@@ -113,7 +113,7 @@ bool Imu::stateTransition(const RobotState& state_k_minus_1,
   //Check if input Quaternion is normalized
   if(abs(state_k_minus_1.q_WS.coeffs().norm()-1)>1e-10)
   {
-    if(logLevel == logDEBUG1) std::cout << " Invalid state_k_minus_1"<<std::endl;
+    ROS_DEBUG("Invalid state_k_minus_1");
     return false;
   }
   RobotState delta_x1= multRobotState(calc_fc(state_k_minus_1,z_k_minus_1),dt);

@@ -43,7 +43,7 @@
 #include <vector>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <arp/globals.hpp>
+#include <ros/console.h>
 
 /// \brief arp Main namespace of this package.
 namespace arp {

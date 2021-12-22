@@ -86,7 +86,7 @@ bool ViEkf::getState(uint64_t timestampMicroseconds,
     if (P) {
       *P = P_;
     }
-    //if(logLevel == logDEBUG1) std::cout << " first"<<std::endl;
+    // ROS_DEBUG("first");
 
     return false;
   }
@@ -99,7 +99,7 @@ bool ViEkf::getState(uint64_t timestampMicroseconds,
       if (P) {
         *P = P_;  // Not 100% correct, we should have also propagated  P_...
       }
-      //if(logLevel == logDEBUG1) std::cout << " second"<<std::endl;
+      // ROS_DEBUG("second");
 
       return false;
     }
@@ -111,8 +111,7 @@ bool ViEkf::getState(uint64_t timestampMicroseconds,
     auto it_k = it_k_minus_1;
     it_k++;
     if (it_k == imuMeasurementDeque_.end()) {
-      if(logLevel == logDEBUG1) std::cout << " third"<<std::endl;
-
+      ROS_DEBUG("third");
       return false;  // we reached the buffer end...
     }
 
@@ -140,7 +139,7 @@ bool ViEkf::getState(uint64_t timestampMicroseconds,
 
   // remember
   timestampPropagatedMicrosec_ = timestampMicroseconds;
-  if(logLevel == logDEBUG1) std::cout << " never"<<std::endl;
+  ROS_DEBUG("Never");
 
   return true;
 }
@@ -317,7 +316,7 @@ bool ViEkf::update(const Detection& detection){
   
   // chi2 test
   if(y.transpose()*S.inverse()*y > 40.0){
-    if(logLevel >= logINFO) std::cout << "Rejecting measurement " << std::endl;
+    ROS_INFO("Rejecting measurement...");
     return false;
   }
   // TODO: compute Kalman gain K

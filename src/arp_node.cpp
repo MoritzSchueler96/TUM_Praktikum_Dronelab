@@ -25,7 +25,7 @@
 #include <arp/StatePublisher.hpp>
 #include <arp/VisualInertialTracker.hpp>
 #include <ros/package.h>
-#include <arp/globals.hpp>
+#include <ros/console.h>
 
 #define IMAGE_WIDTH 1920
 #define IMAGE_HEIGHT 960
@@ -36,18 +36,6 @@
 #define ENABLE_CAM_MODEL true
 #define SHOW_KEYPOINTS true
 #define ENABLE_FUSION true
-#define LOG_LEVEL logRELEASE
-
-// Possible Log Levels: logDEBUG, logERROR, logWARNING, logDEBUG1, logRELEASE, logDEBUG2, logINFO, logDEBUG3
-
-// if want only DEBUG -> if(logLevel == logDEBUG)
-// if want debug, warning and error -> if(logLevel == logDEBUG1)
-// if want context (like setup camera) -> if(logLevel == logDEBUG2)
-// if want additional information -> if(logLevel >= logINFO)
-// if want all -> if(logLevel == logDEBUG3)
-
-// set log level
-loglevel_e logLevel = LOG_LEVEL;
 
 class Subscriber
 {
@@ -102,6 +90,7 @@ class Subscriber
   arp::VisualInertialTracker* vit_ = nullptr;
 };
 
+ /// \brief Struct holding the camera parameters
 struct camParams{
   double fu;
   double fv;
@@ -121,30 +110,30 @@ bool readCameraParameters(ros::NodeHandle& nh, camParams& cp){
 
   std::cout << std::setprecision(3) << std::fixed;
   std::cout << "" << std::endl;
-  if(logLevel >= logRELEASE) std::cout << "Read camera parameters..." << std::endl;
+
   if(!nh.getParam("/arp_node/fu", cp.fu)) ROS_FATAL("error loading parameter");
-  if(logLevel >= logINFO) std::cout << "Read parameter fu...    value=" << cp.fu;
+  ROS_DEBUG_STREAM("Read parameter fu...    value=" << cp.fu);
 
   if(!nh.getParam("/arp_node/fv", cp.fv))ROS_FATAL("error loading parameter");
-  if(logLevel >= logINFO) std::cout << "Read parameter fv...    value=" << cp.fv;
+  ROS_DEBUG_STREAM("Read parameter fv...    value=" << cp.fv);
   
   if(!nh.getParam("/arp_node/cu", cp.cu))ROS_FATAL("error loading parameter");
-  if(logLevel >= logINFO) std::cout << "Read parameter cu...    value=" << cp.cu;
+  ROS_DEBUG_STREAM("Read parameter cu...    value=" << cp.cu);
   
   if(!nh.getParam("/arp_node/cv", cp.cv))ROS_FATAL("error loading parameter");
-  if(logLevel >= logINFO) std::cout << "Read parameter cv...    value=" << cp.cv;
+  ROS_DEBUG_STREAM("Read parameter cv...    value=" << cp.cv);
   
   if(!nh.getParam("/arp_node/k1", cp.k1))ROS_FATAL("error loading parameter");
-  if(logLevel >= logINFO) std::cout << "Read parameter k1...    value=" << cp.k1;
+  ROS_DEBUG_STREAM("Read parameter k1...    value=" << cp.k1);
   
   if(!nh.getParam("/arp_node/k2", cp.k2))ROS_FATAL("error loading parameter");
-  if(logLevel >= logINFO) std::cout << "Read parameter k2...    value=" << cp.k2;
+  ROS_DEBUG_STREAM("Read parameter k2...    value=" << cp.k2);
   
   if(!nh.getParam("/arp_node/p1", cp.p1))ROS_FATAL("error loading parameter");
-  if(logLevel >= logINFO) std::cout << "Read parameter p1...    value=" << cp.p1;
+  ROS_DEBUG_STREAM("Read parameter p1...    value=" << cp.p1);
 
   if(!nh.getParam("/arp_node/p2", cp.p2))ROS_FATAL("error loading parameter");
-  if(logLevel >= logINFO) std::cout << "Read parameter p2...    value=" << cp.p2;
+  ROS_DEBUG_STREAM("Read parameter p2...    value=" << cp.p2);
 
   return true;
 }
@@ -157,11 +146,8 @@ arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamer
   // setup camera model
   const arp::cameras::RadialTangentialDistortion distortion(cp.k1, cp.k2, cp.p1, cp.p2);
   arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> camMod(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, distortion);
-  if(logLevel >= logRELEASE) std::cout << "Setup Camera..." << std::endl;
-  if(logLevel >= logINFO) std::cout << "Initialize undistort maps...";
-  if(!camMod.initialiseUndistortMaps(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv)){
-    ROS_FATAL("error initializing map");
-  }
+  ROS_DEBUG("Initialize undistort maps...");
+  if(!camMod.initialiseUndistortMaps(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv)) ROS_FATAL("error initializing map");
   return camMod;
 }
 
@@ -174,9 +160,6 @@ arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamer
   /// @param[out] success Whether setup was successfull. 
 bool setupVisualInertialTracker(ros::NodeHandle& nh, arp::VisualInertialTracker& vit, arp::Frontend& frontend, arp::ViEkf& viEkf, arp::StatePublisher& pubState){
   
-  // set up frontend
-  if(logLevel >= logINFO) std::cout << "Setup Frontend..." << std::endl;
-
   // load map
   std::string path = ros::package::getPath("ardrone_practicals");
   std::string mapFile;
@@ -187,7 +170,7 @@ bool setupVisualInertialTracker(ros::NodeHandle& nh, arp::VisualInertialTracker&
   ROS_FATAL_STREAM("could not load map from " << mapPath << " !");
   
   // set up EKF
-  if(logLevel >= logINFO) std::cout << "Setup EKF..." << std::endl;
+  ROS_INFO("Setup EKF...");
   Eigen::Matrix4d T_SC_mat;
   std::vector<double> T_SC_array;
   if(!nh.getParam("arp_node/T_SC", T_SC_array))
@@ -202,7 +185,7 @@ bool setupVisualInertialTracker(ros::NodeHandle& nh, arp::VisualInertialTracker&
   viEkf.setCameraIntrinsics(frontend.camera());
 
   // set up visual-inertial tracking
-  if(logLevel >= logINFO) std::cout << "Setup VIT..." << std::endl;
+  ROS_INFO("Setup VIT...");
   vit.setFrontend(frontend);
   vit.setEstimator(viEkf);
 
@@ -222,19 +205,20 @@ int main(int argc, char **argv)
 
   // read camera parameters
   camParams cp;
-  if(!readCameraParameters(nh, cp)){
-    ROS_FATAL("error loading parameters");
-  } 
+  ROS_INFO("Read camera parameters...");
+  if(!readCameraParameters(nh, cp)) ROS_FATAL("error loading parameters");
 
   // setup camera model
+  ROS_INFO("Setup Camera...");
   auto phcam = setupCamera(nh, cp);
   // activate camera model
   bool cameraModelApplied = ENABLE_CAM_MODEL; 
   
   // setup frontend
+  ROS_INFO("Setup Frontend...");
   std::string map;
   int numKeypoints;
-  if(!nh.getParam("/arp_node/map", map)) ROS_FATAL("error loading map");
+  if(!nh.getParam("/arp_node/map", map)) ROS_FATAL("error loading world");
   if (map == "okvis2-slam-final_map_garching.csv") {
     numKeypoints = 2000;
   } else {
@@ -246,23 +230,21 @@ int main(int argc, char **argv)
   arp::ViEkf viEkf;
   arp::VisualInertialTracker vit;
   arp::StatePublisher pubState(nh); // state publisher -- provided for rviz visualisation of drone pose:
-  if(logLevel >= logRELEASE) std::cout << "Setup Visual Inertial Tracker..." << std::endl;
-  if(!setupVisualInertialTracker(nh, vit, frontend, viEkf, pubState)){
-    ROS_FATAL("error setting up VIT");
-  } 
+  ROS_INFO("Setup Visual Inertial Tracker...");
+  if(!setupVisualInertialTracker(nh, vit, frontend, viEkf, pubState)) ROS_FATAL("error setting up VIT"); 
 
   // display keypoints
   bool displayKeypoints = SHOW_KEYPOINTS;
   frontend.showKeypoints(displayKeypoints);
-  if(logLevel >= logINFO) std::cout << "Display Keypoints set to: " << displayKeypoints << std::endl;
+  ROS_INFO_STREAM("Display Keypoints set to: " << displayKeypoints);
 
   // enable / disable fusion
   bool enableFusion = ENABLE_FUSION;
   vit.enableFusion(enableFusion);
-  if(logLevel >= logINFO) std::cout << "Sensor fusion set to: " << enableFusion << std::endl;
+  ROS_INFO_STREAM("Sensor fusion set to: " << enableFusion);
 
   // setup inputs
-  if(logLevel >= logINFO) std::cout << "Setup Subscriber..." << std::endl;
+  ROS_INFO("Setup Subscriber...");
   Subscriber subscriber;
   subscriber.setVIT(vit);
   image_transport::Subscriber subImage = it.subscribe(
@@ -271,7 +253,7 @@ int main(int argc, char **argv)
                                         &Subscriber::imuCallback, &subscriber);
   
   // set up autopilot
-  if(logLevel >= logINFO) std::cout << "Setup Autopilot..." << std::endl;
+  ROS_INFO("Setup Autopilot...");
   arp::Autopilot autopilot(nh);
 
   // setup rendering
@@ -315,10 +297,8 @@ int main(int argc, char **argv)
           // TODO: add overlays to the cv::Mat image, e.g. text
 
           // apply camera model if enabled
-          if(cameraModelApplied && !phcam.undistortImage(image, image))
-          {
-            if(logLevel >= logWARNING) std::cout << "Warning: Undistortion failed..." << std::endl;
-          }
+          if(cameraModelApplied && !phcam.undistortImage(image, image)) ROS_WARN("Warning: Undistortion failed...");
+
           // resize image
           cv::resize(image, image,cv::Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_INTER_CUBIC);
           cv::Size image_size= image.size();
@@ -380,30 +360,22 @@ int main(int argc, char **argv)
     // command
     if (state[SDL_SCANCODE_ESCAPE]) {
       std::cout << "ESTOP PRESSED, SHUTTING OFF ALL MOTORS status=" << droneStatus << std::endl;
-      if(!autopilot.estopReset()) {
-          if(logLevel >= logWARNING) std::cout << "Warning: Shutdown failed..." << std::endl;
-      }
+      if(!autopilot.estopReset()) ROS_WARN("Warning: Shutdown failed...");
     }
 
     if (state[SDL_SCANCODE_T]) {
-      if(logLevel >= logRELEASE) std::cout << "Taking off...                          status=" << droneStatus << std::endl;
-      if (!autopilot.takeoff()) {
-        if(logLevel >= logWARNING) std::cout << "Warning: Take Off failed..." << std::endl;
-      }
+      ROS_INFO_STREAM("Taking off...                          status=" << droneStatus);
+      if (!autopilot.takeoff()) ROS_WARN("Warning: Take Off failed...");
     }
 
     if (state[SDL_SCANCODE_L]) {
-      if(logLevel >= logRELEASE) std::cout << "Going to land...                       status=" << droneStatus << std::endl;
-      if (!autopilot.land()) {
-        if(logLevel >= logWARNING) std::cout << "Warning: Landing failed..." << std::endl;
-      }
+      ROS_INFO_STREAM("Going to land...                       status=" << droneStatus);
+      if (!autopilot.land()) ROS_WARN("Warning: Landing failed...");
     }
 
     if (state[SDL_SCANCODE_C]) {
-      if(logLevel >= logRELEASE) std::cout << "Requesting flattrim calibration...     status=" << droneStatus << std::endl;
-      if (!autopilot.flattrimCalibrate()) {
-        if(logLevel >= logWARNING) std::cout << "Warning: flattrim calibration failed..." << std::endl;
-      }
+      ROS_INFO_STREAM("Requesting flattrim calibration...     status=" << droneStatus);
+      if (!autopilot.flattrimCalibrate()) ROS_WARN("Warning: flattrim calibration failed...");
     }
 
     // Press P to toggle application of camera model
@@ -413,17 +385,17 @@ int main(int argc, char **argv)
     {
         if(state[SDL_SCANCODE_P] && pressed){
             cameraModelApplied = cameraModelApplied ^ 1;
-            if(logLevel >= logRELEASE) std::cout << "Toggle Camera Model...  status=" << cameraModelApplied << std::endl;
+            ROS_INFO_STREAM("Toggle Camera Model...  status=" << cameraModelApplied);
             pressed = false;
         } else if(state[SDL_SCANCODE_K] && pressed){
             displayKeypoints = displayKeypoints ^ 1;
             frontend.showKeypoints(displayKeypoints);
-            if(logLevel >= logRELEASE) std::cout << "Toggle Key points...  status=" << displayKeypoints << std::endl;
+            ROS_INFO_STREAM("Toggle Key points...  status=" << displayKeypoints);
             pressed = false;
         } else if(state[SDL_SCANCODE_F] && pressed){
             enableFusion = enableFusion ^ 1;
             vit.enableFusion(enableFusion);
-            if(logLevel >= logRELEASE) std::cout << "Toggle Sensor Fusion...  status=" << enableFusion << std::endl;
+            ROS_INFO_STREAM("Toggle Sensor Fusion...  status=" << enableFusion);
             pressed = false;
         }
         if(state[SDL_SCANCODE_P] || state[SDL_SCANCODE_K] || state[SDL_SCANCODE_F]){
@@ -440,55 +412,53 @@ int main(int argc, char **argv)
         double rotateLeft=0;
         //UP Arrow: move drone forward
         if (state[SDL_SCANCODE_UP]&&!state[SDL_SCANCODE_DOWN]) {
+            ROS_INFO("Forward ...     ");
             forward+=1;
-            if(logLevel >= logINFO) std::cout << "Forward ...     ";
 
         }
         //Down Arrow: move drone backwards
         if (state[SDL_SCANCODE_DOWN]&&!state[SDL_SCANCODE_UP]) {
-            if(logLevel >= logINFO) std::cout << "Backwards ...   ";
+            ROS_INFO("Backwards ...   ");
             forward-=1;
         }
         //Right Arrow: move drone right
         if (state[SDL_SCANCODE_RIGHT]&&!state[SDL_SCANCODE_LEFT]) {
-            if(logLevel >= logINFO) std::cout << "Right ...       ";
+            ROS_INFO("Right ...       ");
             left-=1;
         }
         //Left Arrow: move drone left
         if (state[SDL_SCANCODE_LEFT]&&!state[SDL_SCANCODE_RIGHT]) {
-            if(logLevel >= logINFO) std::cout << "Left ...        ";
+            ROS_INFO("Left ...        ");
             left+=1;
         }
         //'W': move drone Up
         if (state[SDL_SCANCODE_W]&&!state[SDL_SCANCODE_S]) {
-            if(logLevel >= logINFO) std::cout << "Up ...          ";
+            ROS_INFO("Up ...          ");
             up+=1;
         }
         //'S': move drone Down
         if (state[SDL_SCANCODE_S]&&!state[SDL_SCANCODE_W]) {
-            if(logLevel >= logINFO) std::cout << "Down ...        ";
+            ROS_INFO("Down ...        ");
             up-=1;
         }
         //'A': yaw drone left
         if (state[SDL_SCANCODE_A]&&!state[SDL_SCANCODE_D]) {
-            if(logLevel >= logINFO) std::cout << "Rotate Left ... ";
+            ROS_INFO("Rotate Left ... ");
             rotateLeft+=1;
         }
         //'D': yaw drone right
         if (state[SDL_SCANCODE_D]&& !state[SDL_SCANCODE_A]) {
-            if(logLevel >= logINFO) std::cout << "Rotate Right ...";
+            ROS_INFO("Rotate Right ...");
             rotateLeft-=1;
         }
-        if(forward==0&&left==0&&up==0&rotateLeft==0) {
-            if(logLevel >= logINFO) std::cout << "Hover ...       ";
-        }
+        if(forward==0&&left==0&&up==0&rotateLeft==0) ROS_INFO("Hover ...       ");
+
         std::cout << std::setprecision(2) << std::fixed;
-        if(logLevel >= logINFO) std::cout << "     status=" << droneStatus;
-        if(logLevel >= logINFO) std::cout << "...             battery=" << droneBattery << std::endl;
+        ROS_INFO_STREAM("     status=" << droneStatus);
+        ROS_INFO_STREAM("...             battery=" << droneBattery);
+
         //forward moving instructions to Autopilot class
-        if (!autopilot.manualMove(forward, left, up, rotateLeft)) {
-            if(logLevel >= logWARNING) std::cout << "Warning: Drone Movement failed..." << std::endl;
-        }
+        if (!autopilot.manualMove(forward, left, up, rotateLeft)) ROS_WARN("Warning: Drone Movement failed...");
     }
 
   }

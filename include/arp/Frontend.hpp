@@ -18,7 +18,7 @@
 #include <arp/cameras/RadialTangentialDistortion.hpp>
 #include <arp/cameras/NoDistortion.hpp>
 #include <arp/kinematics/Transformation.hpp>
-#include <arp/globals.hpp>
+#include <ros/console.h>
 
 namespace arp {
 

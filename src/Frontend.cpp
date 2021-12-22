@@ -96,7 +96,7 @@ bool  Frontend::loadMap(std::string path) {
     landmarks_[id] = landmark;
     id++;
   }
-  if(logLevel >= logRELEASE) std::cout << "Loaded " << landmarks_.size() << " landmarks..." << std::endl;
+  ROS_INFO_STREAM("Loaded " << landmarks_.size() << " landmarks...");
   return landmarks_.size() > 0;
 }
 
@@ -170,7 +170,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   static bool oldIni;
   if(oldIni!=needsReInitialisation)
   {
-    if(logLevel == logRELEASE) std::cout << "Re-Init: " << needsReInitialisation<<std::endl;
+    ROS_INFO_STREAM("Re-Init: " << needsReInitialisation);
     oldIni=needsReInitialisation;
   }
   
@@ -193,9 +193,9 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   static int skipThres = 1;
   static int reduceLmCnt = 0;
 
-  if(logLevel == logDEBUG1) std::cout << " landmarks" << landmarks_.size()<<std::endl;
-  if(logLevel == logDEBUG1) std::cout << " init" << needsReInitialisation<<std::endl;
-  if(logLevel == logDEBUG1) std::cout << " keypoints" << keypoints.size()<<std::endl;
+  ROS_DEBUG_STREAM("landmarks: " << landmarks_.size());
+  ROS_DEBUG_STREAM("Re-Init: " << needsReInitialisation);
+  ROS_DEBUG_STREAM("keypoints: " << keypoints.size());
 
   //loop through landmarks
   for(auto & lm : landmarks_) { 
@@ -214,7 +214,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
       reduceLandmarks++;
       reduceLmCnt++;
       if (reduceLmCnt > 750000){
-        if(logLevel == logDEBUG1) std::cout << "skip: " << skipThres << "cnt: " << reduceLmCnt << std::endl;
+        ROS_DEBUG_STREAM("skip: " << skipThres << "cnt: " << reduceLmCnt);
         reduceLmCnt = 0;
         skipThres = std::min(skipThres+1, 4);
       }
@@ -268,7 +268,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   std::vector<int> inliers;
   // TODO run RANSAC (to remove outliers and get pose T_CW estimate)
   bool returnvalue= ransac(worldPoints, imagePoints, T_CW, inliers);
-  if(logLevel == logDEBUG1) std::cout << " ransac" << returnvalue<<std::endl;
+  ROS_DEBUG_STREAM("ransac: " << returnvalue);
 
   // TODO set detections
   //loop through to inlier points of ransac to return detections
@@ -285,7 +285,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
     //add detection
     detections.push_back(newDetection);
   }
-  if(logLevel == logDEBUG1) std::cout << " inliers" << inliers.size()<<"/ "<<worldPoints.size()<<std::endl;
+  ROS_DEBUG_STREAM("inliers/total: " << inliers.size()<<" / "<<worldPoints.size());
 
   // TODO visualise by painting stuff into visualisationImage
   //to safe runtime add points directly during calculation

@@ -19,7 +19,7 @@
 #include <arp/threadsafe/ThreadsafeQueue.hpp>
 #include <arp/Frontend.hpp>
 #include <arp/ViEkf.hpp>
-#include <arp/globals.hpp>
+#include <ros/console.h>
 
 namespace arp {
 

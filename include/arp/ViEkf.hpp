@@ -16,7 +16,7 @@
 #include <arp/cameras/CameraBase.hpp>
 #include <arp/cameras/PinholeCamera.hpp>
 #include <arp/cameras/RadialTangentialDistortion.hpp>
-#include <arp/globals.hpp>
+#include <ros/console.h>
 
 namespace arp {
 

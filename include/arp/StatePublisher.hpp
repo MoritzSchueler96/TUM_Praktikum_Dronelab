@@ -13,7 +13,7 @@
 #include <image_transport/image_transport.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <arp/kinematics/Imu.hpp>
-#include <arp/globals.hpp>
+#include <ros/console.h>
 
 namespace arp {
 

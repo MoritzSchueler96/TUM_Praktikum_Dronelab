@@ -62,7 +62,7 @@ void VisualInertialTracker::processingLoop()
       // get IMU measurement
       kinematics::ImuMeasurement imuMeasurement;
       uint64_t t = 0;
-      if(logLevel >= logINFO) std::cout << "Processing started" << std::endl;
+      ROS_INFO("Processing started...");
       while (t<cameraMeasurement.timestampMicroseconds) {
         if(!imuMeasurementQueue_.PopBlocking(&imuMeasurement)){
           return;
@@ -83,8 +83,7 @@ void VisualInertialTracker::processingLoop()
           }
         }
       }
-      if (cameraMeasurement.timestampMicroseconds > t)
-        if(logLevel >= logWARNING) std::cout << "Warning: BAD" << std::endl;
+      if (cameraMeasurement.timestampMicroseconds > t) ROS_WARN("Bad");
       DetectionVec detections;
       kinematics::Transformation T_WS, T_CW;
       cv::Mat visualisationImage = cameraMeasurement.image.clone();
@@ -100,14 +99,15 @@ void VisualInertialTracker::processingLoop()
       if(successGetState && estimator_->isInitialised()) {
         needsReInitialisation = false;
       }
-        if(logLevel == logDEBUG1) std::cout << " getState" << successGetState<<"/ "<<estimator_->isInitialised()<<std::endl;
+
+      ROS_DEBUG_STREAM("getState / Initialised: " << successGetState << " / "<< estimator_->isInitialised());
 
       bool ransacSuccess = frontend_->detectAndMatch(
       cameraMeasurement.image, dir, detections, T_CW, visualisationImage, needsReInitialisation);
-      if(logLevel >= logINFO) std::cout << "Ransac Success: "<<ransacSuccess << std::endl;    
+      ROS_INFO_STREAM("Ransac Success: " << ransacSuccess);
       if (detections.size() > 0) {
         // feed to estimator (measurement update)
-        if(logLevel >= logINFO) std::cout<<"Estimator init:"<<estimator_->isInitialised()<<std::endl;
+        ROS_INFO_STREAM("Estimator initialised: " << estimator_->isInitialised());
         if (estimator_->isInitialised() && fusionEnabled_) {
           estimator_->addKeypointMeasurements(
               cameraMeasurement.timestampMicroseconds, detections);
@@ -128,7 +128,7 @@ void VisualInertialTracker::processingLoop()
           P.block<3, 3>(6, 6) *= 0.01 * 0.01;  // 10 cm/s
           P.block<3, 3>(9, 9) *= (1.0 / 60.0) * (1.0 / 60.0);  // 1 degree/sec
           P.block<3, 3>(12, 12) *= 0.1;  // 1 m/s^2
-          if(logLevel >= logINFO) std::cout << "initialize estimator..."<< std::endl;
+          ROS_INFO("initialize estimator...");
           estimator_->initialiseState(cameraMeasurement.timestampMicroseconds,
                                       x, P);
         }
