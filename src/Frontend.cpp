@@ -10,7 +10,7 @@
 #include <sstream>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/calib3d.hpp>
-#include <opencv2/core/eigen.hpp>
+
 #include <ros/ros.h>
 
 #include <brisk/brisk.h>
@@ -159,13 +159,22 @@ bool Frontend::ransac(const std::vector<cv::Point3d>& worldPoints,
   }
   T_CW = kinematics::Transformation(T_CW_mat);
 
-  return ransacSuccess && (double(inliers.size())/double(imagePoints.size()) > 0.5);//0.7
+  return ransacSuccess && (double(inliers.size())/double(imagePoints.size()) > 0.65);//0.7
 }
 
 bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extractionDirection, 
                               DetectionVec & detections, kinematics::Transformation & T_CW, 
                               cv::Mat & visualisationImage, bool needsReInitialisation)
 {
+  static kinematics::Transformation old_T_CW=arp::kinematics::Transformation::Identity();
+  static int count_resetT_CW;
+  static bool oldIni;
+  if(oldIni!=needsReInitialisation)
+  {
+    std::cout << " init" << needsReInitialisation<<std::endl;
+    oldIni=needsReInitialisation;
+  }
+  
   detections.clear(); // make sure empty
 
   // to gray:
@@ -189,21 +198,54 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   if(logLevel == logDEBUG1) std::cout << " landmarks" << landmarks_.size()<<"/ "<<lms.size()<<std::endl;
   if(logLevel == logDEBUG1) std::cout << " init" << needsReInitialisation<<std::endl;
   if(logLevel == logDEBUG1) std::cout << " keypoints" << keypoints.size()<<std::endl;
-
+  count_resetT_CW++;
   //loop through landmarks
   for(auto & lm : landmarks_) { 
     Eigen::Vector2d temp;
     Eigen::Vector4d temp4d;
 
     temp4d << lm.second.point, 1.0;
+    
+    if(needsReInitialisation)
+     {
+      if((old_T_CW.coeffs()-arp::kinematics::Transformation::Identity().coeffs()).norm()<1e-4||count_resetT_CW>5)
+      {
+        old_T_CW=arp::kinematics::Transformation::Identity();
+        reduceLandmarks++;
+        if(reduceLandmarks>3)
+        {
+          reduceLandmarks=0;
+        }
+        else
+        {
+          continue;
+        }
+      }
+      else
+      {
+        if(camera_.project((old_T_CW*temp4d).head<3>(), &temp)==arp::cameras::ProjectionStatus::Behind)
+        {
+          continue;
+        }
+      }
+      
+      
+    }
+    else
+    {
+      count_resetT_CW=0;
+      old_T_CW=T_CW;
+      // skip invisible landmarks
+      if(camera_.project((T_CW*temp4d).head<3>(), &temp)!=arp::cameras::ProjectionStatus::Successful)
+      {
+        continue;
+      }
+    }
 
-    std::cout << "T_CW: " << T_CW.T() << "lm.sc.pt: " << lm.second.point << "temp4d: " << temp4d << std::endl;
-    // skip invisible landmarks
-    /*
-    if (!needsReInitialisation && !(camera_.project(T_CW*lm.second.point, &temp)==arp::cameras::ProjectionStatus::Successful)){
-      continue;
-    }*/
-    camera_.project(T_CW*lm.second.point, &temp);
+    //std::cout << "T_CW: " << T_CW.T() << "lm.sc.pt: " << lm.second.point << "temp4d: " << temp4d << std::endl;
+    
+
+    //camera_.project(T_CW*lm.second.point, &temp);
     
     bool matched = false;
     float bestDist=60.0;//60 is given threshold
@@ -216,12 +258,12 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
       uchar* keypointDescriptor = descriptors.data + k*48; // descriptors are 48 bytes long
       {
         Eigen::Vector2d t2d;
-        std::cout << "key: " << keypoints[k].pt << "temp: " << temp << std::endl; 
-        cv2eigen(keypoints[k].pt, t2d);
-        std::cout << "key: " << t2d << "temp: " << temp << std::endl; 
-        std::cout << "diff: " << temp - t2d << "norm: " << (temp - t2d).norm() << std::endl;
-        if((temp - t2d).norm() > 30.0){
-            std::cout << "bad" << std::endl;
+        //std::cout << "key: " << keypoints[k].pt << "temp: " << temp << std::endl; 
+        //cv2eigen(keypoints[k].pt, t2d);
+        t2d<<keypoints[k].pt.x,keypoints[k].pt.y;
+        //std::cout << "key: " << t2d << "temp: " << temp << std::endl; 
+        //std::cout << "diff: " << temp - t2d << "norm: " << (temp - t2d).norm() << std::endl;
+        if((!needsReInitialisation) && ((temp - t2d).norm() > 40.0)){
             continue;
         }
         for(auto lmDescriptor : lm.second.descriptors) { // check agains all available descriptors
