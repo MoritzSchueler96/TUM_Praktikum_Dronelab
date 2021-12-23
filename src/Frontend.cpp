@@ -29,7 +29,7 @@ namespace arp {
 Frontend::Frontend(int imageWidth, int imageHeight,
                                    double focalLengthU, double focalLengthV,
                                    double imageCenterU, double imageCenterV,
-                                   double k1, double k2, double p1, double p2, int numKeypoints) :
+                                   double k1, double k2, double p1, double p2, int numKeypoints=2000) :
   camera_(imageWidth, imageHeight, focalLengthU, focalLengthV, imageCenterU,
           imageCenterV,
           arp::cameras::RadialTangentialDistortion(k1, k2, p1, p2))
@@ -234,7 +234,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
       {
         Eigen::Vector2d keyPt;
         keyPt << keypoints[k].pt.x, keypoints[k].pt.y;
-
+        //if pose need no reinitialisation, check if distance of 2D points of landmark and keypoint is below threshold 
         if((!needsReInitialisation) && ((landmark2d - keyPt).norm() > 35.0)) continue;
 
         for(auto lmDescriptor : lm.second.descriptors) { // check agains all available descriptors
@@ -242,10 +242,10 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
                   keypointDescriptor, lmDescriptor.data, 3); // compute desc. distance: 3 for 3x128bit (=48 bytes)
 
           // TODO check if a match and process accordingly
-          //check if distance of landmark is below threshold or distance of already checked landmarks
+          //check if distance of keypoint is below threshold or distance of already checked keypoints
           if(dist<bestDist)
           {
-            //cache actual best match
+            //cache actual best match of keypoint to landmark
             bestLandmarkPt=lm.second.point;
             bestKeyPt=keypoints[k].pt;
             bestLmID=lm.first;
@@ -271,7 +271,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   ROS_DEBUG_STREAM("ransac: " << returnvalue);
 
   // TODO set detections
-  //loop through to inlier points of ransac to return detections
+  //loop through to inlier points of ransac to return list of detections
   for(auto & index: inliers)
   {
     Detection newDetection;
@@ -288,7 +288,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   ROS_DEBUG_STREAM("inliers/total: " << inliers.size()<<" / "<<worldPoints.size());
 
   // TODO visualise by painting stuff into visualisationImage
-  //to safe runtime add points directly during calculation
+  //to safe runtime points are added directly during calculation
   return returnvalue; // TODO return true if successful...
 }
 
