@@ -53,6 +53,37 @@ Frontend::Frontend(int imageWidth, int imageHeight,
   detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(10, 0, 100, numKeypoints));//10,0,100,2000
   //working limit 25-35 for castle, kitchen 
   extractor_.reset(new brisk::BriskDescriptorExtractor(true, false));
+  
+#if 1
+  // leverage camera-aware BRISK (caution: needs the *_new* maps...)
+  cv::Mat rays = cv::Mat(imageHeight, imageWidth, CV_32FC3);
+  cv::Mat imageJacobians = cv::Mat(imageHeight, imageWidth, CV_32FC(6));
+  for (int v=0; v<imageHeight; ++v) {
+    for (int u=0; u<imageWidth; ++u) {
+      Eigen::Vector3d ray;
+      Eigen::Matrix<double, 2, 3> jacobian;
+      if(camera_.backProject(Eigen::Vector2d(u,v), &ray)) {
+        ray.normalize();
+      } else {
+        ray.setZero();
+      }
+      rays.at<cv::Vec3f>(v,u) = cv::Vec3f(ray[0],ray[1],ray[2]);
+      Eigen::Vector2d pt;
+      if(camera_.project(ray, &pt, &jacobian)
+         ==cameras::ProjectionStatus::Successful) {
+        cv::Vec6f j;
+        j[0]=jacobian(0,0);
+        j[1]=jacobian(0,1);
+        j[2]=jacobian(0,2);
+        j[3]=jacobian(1,0);
+        j[4]=jacobian(1,1);
+        j[5]=jacobian(1,2);
+        imageJacobians.at<cv::Vec6f>(v,u) = j;
+      }
+    }
+  }
+  std::static_pointer_cast<cv::BriskDescriptorExtractor>(extractor_)->setCameraProperties(rays, imageJacobians, 185.6909);
+#endif   
 }
 
 bool  Frontend::loadMap(std::string path) {

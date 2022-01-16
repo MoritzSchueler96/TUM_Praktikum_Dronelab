@@ -37,6 +37,7 @@
   <node name="arp_node" pkg="ardrone_practicals" type="arp_node"
       output="screen">
 		<!-- remap from="/cmd_vel" to="/cmd_vel_test"/>-->
+    
     <!-- Camera parameters-->
     <param name="fu" value="0" />
     <param name="fv" value="0" />

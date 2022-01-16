@@ -6,12 +6,15 @@
  */
 
 #include <arp/Autopilot.hpp>
+#include <arp/kinematics/operators.hpp>
 
 namespace arp {
 
 Autopilot::Autopilot(ros::NodeHandle& nh)
     : nh_(&nh)
 {
+  isAutomatic_ = false; // always start in manual mode  
+
   // receive navdata
   subNavdata_ = nh.subscribe("ardrone/navdata", 50, &Autopilot::navdataCallback,
                              this);
@@ -126,6 +129,60 @@ bool Autopilot::move(double forward, double left, double up, double rotateLeft)
     moveMsg.angular.z=rotateLeft;
     pubMove_.publish(moveMsg);
   return true;
+}
+
+// Set to automatic control mode.
+void Autopilot::setManual()
+{
+  isAutomatic_ = false;
+}
+
+// Set to manual control mode.
+void Autopilot::setAutomatic()
+{
+  isAutomatic_ = true;
+}
+
+// Move the drone automatically.
+bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
+{
+  std::lock_guard<std::mutex> l(refMutex_);
+  ref_x_ = x;
+  ref_y_ = y;
+  ref_z_ = z;
+  ref_yaw_ = yaw;
+  return true;
+}
+
+bool Autopilot::getPoseReference(double& x, double& y, double& z, double& yaw) {
+  std::lock_guard<std::mutex> l(refMutex_);
+  x = ref_x_;
+  y = ref_y_;
+  z = ref_z_;
+  yaw = ref_yaw_;
+  return true;
+}
+
+/// The callback from the estimator that sends control outputs to the drone
+void Autopilot::controllerCallback(uint64_t timeMicroseconds,
+                                  const arp::kinematics::RobotState& x)
+{
+  // only do anything here, if automatic
+  if (!isAutomatic_) {
+    // keep resetting this to make sure we use the current state as reference as soon as sent to automatic mode
+    const double yaw = kinematics::yawAngle(x.q_WS);
+    setPoseReference(x.t_WS[0], x.t_WS[1], x.t_WS[2], yaw);
+    return;
+  }
+
+  // TODO: only enable when in flight
+
+  // TODO: get ros parameter
+
+  // TODO: compute control output
+
+  // TODO: send to move
+
 }
 
 }  // namespace arp

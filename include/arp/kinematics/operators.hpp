@@ -112,6 +112,18 @@ inline Eigen::Matrix4d oplus(const Eigen::Quaterniond & q_BC) {
   return Q;
 }
 
+/// \brief Compute yaw angle from quaternion q_AB.
+/// @param[in] q_AB A Quaternion.
+inline double yawAngle(const Eigen::Quaterniond & q_AB) {
+  const Eigen::Vector3d x_W = q_AB.toRotationMatrix().col(0); // extract x-axis
+  const Eigen::Vector2d xy = x_W.head<2>().normalized(); // project to horizontal plane
+  double yaw = atan2(xy[1], xy[0]); // the angle to the world frame x-axis
+  if (x_W.head<2>().norm() < 1.0e-10) {
+    yaw = 0.0; // gimbal lock - lots of trouble...
+  }
+  return yaw;
+}
+
 } // namespace kinematics
 } // namespace arp
 
