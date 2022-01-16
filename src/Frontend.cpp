@@ -54,7 +54,7 @@ Frontend::Frontend(int imageWidth, int imageHeight,
   //working limit 25-35 for castle, kitchen 
   extractor_.reset(new brisk::BriskDescriptorExtractor(true, false));
   
-#if 1
+#if 0
   // leverage camera-aware BRISK (caution: needs the *_new* maps...)
   cv::Mat rays = cv::Mat(imageHeight, imageWidth, CV_32FC3);
   cv::Mat imageJacobians = cv::Mat(imageHeight, imageWidth, CV_32FC(6));

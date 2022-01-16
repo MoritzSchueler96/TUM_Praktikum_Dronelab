@@ -29,6 +29,44 @@ Autopilot::Autopilot(ros::NodeHandle& nh)
   // flattrim service
   srvFlattrim_ = nh_->serviceClient<std_srvs::Empty>(
       nh_->resolveName("ardrone/flattrim"), 1);
+
+  //setup PID controllers
+  //get Drone Limits
+  if(!nh.getParam("/ardrone_driver/euler_angle_max", x_y_limit)) ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter euler_angle_max...    value=" << x_y_limit);
+  if(!nh.getParam("/ardrone_driver/control_vz_max", z_limit)) ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter control_vz_max...    value=" << z_limit);
+  if(!nh.getParam("/ardrone_driver/control_yaw", yaw_limit)) ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter control_yaw...    value=" << yaw_limit);
+  
+  z_limit=z_limit/1000;//convert from mm/s to m/s
+
+
+  arp::PidController::Parameters controllerParameters;
+  controllerParameters.k_p=0.05;
+  controllerParameters.k_i=0;
+  controllerParameters.k_d=0;
+  x_pid.setParameters(controllerParameters);
+
+  x_pid.setOutputLimits(-x_y_limit,x_y_limit);
+  x_pid.resetIntegrator();
+  y_pid.setParameters(controllerParameters);
+  y_pid.setOutputLimits(-x_y_limit,x_y_limit);
+  y_pid.resetIntegrator();
+  
+  controllerParameters.k_p=1.0;
+  controllerParameters.k_i=0;
+  controllerParameters.k_d=0;
+  z_pid.setParameters(controllerParameters);
+  z_pid.setOutputLimits(-z_limit,z_limit);
+  z_pid.resetIntegrator();
+
+  controllerParameters.k_p=1.5;
+  controllerParameters.k_i=0;
+  controllerParameters.k_d=0;
+  yaw_pid.setParameters(controllerParameters);
+  yaw_pid.setOutputLimits(-yaw_limit,yaw_limit);
+  yaw_pid.resetIntegrator();
 }
 
 void Autopilot::navdataCallback(const ardrone_autonomy::NavdataConstPtr& msg)
@@ -111,6 +149,10 @@ bool Autopilot::estopReset()
 bool Autopilot::manualMove(double forward, double left, double up,
                            double rotateLeft)
 {
+  if (isAutomatic_)
+  {
+    return false;
+  }
   return move(forward, left, up, rotateLeft);
 }
 
@@ -176,13 +218,41 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
   }
 
   // TODO: only enable when in flight
+  DroneStatus status = droneStatus();
+  if(status>2&&status<8)
+  {
+    //TODO:calculate error
+    Eigen::Vector3d referencePose(ref_x_,ref_y_, ref_z_);
+    Eigen::Vector3d error_(0,0,0);
+    error_<< referencePose-x.t_WS;
+    error_=x.q_WS.toRotationMatrix()*error_;
+    double yaw_error= ref_yaw_-arp::kinematics::yawAngle(x.q_WS);
+    //TODO: bounderies of yaw angle
+    if(yaw_error>3.14)
+    {
+      yaw_error=3.14;
+    }else if(yaw_error<-3.14)
+    {
+      yaw_error=-3.14;
+    }
 
-  // TODO: get ros parameter
+    Eigen::Vector3d e_dot(0,0,0);
+    e_dot=-x.q_WS.toRotationMatrix()*x.v_W;
 
-  // TODO: compute control output
 
-  // TODO: send to move
+    // TODO: get ros parameter
+    //is done in constructor and saved to x_y_limit, z_limit and yaw_limit, since values are fixed
+    // TODO: compute control output
+    double x_move=x_pid.control(timeMicroseconds,error_[0], e_dot[0])/x_y_limit;
+    double y_move=y_pid.control(timeMicroseconds,error_[1], e_dot[1])/x_y_limit;
+    double z_move=z_pid.control(timeMicroseconds,error_[2], e_dot[2])/z_limit;
+    double yaw_move=yaw_pid.control(timeMicroseconds,yaw_error, 0)/yaw_limit;
 
+    // TODO: send to move
+    move(x_move,y_move,z_move,yaw_move);
+
+  }
+  return;
 }
 
 }  // namespace arp

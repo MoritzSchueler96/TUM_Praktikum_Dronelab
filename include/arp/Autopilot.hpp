@@ -24,6 +24,7 @@
 #include <ros/console.h>
 
 #include <arp/kinematics/Imu.hpp>
+#include <arp/PidController.hpp>
 
 namespace arp {
 
@@ -144,6 +145,13 @@ class Autopilot {
   double ref_yaw_ = 0.0; ///< World frame yaw reference [rad].
   std::mutex refMutex_; ///< We need to lock the reference access due to asynchronous arrival.
   std::atomic<bool> isAutomatic_; ///< True, if in automatic control mode.
+  PidController x_pid;
+  PidController y_pid;
+  PidController z_pid;
+  PidController yaw_pid;
+  double x_y_limit;
+  double z_limit;
+  double yaw_limit;
 
 };
 

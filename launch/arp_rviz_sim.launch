@@ -4,12 +4,9 @@
   <!-- Launch simulator. -->
   <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
   <include file="$(find sjtu_drone)/launch/simple.launch">
-<<<<<<< HEAD
-    <arg name="world_name" value="$(find sjtu_drone)/worlds/skokloster_castle.world"/><!--skokloster_castle garching_kitchen-->
-  </include>
-=======
-    <arg name="world_name" value="$(find sjtu_drone)/worlds/skokloster_castle.world"/>
-    <!--arg name="world_name" value="$(find sjtu_drone)/worlds/garching_kitchen.world"/-->
+
+    <!--arg name="world_name" value="$(find sjtu_drone)/worlds/skokloster_castle.world"/-->
+    <arg name="world_name" value="$(find sjtu_drone)/worlds/garching_kitchen.world"/>
   </include>
   
   <!-- Emulate controller parameters-->
@@ -18,10 +15,10 @@
     <param name="control_vz_max" value="700" />
     <param name="control_yaw" value="1.75" />
   </group>
-  
->>>>>>> e9483cb4905534aa66da6d9f14b5263671109cfd
+
   <!-- Launch visualisation. -->
-  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find ardrone_practicals)/config/rviz_vi_ekf.rviz"/>
+  <!--node pkg="rviz" type="rviz" name="rviz" args="-d $(find ardrone_practicals)/config/rviz_vi_ekf.rviz"/-->
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find ardrone_practicals)/config/rviz_control.rviz"/>
 
   <!-- Set Log Level, possible levels: debug, info, warn, error, fatal -->
   <node pkg="rosservice" type="rosservice" name="set_node_log_level" 
@@ -48,14 +45,12 @@
     <param name="p2" value="0" />
     <rosparam param="T_SC">[0.0, 0.0, 1.0, 0.2, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]</rosparam>
     <!-- Make sure to match the map to the world loaded above! -->
-<<<<<<< HEAD
-    <param name="map" value="okvis2-slam-final_map_skokloster.csv" /><!--okvis2-slam-final_map_skokloster okvis2-slam-final_map_garching-->
-=======
-    <param name="map" value="okvis2-slam-final_map_skokloster_new2.csv" />
-    <!--param name="map" value="okvis2-slam-final_map_garching_new2.csv" /-->
-    <param name="occupancymap" value="occupancy-map_skokloster.dat" />
-    <!--param name="occupancymap" value="occupancy-map_garching.dat" /-->
->>>>>>> e9483cb4905534aa66da6d9f14b5263671109cfd
+
+    <!--param name="map" value="okvis2-slam-final_map_skokloster_new2.csv" /-->
+    <param name="map" value="okvis2-slam-final_map_garching.csv" />
+    <!--param name="occupancymap" value="occupancy-map_skokloster.dat" /-->
+    <param name="occupancymap" value="occupancy-map_garching.dat" />
+
   </node>
 
 </launch>

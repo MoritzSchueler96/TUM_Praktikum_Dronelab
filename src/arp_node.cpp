@@ -27,6 +27,8 @@
 #include <ros/package.h>
 #include <ros/console.h>
 
+#include <arp/InteractiveMarkerServer.hpp>
+
 #define IMAGE_WIDTH 1920
 #define IMAGE_HEIGHT 960
 #define CAM_IMAGE_WIDTH 640
@@ -158,7 +160,7 @@ arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamer
   /// @param[in] viEkf Kalman Filter Object.
   /// @param[in] pubState Publisher Object.
   /// @param[out] success Whether setup was successfull. 
-bool setupVisualInertialTracker(ros::NodeHandle& nh, arp::VisualInertialTracker& vit, arp::Frontend& frontend, arp::ViEkf& viEkf, arp::StatePublisher& pubState){
+bool setupVisualInertialTracker(ros::NodeHandle& nh, arp::VisualInertialTracker& vit, arp::Frontend& frontend, arp::ViEkf& viEkf, arp::StatePublisher& pubState, arp::Autopilot& autopilot){
   
   // load map
   std::string path = ros::package::getPath("ardrone_practicals");
@@ -193,6 +195,8 @@ bool setupVisualInertialTracker(ros::NodeHandle& nh, arp::VisualInertialTracker&
   vit.setVisualisationCallback(std::bind(
   &arp::StatePublisher::publish, &pubState, std::placeholders::_1,
   std::placeholders::_2));
+  vit.setControllerCallback(std::bind(&arp::Autopilot::controllerCallback, &autopilot,
+      std::placeholders::_1, std::placeholders::_2));
 
   return true;
 }
@@ -232,13 +236,16 @@ int main(int argc, char **argv)
     numKeypoints = 400;
   }
   arp::Frontend frontend(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2, numKeypoints);
-  
+  // set up autopilot
+  ROS_INFO("Setup Autopilot...");
+  arp::Autopilot autopilot(nh);
+
   // setup visual inertial tracker
   arp::ViEkf viEkf;
   arp::VisualInertialTracker vit;
   arp::StatePublisher pubState(nh); // state publisher -- provided for rviz visualisation of drone pose:
   ROS_INFO("Setup Visual Inertial Tracker...");
-  if(!setupVisualInertialTracker(nh, vit, frontend, viEkf, pubState)) ROS_FATAL("error setting up VIT"); 
+  if(!setupVisualInertialTracker(nh, vit, frontend, viEkf, pubState, autopilot)) ROS_FATAL("error setting up VIT"); 
 
   // display keypoints
   bool displayKeypoints = SHOW_KEYPOINTS;
@@ -259,9 +266,7 @@ int main(int argc, char **argv)
   ros::Subscriber subImu = nh.subscribe("ardrone/imu", 50,
                                         &Subscriber::imuCallback, &subscriber);
   
-  // set up autopilot
-  ROS_INFO("Setup Autopilot...");
-  arp::Autopilot autopilot(nh);
+  
 
   // setup rendering
   SDL_Event event;
@@ -276,6 +281,13 @@ int main(int argc, char **argv)
 
   // to get reliable button presses
   bool pressed = false;
+
+  //create Interactive Marker
+  arp::InteractiveMarkerServer markerServer(autopilot);
+
+  
+
+
 
   // enter main event loop
   std::cout << "" << std::endl;
@@ -385,6 +397,20 @@ int main(int argc, char **argv)
       if (!autopilot.flattrimCalibrate()) ROS_WARN("Warning: flattrim calibration failed...");
     }
 
+    if (state[SDL_SCANCODE_RCTRL]) {
+      ROS_INFO_STREAM("Autopilot on...     status=" << droneStatus);
+      double x, y, z, yaw;
+      autopilot.getPoseReference(x, y, z, yaw);
+      markerServer.activate(x, y, z, yaw);
+      autopilot.setAutomatic();
+    }
+
+    if (state[SDL_SCANCODE_SPACE]) {
+      ROS_INFO_STREAM("Autopilot off...     status=" << droneStatus);
+      autopilot.setManual();
+      markerServer.deactivate();
+    }
+
     // Press P to toggle application of camera model
     // Press K to toggle depiction of key points
     // Press F to toggle application of sensor fusion    
@@ -411,7 +437,7 @@ int main(int argc, char **argv)
     }
 
     // TODO: process moving commands when in state 3, 4 or 7
-    if(droneStatus==3||droneStatus==4||droneStatus==7) 
+    if((!autopilot.isAutomatic())&&(droneStatus==3||droneStatus==4||droneStatus==7)) 
     {
         double forward=0;
         double left=0;

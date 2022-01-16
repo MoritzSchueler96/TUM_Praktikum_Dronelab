@@ -21,7 +21,27 @@ double PidController::control(uint64_t timestampMicroseconds, double e,
                               double e_dot)
 {
   // TODO: implement...
-  return 0.0;
+  //compute deltaT
+  const double deltaT=(timestampMicroseconds-lastTimestampMicroseconds_)/1000000;//compute deltaT in seconds
+
+  // compute output:
+  double output =   parameters_.k_p * e + parameters_.k_i * integratedError_ + parameters_.k_d * e_dot;
+  // saturate:
+  if (output < minOutput_) {
+  output = minOutput_; // clamp -- and DO NOT INTEGRATE ERROR (anti-reset windup)
+  } else if (output > maxOutput_) {
+  output = maxOutput_; // clamp -- and DO NOT INTEGRATE ERROR (anti-reset windup)
+  } else {
+    //limit deltaT for integration to 0.1s
+    if(deltaT<0.1)
+    {
+      integratedError_ += e * deltaT; // safe to keep integrating
+    }
+  }
+  // save:
+  lastTimestampMicroseconds_=timestampMicroseconds;
+  return output;
+
 }
 
 // Reset the integrator to zero again.
