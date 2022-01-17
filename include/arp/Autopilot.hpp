@@ -25,7 +25,7 @@
 
 #include <arp/kinematics/Imu.hpp>
 #include <arp/PidController.hpp>
-
+#include <opencv2/highgui/highgui.hpp>
 namespace arp {
 
 /// \brief The autopilot highlevel interface for commanding the drone manually or automatically.
@@ -115,7 +115,9 @@ class Autopilot {
   /// \note  This will only do something when in automatic mode and flying.
   void controllerCallback(uint64_t timeMicroseconds,
                           const arp::kinematics::RobotState& x);
-
+  
+  /// \brief Set to automatic control mode.
+  void setOccupancyMap(cv::Mat MapData);
  protected:
   /// \brief Move the drone.
   /// @param[in] forward Forward tilt [-1,...,1] scaling the maximum tilt ROS parameter.
@@ -152,6 +154,7 @@ class Autopilot {
   double x_y_limit;
   double z_limit;
   double yaw_limit;
+  cv::Mat wrappedMapData_;
 
 };
 

@@ -185,13 +185,79 @@ void Autopilot::setAutomatic()
   isAutomatic_ = true;
 }
 
+//Set Occupancy Map
+void Autopilot::setOccupancyMap(cv::Mat MapData)
+{
+  wrappedMapData_=MapData;
+}
 // Move the drone automatically.
 bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
 {
   std::lock_guard<std::mutex> l(refMutex_);
-  ref_x_ = x;
-  ref_y_ = y;
-  ref_z_ = z;
+  int i = std::round(ref_x_/0.1)+(wrappedMapData_.size[0]-1)/2;
+  int j = std::round(ref_y_/0.1)+(wrappedMapData_.size[1]-1)/2;
+  int k = std::round(ref_z_/0.1)+(wrappedMapData_.size[2]-1)/2;
+  double new_x=x;
+  double new_y=y;
+  double new_z=z;
+  int step=1;
+
+  //TODO: Check if occupied:
+  if(x!=ref_x_)
+  { 
+    //check in which direction the occupancy check has to be done
+    if(ref_x_>x)
+    {
+      step=-1;
+    }
+    //map is in 0.1m resolution, so we have to go distance/0.1m  times
+    for(int l=0; l<std::round(abs(x-ref_x_)/0.1); l++)
+    {
+      //check if occupied (free=0?)
+      if(wrappedMapData_.at<char>(i+step*l,j,k)!=0)
+      {
+          new_x=((i+step*(l-1))-(wrappedMapData_.size[0]-1)/2)*0.1;
+      }
+    }
+
+  }
+  //similar to x
+  if(y!=ref_y_)
+  {
+    if(ref_y_>y)
+    {
+      step=-1;
+    }
+    for(int l=0; l<std::round(abs(y-ref_y_)/0.1); l++)
+    {
+      //check if occupied
+      if(wrappedMapData_.at<char>(i,j+step*l,k)!=0)
+      {
+          new_y=((j+step*(l-1))-(wrappedMapData_.size[1]-1)/2)*0.1;
+      }
+    }
+  }
+  if (z!=ref_z_)
+  {
+    if(ref_z_>z)
+    {
+      step=-1;
+    }
+    for(int l=0; l<std::round(abs(z-ref_z_)/0.1); l++)
+    {
+      //check if occupied
+      if(wrappedMapData_.at<char>(i,j,k+step*l)!=0)
+      {
+          new_z=((k+step*(l-1))-(wrappedMapData_.size[2]-1)/2)*0.1;
+      }
+    }
+  }
+  
+
+
+  ref_x_ = new_x;
+  ref_y_ = new_y;
+  ref_z_ = new_z;
   ref_yaw_ = yaw;
   return true;
 }

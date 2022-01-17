@@ -1,7 +1,7 @@
 #include <memory>
 #include <unistd.h>
 #include <stdlib.h>
-
+#include <fstream>
 #include <SDL2/SDL.h>
 
 #include <ros/ros.h>
@@ -200,6 +200,33 @@ bool setupVisualInertialTracker(ros::NodeHandle& nh, arp::VisualInertialTracker&
 
   return true;
 }
+void setupOccupancyMap(ros::NodeHandle& nh,cv::Mat& retwrappedMapData)
+{
+  // open the file:
+  std::string path = ros::package::getPath("ardrone_practicals");
+  std::string mapFileName;
+  if(!nh.getParam("arp_node/occupancymap", mapFileName)) ROS_FATAL("error loading parameter");
+  std::string mapPath = path+"/maps/"+mapFileName;
+  std::ifstream mapFile(mapPath, std::ios_base::in | std::ios_base::binary);
+  if(!mapFile.is_open()) {
+  ROS_FATAL_STREAM("could not open map file " << mapFileName);
+  }
+  // first read the map size along all the dimensions:
+  int sizes[3];
+  if(!mapFile.read((char *)sizes, 3* sizeof(int))) {
+  ROS_FATAL_STREAM("could not read map file " << mapFileName);
+  }
+  // now read the map data:
+  char * mapData = new char[sizes[0]*sizes[1]*sizes[2]]; // don’t forget \
+  to delete[] in the end!
+  if(!mapFile.read((char *)mapData, sizes[0]*sizes[1]*sizes[2])) {
+  ROS_FATAL_STREAM("could not read map file " << mapFileName);
+  }
+  mapFile.close();
+  // now wrap it with a cv::Mat for easier access:
+  cv::Mat wrappedMapData(3,sizes, CV_8SC1, mapData);
+  retwrappedMapData=wrappedMapData;
+}
 
 int main(int argc, char **argv)
 {
@@ -236,10 +263,28 @@ int main(int argc, char **argv)
     numKeypoints = 400;
   }
   arp::Frontend frontend(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2, numKeypoints);
+  //setup OccupancyMap
+  ROS_INFO("Setup OccupancyMap...");
+  cv::Mat wrappedMapData;
+  setupOccupancyMap(nh, wrappedMapData);
+ /*  for(int k=0; k<wrappedMapData.size[2];k++)
+  {
+    for(int j=wrappedMapData.size[1]/2-10; j<wrappedMapData.size[1]/2+10;j++)
+    {
+      for(int i=wrappedMapData.size[0]/2-10; i<wrappedMapData.size[0]/2+10;i++)
+      {
+        std::cout<<(int)wrappedMapData.at<char>(i,j,k)<<", ";
+      }
+      std::cout<<"\n";
+    }
+    std::cout<<"\n\n";
+  } */
+  
   // set up autopilot
   ROS_INFO("Setup Autopilot...");
   arp::Autopilot autopilot(nh);
-
+  autopilot.setOccupancyMap(wrappedMapData);
+  
   // setup visual inertial tracker
   arp::ViEkf viEkf;
   arp::VisualInertialTracker vit;
