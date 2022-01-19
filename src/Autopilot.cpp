@@ -7,7 +7,7 @@
 
 #include <arp/Autopilot.hpp>
 #include <arp/kinematics/operators.hpp>
-
+#define ROS_PI 3.141592653589793238462643383279502884L
 namespace arp {
 
 Autopilot::Autopilot(ros::NodeHandle& nh)
@@ -43,6 +43,7 @@ Autopilot::Autopilot(ros::NodeHandle& nh)
 
 
   arp::PidController::Parameters controllerParameters;
+  // PID values: K_P=0.05-0.3 
   controllerParameters.k_p=0.15;
   controllerParameters.k_i=0.05;//0.05;
   controllerParameters.k_d=0.05;//0.05;
@@ -54,13 +55,15 @@ Autopilot::Autopilot(ros::NodeHandle& nh)
   y_pid.setOutputLimits(-x_y_limit,x_y_limit);
   y_pid.resetIntegrator();
   
+  //PID values: K_P < 2
   controllerParameters.k_p=0.95;
   controllerParameters.k_i=0.05;//0.1;
   controllerParameters.k_d=0.05;//0;
   z_pid.setParameters(controllerParameters);
   z_pid.setOutputLimits(-z_limit,z_limit);
   z_pid.resetIntegrator();
-
+  
+  // PID values: K_P < 3
   controllerParameters.k_p=1.75;
   controllerParameters.k_i=0.01;//0.1;
   controllerParameters.k_d=0;
@@ -209,6 +212,9 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
       ref_yaw_ = yaw;
     return true;
   }
+  //Ziel-Start und normieren
+  //in 0.1m schritten in Map checken ob frei
+  
 
 
   /*//TODO: Check if occupied:
@@ -246,7 +252,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
       }
     }
   }
-  /*if (z!=ref_z_)
+  if (z!=ref_z_)
   {
     if(ref_z_>z)
     {
@@ -303,12 +309,12 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
     error_=x.q_WS.toRotationMatrix()*error_;
     double yaw_error= ref_yaw_-arp::kinematics::yawAngle(x.q_WS);
     //TODO: bounderies of yaw angle
-    if(yaw_error>3.14)
+    if(yaw_error>ROS_PI)
     {
-      yaw_error=3.14;
-    }else if(yaw_error<-3.14)
+      yaw_error=ROS_PI;
+    }else if(yaw_error<-ROS_PI)
     {
-      yaw_error=-3.14;
+      yaw_error=-ROS_PI;
     }
 
     Eigen::Vector3d e_dot(0,0,0);

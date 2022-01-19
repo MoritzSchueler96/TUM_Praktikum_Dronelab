@@ -22,7 +22,7 @@ double PidController::control(uint64_t timestampMicroseconds, double e,
 {
   // TODO: implement...
   //compute deltaT
-  const double deltaT=(timestampMicroseconds-lastTimestampMicroseconds_)/1000000;//compute deltaT in seconds
+  const double deltaT=(timestampMicroseconds-lastTimestampMicroseconds_)/1000000u;//compute deltaT in seconds
 
   // compute output:
   double output =   parameters_.k_p * e + parameters_.k_i * integratedError_ + parameters_.k_d * e_dot;
