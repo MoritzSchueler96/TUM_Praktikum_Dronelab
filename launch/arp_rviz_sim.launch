@@ -46,8 +46,8 @@
     <rosparam param="T_SC">[0.0, 0.0, 1.0, 0.2, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]</rosparam>
     <!-- Make sure to match the map to the world loaded above! -->
 
-    <!--param name="map" value="okvis2-slam-final_map_skokloster_new2.csv" /-->
-    <param name="map" value="okvis2-slam-final_map_garching.csv" />
+    <!--param name="map" value="okvis2-slam-final_map_skokloster.csv" /-->
+    <param name="map" value="okvis2-slam-final_map_garching_new2.csv" />
     <!--param name="occupancymap" value="occupancy-map_skokloster.dat" /-->
     <param name="occupancymap" value="occupancy-map_garching.dat" />
 

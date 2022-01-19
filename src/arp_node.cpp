@@ -257,7 +257,7 @@ int main(int argc, char **argv)
   std::string map;
   int numKeypoints;
   if(!nh.getParam("/arp_node/map", map)) ROS_FATAL("error loading world");
-  if (map == "okvis2-slam-final_map_garching.csv") {
+  if (map.find("map_garching") != std::string::npos ) {
     numKeypoints = 2000;
   } else {
     numKeypoints = 400;
@@ -267,18 +267,7 @@ int main(int argc, char **argv)
   ROS_INFO("Setup OccupancyMap...");
   cv::Mat wrappedMapData;
   setupOccupancyMap(nh, wrappedMapData);
- /*  for(int k=0; k<wrappedMapData.size[2];k++)
-  {
-    for(int j=wrappedMapData.size[1]/2-10; j<wrappedMapData.size[1]/2+10;j++)
-    {
-      for(int i=wrappedMapData.size[0]/2-10; i<wrappedMapData.size[0]/2+10;i++)
-      {
-        std::cout<<(int)wrappedMapData.at<char>(i,j,k)<<", ";
-      }
-      std::cout<<"\n";
-    }
-    std::cout<<"\n\n";
-  } */
+ 
   
   // set up autopilot
   ROS_INFO("Setup Autopilot...");

@@ -43,9 +43,9 @@ Autopilot::Autopilot(ros::NodeHandle& nh)
 
 
   arp::PidController::Parameters controllerParameters;
-  controllerParameters.k_p=0.05;
-  controllerParameters.k_i=0;
-  controllerParameters.k_d=0;
+  controllerParameters.k_p=0.15;
+  controllerParameters.k_i=0.05;//0.05;
+  controllerParameters.k_d=0.05;//0.05;
   x_pid.setParameters(controllerParameters);
 
   x_pid.setOutputLimits(-x_y_limit,x_y_limit);
@@ -54,15 +54,15 @@ Autopilot::Autopilot(ros::NodeHandle& nh)
   y_pid.setOutputLimits(-x_y_limit,x_y_limit);
   y_pid.resetIntegrator();
   
-  controllerParameters.k_p=1.0;
-  controllerParameters.k_i=0;
-  controllerParameters.k_d=0;
+  controllerParameters.k_p=0.95;
+  controllerParameters.k_i=0.05;//0.1;
+  controllerParameters.k_d=0.05;//0;
   z_pid.setParameters(controllerParameters);
   z_pid.setOutputLimits(-z_limit,z_limit);
   z_pid.resetIntegrator();
 
-  controllerParameters.k_p=1.5;
-  controllerParameters.k_i=0;
+  controllerParameters.k_p=1.75;
+  controllerParameters.k_i=0.01;//0.1;
   controllerParameters.k_d=0;
   yaw_pid.setParameters(controllerParameters);
   yaw_pid.setOutputLimits(-yaw_limit,yaw_limit);
@@ -197,12 +197,21 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   int i = std::round(ref_x_/0.1)+(wrappedMapData_.size[0]-1)/2;
   int j = std::round(ref_y_/0.1)+(wrappedMapData_.size[1]-1)/2;
   int k = std::round(ref_z_/0.1)+(wrappedMapData_.size[2]-1)/2;
-  double new_x=x;
-  double new_y=y;
+  double new_x=x;//ref_x_;
+  double new_y=y;//ref_y_;
+  //double new_z=ref_z_;
   double new_z=z;
   int step=1;
+  if (!isAutomatic_) {
+      ref_x_ = x;
+      ref_y_ = y;
+      ref_z_ = z;
+      ref_yaw_ = yaw;
+    return true;
+  }
 
-  //TODO: Check if occupied:
+
+  /*//TODO: Check if occupied:
   if(x!=ref_x_)
   { 
     //check in which direction the occupancy check has to be done
@@ -211,12 +220,12 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
       step=-1;
     }
     //map is in 0.1m resolution, so we have to go distance/0.1m  times
-    for(int l=0; l<std::round(abs(x-ref_x_)/0.1); l++)
+    for(int m=0; m<std::round(abs(x-ref_x_)/0.1); m++)
     {
       //check if occupied (free=0?)
-      if(wrappedMapData_.at<char>(i+step*l,j,k)!=0)
+      if(wrappedMapData_.at<char>(i+step*m,j,k)<0)
       {
-          new_x=((i+step*(l-1))-(wrappedMapData_.size[0]-1)/2)*0.1;
+          new_x=((i+step*(m))-(wrappedMapData_.size[0]-1)/2)*0.1;
       }
     }
 
@@ -228,30 +237,30 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
     {
       step=-1;
     }
-    for(int l=0; l<std::round(abs(y-ref_y_)/0.1); l++)
+    for(int m=0; m<std::round(abs(y-ref_y_)/0.1); m++)
     {
       //check if occupied
-      if(wrappedMapData_.at<char>(i,j+step*l,k)!=0)
+      if(wrappedMapData_.at<char>(i,j+step*m,k)<0)
       {
-          new_y=((j+step*(l-1))-(wrappedMapData_.size[1]-1)/2)*0.1;
+          new_y=((j+step*m)-(wrappedMapData_.size[1]-1)/2)*0.1;
       }
     }
   }
-  if (z!=ref_z_)
+  /*if (z!=ref_z_)
   {
     if(ref_z_>z)
     {
       step=-1;
     }
-    for(int l=0; l<std::round(abs(z-ref_z_)/0.1); l++)
+    for(int m=0; m<std::round(abs(z-ref_z_)/0.1); m++)
     {
       //check if occupied
-      if(wrappedMapData_.at<char>(i,j,k+step*l)!=0)
+      if(wrappedMapData_.at<char>(i,j,k+step*m)<0)
       {
-          new_z=((k+step*(l-1))-(wrappedMapData_.size[2]-1)/2)*0.1;
+          new_z=((k+step*m)-(wrappedMapData_.size[2]-1)/2)*0.1;
       }
     }
-  }
+  }*/
   
 
 

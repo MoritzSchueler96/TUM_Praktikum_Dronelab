@@ -33,7 +33,7 @@ include_directories(${CMAKE_BINARY_DIR}/include)
 link_directories(${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mssse3")
 ExternalProject_Add(brisk_external
-  URL "https://www.doc.ic.ac.uk/~sleutene/software/brisk-2.0.8.zip"
+  URL "https://www.doc.ic.ac.uk/~sleutene/software/brisk-cameraaware.zip"
   INSTALL_DIR ${CMAKE_BINARY_DIR}
   CMAKE_ARGS -DCUDA_USE_STATIC_CUDA_RUNTIME=OFF -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   PREFIX ${CMAKE_CURRENT_BINARY_DIR}/brisk
