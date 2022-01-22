@@ -11,6 +11,8 @@
   ☐ auto mode deaktiveren, wenn x Sek keine Pose?
   ☐ auto mode erst erlauben, wenn hovering?
   ☐ pose von drone ausgeben, die sie denkt zu haben, wenn drift
+  ☐ Analyse Out Of Bound (e.g. Map), Threshold for safety...
+  
   
   Per Mail klären:
   Bei Pose Verlust auf Manual Modus/ andere Regelparameter?

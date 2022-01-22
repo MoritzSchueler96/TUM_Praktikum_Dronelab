@@ -220,18 +220,18 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   //Ziel-Start und normieren
   //in 0.1m schritten in Map checken ob frei
   Eigen::Vector3d goal;
-  goal << ref_x_, ref_y_, ref_z_;
+  goal << x, y, z;
   ROS_INFO_STREAM("goal: " << goal);
 
   Eigen::Vector3d new_goal;
   new_goal = goal;
 
   Eigen::Vector3d start;
-  start << x,y,z;
+  start << ref_x_,ref_y_,ref_z_;
   ROS_INFO_STREAM("start: " << start);
 
   Eigen::Vector3d cur;
-  cur << x,y,z;
+  cur << ref_x_,ref_y_,ref_z_;
   ROS_INFO_STREAM("cur: " << cur);
 
   Eigen::Vector3d last;
@@ -241,26 +241,36 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   dir << (goal - start).normalized();
   ROS_INFO_STREAM("dir: " << dir);
 
-  while((goal - cur).norm() > 1e-3)
+  while((cur - start).norm() < (goal-start).norm())
   {
       cur += 0.1*dir;
-      ROS_INFO_STREAM("cur: " << cur);
+      //ROS_INFO_STREAM("cur: " << cur);
       i = std::round(cur[0]/0.1)+(wrappedMapData_.size[0]-1)/2;
       j = std::round(cur[1]/0.1)+(wrappedMapData_.size[1]-1)/2;
       k = std::round(cur[2]/0.1)+(wrappedMapData_.size[2]-1)/2;
-
-      if(wrappedMapData_.at<char>(i,j,k)<1)
+      if(i<wrappedMapData_.size[0]& j<wrappedMapData_.size[1]&k<wrappedMapData_.size[2]&i>=0&j>=0&k>=0)
       {
-          new_goal = last;
-          goal = cur;
-          ROS_WARN("Wall in front.");
+        
+        if(wrappedMapData_.at<char>(i,j,k)>=0)
+        {
+            goal = last;
+            ROS_WARN("Wall in front.");
+            break;
+        }
       }
-      ROS_INFO_STREAM("last: " << last);
+      else
+      {
+        ROS_WARN("Index out of range");
+        goal=last;
+        break;
+      }
+      
+      //ROS_INFO_STREAM("last: " << last);
       last = cur;
   }
 
   ROS_INFO("Done.");
-  if (goal != new_goal) goal = new_goal;
+  ROS_INFO_STREAM("Goal:"<<goal);
   ref_x_ = goal[0];
   ref_y_ = goal[1];
   ref_z_ = goal[2];
