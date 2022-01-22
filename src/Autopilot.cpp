@@ -47,10 +47,13 @@ Autopilot::Autopilot(ros::NodeHandle& nh)
   controllerParameters.k_p=0.15;
   controllerParameters.k_i=0.05;//0.05;
   controllerParameters.k_d=0.05;//0.05;
-  x_pid.setParameters(controllerParameters);
 
+  //x
+  x_pid.setParameters(controllerParameters);
   x_pid.setOutputLimits(-x_y_limit,x_y_limit);
   x_pid.resetIntegrator();
+
+  //y
   y_pid.setParameters(controllerParameters);
   y_pid.setOutputLimits(-x_y_limit,x_y_limit);
   y_pid.resetIntegrator();
@@ -59,6 +62,8 @@ Autopilot::Autopilot(ros::NodeHandle& nh)
   controllerParameters.k_p=0.95;
   controllerParameters.k_i=0.05;//0.1;
   controllerParameters.k_d=0.05;//0;
+
+  //z
   z_pid.setParameters(controllerParameters);
   z_pid.setOutputLimits(-z_limit,z_limit);
   z_pid.resetIntegrator();
@@ -67,6 +72,8 @@ Autopilot::Autopilot(ros::NodeHandle& nh)
   controllerParameters.k_p=1.75;
   controllerParameters.k_i=0.01;//0.1;
   controllerParameters.k_d=0;
+
+  // yaw
   yaw_pid.setParameters(controllerParameters);
   yaw_pid.setOutputLimits(-yaw_limit,yaw_limit);
   yaw_pid.resetIntegrator();
@@ -200,11 +207,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   int i = std::round(ref_x_/0.1)+(wrappedMapData_.size[0]-1)/2;
   int j = std::round(ref_y_/0.1)+(wrappedMapData_.size[1]-1)/2;
   int k = std::round(ref_z_/0.1)+(wrappedMapData_.size[2]-1)/2;
-  double new_x=x;//ref_x_;
-  double new_y=y;//ref_y_;
-  //double new_z=ref_z_;
-  double new_z=z;
-  int step=1;
+  
   if (!isAutomatic_) {
       ref_x_ = x;
       ref_y_ = y;
@@ -212,10 +215,57 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
       ref_yaw_ = yaw;
     return true;
   }
+
+
   //Ziel-Start und normieren
   //in 0.1m schritten in Map checken ob frei
-  
+  Eigen::Vector3d goal;
+  goal << ref_x_, ref_y_, ref_z_;
+  ROS_INFO_STREAM("goal: " << goal);
 
+  Eigen::Vector3d new_goal;
+  new_goal = goal;
+
+  Eigen::Vector3d start;
+  start << x,y,z;
+  ROS_INFO_STREAM("start: " << start);
+
+  Eigen::Vector3d cur;
+  cur << x,y,z;
+  ROS_INFO_STREAM("cur: " << cur);
+
+  Eigen::Vector3d last;
+  last = cur;
+
+  Eigen::Vector3d dir;
+  dir << (goal - start).normalized();
+  ROS_INFO_STREAM("dir: " << dir);
+
+  while((goal - cur).norm() > 1e-3)
+  {
+      cur += 0.1*dir;
+      ROS_INFO_STREAM("cur: " << cur);
+      i = std::round(cur[0]/0.1)+(wrappedMapData_.size[0]-1)/2;
+      j = std::round(cur[1]/0.1)+(wrappedMapData_.size[1]-1)/2;
+      k = std::round(cur[2]/0.1)+(wrappedMapData_.size[2]-1)/2;
+
+      if(wrappedMapData_.at<char>(i,j,k)<1)
+      {
+          new_goal = last;
+          goal = cur;
+          ROS_WARN("Wall in front.");
+      }
+      ROS_INFO_STREAM("last: " << last);
+      last = cur;
+  }
+
+  ROS_INFO("Done.");
+  if (goal != new_goal) goal = new_goal;
+  ref_x_ = goal[0];
+  ref_y_ = goal[1];
+  ref_z_ = goal[2];
+  ref_yaw_ = yaw;
+  return true;
 
   /*//TODO: Check if occupied:
   if(x!=ref_x_)
@@ -266,7 +316,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
           new_z=((k+step*m)-(wrappedMapData_.size[2]-1)/2)*0.1;
       }
     }
-  }*/
+  }
   
 
 
@@ -275,6 +325,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   ref_z_ = new_z;
   ref_yaw_ = yaw;
   return true;
+  */
 }
 
 bool Autopilot::getPoseReference(double& x, double& y, double& z, double& yaw) {

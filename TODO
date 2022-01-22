@@ -3,10 +3,14 @@
 ✔ Add error handling, check implemented functions for vulnerabilities @done(21-12-16 17:04)
   
   P4:
-  Reiner P Regler test um Stabilität von Regelstrecke zu testen (Rausfinden Regler oder Verlust der Pose Problem sind )
-  clamp function in yaw_rate and PID Controller
-  automatic/ Manual keys in picture
-  collision check
+  ✔ Reiner P Regler test um Stabilität von Regelstrecke zu testen (Rausfinden Regler oder Verlust der Pose Problem sind) -> Verlust der Pose @done(22-01-22 15:06)
+  ✔ clamp function in yaw_rate and PID Controller -> erst ab cpp17, wir haben cpp11 @done(22-01-22 15:06)
+  ✔ automatic/ Manual keys in picture @done(22-01-21 11:16)
+  ☐ collision check
+  ☐ auto mode erst erlauben, wenn x Sek Pose gefunden?
+  ☐ auto mode deaktiveren, wenn x Sek keine Pose?
+  ☐ auto mode erst erlauben, wenn hovering?
+  ☐ pose von drone ausgeben, die sie denkt zu haben, wenn drift
   
   Per Mail klären:
   Bei Pose Verlust auf Manual Modus/ andere Regelparameter?

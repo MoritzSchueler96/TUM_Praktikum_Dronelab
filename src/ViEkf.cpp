@@ -316,7 +316,7 @@ bool ViEkf::update(const Detection& detection){
   
   // chi2 test
   if(y.transpose()*S.inverse()*y > 40.0){
-    ROS_INFO("Rejecting measurement...");
+    ROS_DEBUG("Rejecting measurement...");
     return false;
   }
   // TODO: compute Kalman gain K

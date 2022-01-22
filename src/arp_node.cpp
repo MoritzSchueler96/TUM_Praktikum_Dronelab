@@ -241,6 +241,9 @@ int main(int argc, char **argv)
   ROS_INFO_NAMED("custom", "Help");
   */
  
+  // __cplusplus Version
+  ROS_INFO_STREAM("Used Cpp Version: " << __cplusplus);
+
   // read camera parameters
   camParams cp;
   ROS_INFO("Read camera parameters...");
@@ -372,11 +375,17 @@ int main(int argc, char **argv)
           cv::putText(image, stream.str(), cv::Point(image_size.width-200*FONT_SCALING, 50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING*2, color, 2, false);
           
           // possible commands in buttom of picture, differentiate: drone is flying or not
+          if(!autopilot.isAutomatic())
+          {
+              cv::putText(image, "STRG-R: Switch to Auto Mode", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-90*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+          } else {
+              cv::putText(image, "Space: Switch to Man. Mode", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-90*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+          }
           if (enableFusion)
           {
-              cv::putText(image, "F: Sensor Fusion On", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "F: Sensor Fusion is On", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
           } else {
-              cv::putText(image, "F: Sensor Fusion Off", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "F: Sensor Fusion is Off", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
           }
           cv::putText(image, "K: Toggle Keypoints", cv::Point(10*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
           cv::putText(image, "P: Toggle Projection", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
