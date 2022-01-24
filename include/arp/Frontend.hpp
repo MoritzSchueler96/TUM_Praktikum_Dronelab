@@ -103,6 +103,7 @@ class Frontend
 
  private:
   Frontend() = delete;
+  int keypoints_max;
 };
 
 }  // namespace arp

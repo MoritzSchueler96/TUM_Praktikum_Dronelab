@@ -48,9 +48,9 @@ Frontend::Frontend(int imageWidth, int imageHeight,
   distCoeffs_.at<double>(1) = k2;
   distCoeffs_.at<double>(2) = p1;
   distCoeffs_.at<double>(3) = p2;
-  
+  keypoints_max=numKeypoints;
   // BRISK detector and descriptor
-  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(10, 0, 100, numKeypoints));//10,0,100,2000
+  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(20, 0, 100, numKeypoints));//10,0,100,2000
   //working limit 25-35 for castle, kitchen 
   extractor_.reset(new brisk::BriskDescriptorExtractor(true, false));
   
@@ -176,7 +176,7 @@ bool Frontend::ransac(const std::vector<cv::Point3d>& worldPoints,
   cv::Mat rvec, tvec;
   bool ransacSuccess = cv::solvePnPRansac(
       worldPoints, imagePoints, cameraMatrix_, distCoeffs_,
-      rvec, tvec, false, 100, 5.0, 0.99, inliers, cv::SOLVEPNP_EPNP);	
+      rvec, tvec, false, 150, 5.0, 0.99, inliers, cv::SOLVEPNP_EPNP);	//error 5.0
 
   // set pose
   cv::Mat R = cv::Mat::zeros(3, 3, CV_64FC1);
@@ -190,7 +190,7 @@ bool Frontend::ransac(const std::vector<cv::Point3d>& worldPoints,
   }
   T_CW = kinematics::Transformation(T_CW_mat);
 
-  return ransacSuccess && (double(inliers.size())/double(imagePoints.size()) > 0.65);//0.7
+  return ransacSuccess && (double(inliers.size())/double(imagePoints.size()) > 0.55);//0.7
 }
 
 bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extractionDirection, 
@@ -221,7 +221,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   std::vector<cv::Point2d> imagePoints;
   std::vector<uint64_t> lmID;
   int reduceLandmarks = 0;
-  static int skipThres = 1;
+  static int skipThres = 3;
   static int reduceLmCnt = 0;
 
   ROS_DEBUG_STREAM("landmarks: " << landmarks_.size());
@@ -238,19 +238,19 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
     // skip invisible landmarks if no Init needed
     // reduce Landmarks by factor 4 if Init needed
     if(!needsReInitialisation){
-      skipThres = 1;
+      skipThres = 3;
       reduceLmCnt = 0;
       if(camera_.project((T_CW*landmark4d).head<3>(), &landmark2d)!=arp::cameras::ProjectionStatus::Successful) continue;
     } else {
       reduceLandmarks++;
-      reduceLmCnt++;
-      if (reduceLmCnt > 750000){
-        ROS_DEBUG_STREAM_NAMED("custom", "skip: " << skipThres << "cnt: " << reduceLmCnt);
+      /*reduceLmCnt++;
+      if (reduceLmCnt > 250000){
+         ROS_INFO_STREAM_NAMED("custom", "skip: " << skipThres << "cnt: " << reduceLmCnt);
         reduceLmCnt = 0;
-        //skipThres = std::min(skipThres+1, 4);
-      }
-      if(reduceLandmarks > skipThres) reduceLandmarks=0;
-      //else continue;
+        skipThres = std::min(skipThres+1, 3);
+      }*/
+      if((reduceLandmarks > skipThres) || (keypoints_max>1500)) reduceLandmarks=0;
+       else continue;
     }
     
     // save best matched Points

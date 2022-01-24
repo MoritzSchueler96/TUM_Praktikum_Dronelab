@@ -45,8 +45,8 @@ Autopilot::Autopilot(ros::NodeHandle& nh)
   arp::PidController::Parameters controllerParameters;
   // PID values: K_P=0.05-0.3 
   controllerParameters.k_p=0.15;
-  controllerParameters.k_i=0.05;//0.05;
-  controllerParameters.k_d=0.05;//0.05;
+  controllerParameters.k_i=0.005;//0.05;
+  controllerParameters.k_d=0.01;//0.05;
 
   //x
   x_pid.setParameters(controllerParameters);
@@ -60,7 +60,7 @@ Autopilot::Autopilot(ros::NodeHandle& nh)
   
   //PID values: K_P < 2
   controllerParameters.k_p=0.95;
-  controllerParameters.k_i=0.05;//0.1;
+  controllerParameters.k_i=0.01;//0.1;
   controllerParameters.k_d=0.05;//0;
 
   //z
