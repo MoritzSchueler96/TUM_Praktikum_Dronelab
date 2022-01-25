@@ -578,7 +578,7 @@ int main(int argc, char **argv)
 
   // make sure to land the drone...
   bool success = autopilot.land();
-
+  delete &wrappedMapData;
   // cleanup
   SDL_DestroyTexture(texture);
   SDL_DestroyRenderer(renderer);

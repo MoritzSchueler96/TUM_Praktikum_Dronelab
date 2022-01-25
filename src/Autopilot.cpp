@@ -206,6 +206,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   int i = std::round(ref_x_/0.1)+(wrappedMapData_.size[0]-1)/2;
   int j = std::round(ref_y_/0.1)+(wrappedMapData_.size[1]-1)/2;
   int k = std::round(ref_z_/0.1)+(wrappedMapData_.size[2]-1)/2;
+  bool not_occupied=true;
   
   if (!isAutomatic_) {
       ref_x_ = x;
@@ -249,6 +250,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
         {
             goal = last;
             ROS_WARN("Wall in front.");
+            not_occupied=false;
             break;
         }
       }
@@ -256,6 +258,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
       {
         ROS_WARN("Index out of range");
         goal=last;
+        not_occupied=false;
         break;
       }
       
@@ -268,7 +271,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   ref_y_ = goal[1];
   ref_z_ = goal[2];
   ref_yaw_ = yaw;
-  return true;
+  return not_occupied;
 
 }
 
@@ -290,6 +293,10 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
     // keep resetting this to make sure we use the current state as reference as soon as sent to automatic mode
     const double yaw = kinematics::yawAngle(x.q_WS);
     setPoseReference(x.t_WS[0], x.t_WS[1], x.t_WS[2], yaw);
+    /*x_pid.resetIntegrator();
+    y_pid.resetIntegrator();
+    z_pid.resetIntegrator();
+    yaw_pid.resetIntegrator();*/
     return;
   }
 
@@ -301,7 +308,8 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
     Eigen::Vector3d referencePose(ref_x_,ref_y_, ref_z_);
     Eigen::Vector3d error_(0,0,0);
     error_<< referencePose-x.t_WS;
-    error_=x.q_WS.toRotationMatrix()*error_;
+    //x.q_WS.toRotationMatrix().transpose() = R_SW
+    error_=x.q_WS.toRotationMatrix().transpose()*error_;
     double yaw_error= ref_yaw_-arp::kinematics::yawAngle(x.q_WS);
 
     //TODO: boundaries of yaw angle
@@ -314,7 +322,8 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
     }
 
     Eigen::Vector3d e_dot(0,0,0);
-    e_dot=-x.q_WS.toRotationMatrix()*x.v_W;
+    //x.q_WS.toRotationMatrix().transpose() = R_SW
+    e_dot=-x.q_WS.toRotationMatrix().transpose()*x.v_W;
 
     // TODO: get ros parameter
     // is done in constructor and saved to x_y_limit, z_limit and yaw_limit, since values are fixed
