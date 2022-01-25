@@ -41,7 +41,6 @@ Autopilot::Autopilot(ros::NodeHandle& nh)
   
   z_limit=z_limit/1000;//convert from mm/s to m/s
 
-
   arp::PidController::Parameters controllerParameters;
   // PID values: K_P=0.05-0.3 
   controllerParameters.k_p=0.15;
@@ -183,13 +182,13 @@ bool Autopilot::move(double forward, double left, double up, double rotateLeft)
   return true;
 }
 
-// Set to automatic control mode.
+// Set to manual control mode.
 void Autopilot::setManual()
 {
   isAutomatic_ = false;
 }
 
-// Set to manual control mode.
+// Set to automatic control mode.
 void Autopilot::setAutomatic()
 {
   isAutomatic_ = true;
@@ -216,7 +215,6 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
     return true;
   }
 
-
   //Ziel-Start und normieren
   //in 0.1m schritten in Map checken ob frei
   Eigen::Vector3d goal;
@@ -241,7 +239,6 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   while((cur - start).norm() < (goal-start).norm())
   {
       cur += 0.1*dir;
-      //ROS_INFO_STREAM("cur: " << cur);
       i = std::round(cur[0]/0.1)+(wrappedMapData_.size[0]-1)/2;
       j = std::round(cur[1]/0.1)+(wrappedMapData_.size[1]-1)/2;
       k = std::round(cur[2]/0.1)+(wrappedMapData_.size[2]-1)/2;
@@ -262,7 +259,6 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
         break;
       }
       
-      //ROS_INFO_STREAM("last: " << last);
       last = cur;
   }
 
@@ -307,7 +303,8 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
     error_<< referencePose-x.t_WS;
     error_=x.q_WS.toRotationMatrix()*error_;
     double yaw_error= ref_yaw_-arp::kinematics::yawAngle(x.q_WS);
-    //TODO: bounderies of yaw angle
+
+    //TODO: boundaries of yaw angle
     if(yaw_error>ROS_PI)
     {
       yaw_error=ROS_PI;
@@ -319,9 +316,8 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
     Eigen::Vector3d e_dot(0,0,0);
     e_dot=-x.q_WS.toRotationMatrix()*x.v_W;
 
-
     // TODO: get ros parameter
-    //is done in constructor and saved to x_y_limit, z_limit and yaw_limit, since values are fixed
+    // is done in constructor and saved to x_y_limit, z_limit and yaw_limit, since values are fixed
     // TODO: compute control output
     double x_move=x_pid.control(timeMicroseconds,error_[0], e_dot[0])/x_y_limit;
     double y_move=y_pid.control(timeMicroseconds,error_[1], e_dot[1])/x_y_limit;

@@ -333,8 +333,6 @@ int main(int argc, char **argv)
   ros::Subscriber subImu = nh.subscribe("ardrone/imu", 50,
                                         &Subscriber::imuCallback, &subscriber);
   
-  
-
   // setup rendering
   SDL_Event event;
   SDL_Init(SDL_INIT_VIDEO);
@@ -474,6 +472,13 @@ int main(int argc, char **argv)
       ROS_INFO_STREAM("Autopilot off...     status=" << droneStatus);
       autopilot.setManual();
       markerServer.deactivate();
+    }
+
+    // Reset Rviz 
+    if(state[SDL_SCANCODE_U]){
+        double x, y, z, yaw;
+        autopilot.getPoseReference(x, y, z, yaw);
+        markerServer.activate(x, y, z, yaw);
     }
 
     // Press P to toggle application of camera model

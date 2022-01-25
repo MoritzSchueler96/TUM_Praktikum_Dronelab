@@ -25,7 +25,7 @@ double PidController::control(uint64_t timestampMicroseconds, double e,
   const double deltaT=(timestampMicroseconds-lastTimestampMicroseconds_)/1000000u;//compute deltaT in seconds
 
   // compute output:
-  double output =   parameters_.k_p * e + parameters_.k_i * integratedError_ + parameters_.k_d * e_dot;
+  double output = parameters_.k_p * e + parameters_.k_i * integratedError_ + parameters_.k_d * e_dot;
   // saturate:
   if (output < minOutput_) {
   output = minOutput_; // clamp -- and DO NOT INTEGRATE ERROR (anti-reset windup)

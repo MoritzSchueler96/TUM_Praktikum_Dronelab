@@ -4,7 +4,8 @@
   ☐ auto mode deaktiveren, wenn x Sek keine Pose?
   ✔ auto mode erst erlauben, wenn hovering? @done(22-01-25 16:54)
   ☐ pose von drone ausgeben, die sie denkt zu haben, wenn drift
-  ☐ Analyse Out Of Bound (e.g. Map), Threshold for safety...
+  ✔ Analyse Out Of Bound (e.g. Map), Threshold for safety... @done(22-01-25 22:13)
+  ✔ Realign Box of Rviz Marker @done(22-01-25 22:13)
   
   ✔ Bei Pose Verlust auf Manual Modus/ andere Regelparameter? @done(22-01-25 17:44)
   ☐ only Garching Kitchen oder auch Castle?
