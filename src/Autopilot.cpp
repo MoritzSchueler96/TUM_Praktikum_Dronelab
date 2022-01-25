@@ -223,9 +223,6 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   goal << x, y, z;
   ROS_INFO_STREAM("goal: " << goal);
 
-  Eigen::Vector3d new_goal;
-  new_goal = goal;
-
   Eigen::Vector3d start;
   start << ref_x_,ref_y_,ref_z_;
   ROS_INFO_STREAM("start: " << start);
@@ -277,65 +274,6 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   ref_yaw_ = yaw;
   return true;
 
-  /*//TODO: Check if occupied:
-  if(x!=ref_x_)
-  { 
-    //check in which direction the occupancy check has to be done
-    if(ref_x_>x)
-    {
-      step=-1;
-    }
-    //map is in 0.1m resolution, so we have to go distance/0.1m  times
-    for(int m=0; m<std::round(abs(x-ref_x_)/0.1); m++)
-    {
-      //check if occupied (free=0?)
-      if(wrappedMapData_.at<char>(i+step*m,j,k)<0)
-      {
-          new_x=((i+step*(m))-(wrappedMapData_.size[0]-1)/2)*0.1;
-      }
-    }
-
-  }
-  //similar to x
-  if(y!=ref_y_)
-  {
-    if(ref_y_>y)
-    {
-      step=-1;
-    }
-    for(int m=0; m<std::round(abs(y-ref_y_)/0.1); m++)
-    {
-      //check if occupied
-      if(wrappedMapData_.at<char>(i,j+step*m,k)<0)
-      {
-          new_y=((j+step*m)-(wrappedMapData_.size[1]-1)/2)*0.1;
-      }
-    }
-  }
-  if (z!=ref_z_)
-  {
-    if(ref_z_>z)
-    {
-      step=-1;
-    }
-    for(int m=0; m<std::round(abs(z-ref_z_)/0.1); m++)
-    {
-      //check if occupied
-      if(wrappedMapData_.at<char>(i,j,k+step*m)<0)
-      {
-          new_z=((k+step*m)-(wrappedMapData_.size[2]-1)/2)*0.1;
-      }
-    }
-  }
-  
-
-
-  ref_x_ = new_x;
-  ref_y_ = new_y;
-  ref_z_ = new_z;
-  ref_yaw_ = yaw;
-  return true;
-  */
 }
 
 bool Autopilot::getPoseReference(double& x, double& y, double& z, double& yaw) {

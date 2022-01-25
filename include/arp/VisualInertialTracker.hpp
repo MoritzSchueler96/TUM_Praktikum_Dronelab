@@ -75,6 +75,9 @@ class VisualInertialTracker
   /// \brief Enable/disable fusion
   void enableFusion(bool enable) {fusionEnabled_ = enable;}
 
+  /// \brief Get Pose Status
+  bool getPoseStatus() {return poseStatus_;}
+
  protected:
 
   /// \brief This runs in a separate thread, synchronising and then calling
@@ -114,6 +117,7 @@ class VisualInertialTracker
   EstimatorCallback visualisationCallback_;
   
   std::atomic_bool fusionEnabled_{true};
+  std::atomic_bool poseStatus_{true};
 
 };
 

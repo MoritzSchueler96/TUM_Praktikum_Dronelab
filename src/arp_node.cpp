@@ -35,9 +35,6 @@
 #define CAM_IMAGE_HEIGHT 360
 #define FONT_SCALING 1.5
 #define FONT_COLOR cv::Scalar(0,255,0)
-#define ENABLE_CAM_MODEL true
-#define SHOW_KEYPOINTS true
-#define ENABLE_FUSION true
 
 class Subscriber
 {
@@ -92,6 +89,30 @@ class Subscriber
   arp::VisualInertialTracker* vit_ = nullptr;
 };
 
+  /// \brief Struct holding global variables
+struct globalParams{
+  bool enableFusion;
+  bool cameraModelApplied;
+  bool displayKeypoints;  
+};
+
+ /// \brief Load global variables
+  /// @param[in] nh NodeHandle to read parameters from launch file.
+  /// @param[in] gp Struct with global parameters to store values.
+  /// @param[out] success Whether Parameters were read successfully.
+bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
+  if(!nh.getParam("/arp_node/enableFusion", gp.enableFusion)) ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter fusion...    value=" << gp.enableFusion);
+
+  if(!nh.getParam("/arp_node/camModel", gp.cameraModelApplied)) ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter cam model...    value=" << gp.cameraModelApplied);
+
+  if(!nh.getParam("/arp_node/displayKeypoints", gp.displayKeypoints)) ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter display Keypoints...    value=" << gp.displayKeypoints);
+
+  return true;
+}
+
  /// \brief Struct holding the camera parameters
 struct camParams{
   double fu;
@@ -111,7 +132,6 @@ struct camParams{
 bool readCameraParameters(ros::NodeHandle& nh, camParams& cp){
 
   std::cout << std::setprecision(3) << std::fixed;
-  std::cout << "" << std::endl;
 
   if(!nh.getParam("/arp_node/fu", cp.fu)) ROS_FATAL("error loading parameter");
   ROS_DEBUG_STREAM("Read parameter fu...    value=" << cp.fu);
@@ -200,7 +220,12 @@ bool setupVisualInertialTracker(ros::NodeHandle& nh, arp::VisualInertialTracker&
 
   return true;
 }
-void setupOccupancyMap(ros::NodeHandle& nh,cv::Mat& retwrappedMapData)
+
+ /// \brief initialize Occupancy Map
+  /// @param[in] nh NodeHandle.
+  /// @param[in] retwrappedMapData Occupancy Map Object.
+  /// @param[out] success Whether setup was successfull. 
+bool setupOccupancyMap(ros::NodeHandle& nh,cv::Mat& retwrappedMapData)
 {
   // open the file:
   std::string path = ros::package::getPath("ardrone_practicals");
@@ -226,6 +251,8 @@ void setupOccupancyMap(ros::NodeHandle& nh,cv::Mat& retwrappedMapData)
   // now wrap it with a cv::Mat for easier access:
   cv::Mat wrappedMapData(3,sizes, CV_8SC1, mapData);
   retwrappedMapData=wrappedMapData;
+
+  return true;
 }
 
 int main(int argc, char **argv)
@@ -240,10 +267,15 @@ int main(int argc, char **argv)
   }
   ROS_INFO_NAMED("custom", "Help");
   */
- 
-  // __cplusplus Version
-  ROS_INFO_STREAM("Used Cpp Version: " << __cplusplus);
 
+  // __cplusplus Version
+  ROS_INFO_STREAM("Using Cpp Version: " << __cplusplus);
+
+  // read global parameters
+  globalParams gp;
+  ROS_INFO("Read global parameters...");
+  if(!loadGlobalVars(nh, gp)) ROS_FATAL("error loading global variables");
+ 
   // read camera parameters
   camParams cp;
   ROS_INFO("Read camera parameters...");
@@ -253,7 +285,8 @@ int main(int argc, char **argv)
   ROS_INFO("Setup Camera...");
   auto phcam = setupCamera(nh, cp);
   // activate camera model
-  bool cameraModelApplied = ENABLE_CAM_MODEL; 
+  ROS_INFO_STREAM("Camera Model Applied set to: " << gp.cameraModelApplied);
+
   
   // setup frontend
   ROS_INFO("Setup Frontend...");
@@ -269,9 +302,8 @@ int main(int argc, char **argv)
   //setup OccupancyMap
   ROS_INFO("Setup OccupancyMap...");
   cv::Mat wrappedMapData;
-  setupOccupancyMap(nh, wrappedMapData);
+  if(!setupOccupancyMap(nh, wrappedMapData)) ROS_FATAL("error loading occupancy map");
  
-  
   // set up autopilot
   ROS_INFO("Setup Autopilot...");
   arp::Autopilot autopilot(nh);
@@ -285,14 +317,12 @@ int main(int argc, char **argv)
   if(!setupVisualInertialTracker(nh, vit, frontend, viEkf, pubState, autopilot)) ROS_FATAL("error setting up VIT"); 
 
   // display keypoints
-  bool displayKeypoints = SHOW_KEYPOINTS;
-  frontend.showKeypoints(displayKeypoints);
-  ROS_INFO_STREAM("Display Keypoints set to: " << displayKeypoints);
+  frontend.showKeypoints(gp.displayKeypoints);
+  ROS_INFO_STREAM("Display Keypoints set to: " << gp.displayKeypoints);
 
   // enable / disable fusion
-  bool enableFusion = ENABLE_FUSION;
-  vit.enableFusion(enableFusion);
-  ROS_INFO_STREAM("Sensor fusion set to: " << enableFusion);
+  vit.enableFusion(gp.enableFusion);
+  ROS_INFO_STREAM("Sensor fusion set to: " << gp.enableFusion);
 
   // setup inputs
   ROS_INFO("Setup Subscriber...");
@@ -318,13 +348,11 @@ int main(int argc, char **argv)
 
   // to get reliable button presses
   bool pressed = false;
+  // to get single switch to manual mode and don't flood terminal
+  bool changed = true;
 
   //create Interactive Marker
   arp::InteractiveMarkerServer markerServer(autopilot);
-
-  
-
-
 
   // enter main event loop
   std::cout << "" << std::endl;
@@ -353,7 +381,7 @@ int main(int argc, char **argv)
           // TODO: add overlays to the cv::Mat image, e.g. text
 
           // apply camera model if enabled
-          if(cameraModelApplied && !phcam.undistortImage(image, image)) ROS_WARN("Warning: Undistortion failed...");
+          if(gp.cameraModelApplied && !phcam.undistortImage(image, image)) ROS_WARN("Warning: Undistortion failed...");
 
           // resize image
           cv::resize(image, image,cv::Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_INTER_CUBIC);
@@ -381,7 +409,7 @@ int main(int argc, char **argv)
           } else {
               cv::putText(image, "Space: Switch to Man. Mode", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-90*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
           }
-          if (enableFusion)
+          if (gp.enableFusion)
           {
               cv::putText(image, "F: Sensor Fusion is On", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
           } else {
@@ -440,15 +468,9 @@ int main(int argc, char **argv)
       if (!autopilot.flattrimCalibrate()) ROS_WARN("Warning: flattrim calibration failed...");
     }
 
-    if (state[SDL_SCANCODE_RCTRL]) {
-      ROS_INFO_STREAM("Autopilot on...     status=" << droneStatus);
-      double x, y, z, yaw;
-      autopilot.getPoseReference(x, y, z, yaw);
-      markerServer.activate(x, y, z, yaw);
-      autopilot.setAutomatic();
-    }
-
-    if (state[SDL_SCANCODE_SPACE]) {
+    //ROS_INFO_STREAM("pose" << vit.getPoseStatus());
+    if (state[SDL_SCANCODE_SPACE] or ((droneStatus==2 or !vit.getPoseStatus()) && !changed)) {
+      changed = true;
       ROS_INFO_STREAM("Autopilot off...     status=" << droneStatus);
       autopilot.setManual();
       markerServer.deactivate();
@@ -460,18 +482,18 @@ int main(int argc, char **argv)
     while(SDL_PollEvent(&event))
     {
         if(state[SDL_SCANCODE_P] && pressed){
-            cameraModelApplied = cameraModelApplied ^ 1;
-            ROS_INFO_STREAM("Toggle Camera Model...  status=" << cameraModelApplied);
+            gp.cameraModelApplied = gp.cameraModelApplied ^ 1;
+            ROS_INFO_STREAM("Toggle Camera Model...  status=" << gp.cameraModelApplied);
             pressed = false;
         } else if(state[SDL_SCANCODE_K] && pressed){
-            displayKeypoints = displayKeypoints ^ 1;
-            frontend.showKeypoints(displayKeypoints);
-            ROS_INFO_STREAM("Toggle Key points...  status=" << displayKeypoints);
+            gp.displayKeypoints = gp.displayKeypoints ^ 1;
+            frontend.showKeypoints(gp.displayKeypoints);
+            ROS_INFO_STREAM("Toggle Key points...  status=" << gp.displayKeypoints);
             pressed = false;
         } else if(state[SDL_SCANCODE_F] && pressed){
-            enableFusion = enableFusion ^ 1;
-            vit.enableFusion(enableFusion);
-            ROS_INFO_STREAM("Toggle Sensor Fusion...  status=" << enableFusion);
+            gp.enableFusion = gp.enableFusion ^ 1;
+            vit.enableFusion(gp.enableFusion);
+            ROS_INFO_STREAM("Toggle Sensor Fusion...  status=" << gp.enableFusion);
             pressed = false;
         }
         if(state[SDL_SCANCODE_P] || state[SDL_SCANCODE_K] || state[SDL_SCANCODE_F]){
@@ -482,6 +504,16 @@ int main(int argc, char **argv)
     // TODO: process moving commands when in state 3, 4 or 7
     if((!autopilot.isAutomatic())&&(droneStatus==3||droneStatus==4||droneStatus==7)) 
     {
+        
+        if (state[SDL_SCANCODE_RCTRL] && vit.getPoseStatus()) {
+          changed = false;
+          ROS_INFO_STREAM("Autopilot on...     status=" << droneStatus);
+          double x, y, z, yaw;
+          autopilot.getPoseReference(x, y, z, yaw);
+          markerServer.activate(x, y, z, yaw);
+          autopilot.setAutomatic();
+        }
+
         double forward=0;
         double left=0;
         double up=0;

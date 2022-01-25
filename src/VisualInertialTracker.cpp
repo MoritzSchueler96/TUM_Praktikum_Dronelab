@@ -99,6 +99,7 @@ void VisualInertialTracker::processingLoop()
       if(successGetState && estimator_->isInitialised()) {
         needsReInitialisation = false;
       }
+      poseStatus_ = !needsReInitialisation;
 
       ROS_DEBUG_STREAM("getState / Initialised: " << successGetState << " / "<< estimator_->isInitialised());
 
