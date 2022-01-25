@@ -50,7 +50,7 @@ Frontend::Frontend(int imageWidth, int imageHeight,
   distCoeffs_.at<double>(3) = p2;
   keypoints_max=numKeypoints;
   // BRISK detector and descriptor
-  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(10, 0, 100, numKeypoints));//10,0,100,2000
+  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(35, 0, 100, numKeypoints));//10,0,100,2000
   //working limit 25-35 for castle, kitchen 
   extractor_.reset(new brisk::BriskDescriptorExtractor(true, false));
   
@@ -176,7 +176,7 @@ bool Frontend::ransac(const std::vector<cv::Point3d>& worldPoints,
   cv::Mat rvec, tvec;
   bool ransacSuccess = cv::solvePnPRansac(
       worldPoints, imagePoints, cameraMatrix_, distCoeffs_,
-      rvec, tvec, false, 150, 5.0, 0.99, inliers, cv::SOLVEPNP_EPNP);	//error 5.0
+      rvec, tvec, false, 300, 5.0, 0.9, inliers, cv::SOLVEPNP_EPNP);	//error 5.0
 
   // set pose
   cv::Mat R = cv::Mat::zeros(3, 3, CV_64FC1);

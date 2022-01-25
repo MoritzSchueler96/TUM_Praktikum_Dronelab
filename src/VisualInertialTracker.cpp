@@ -62,7 +62,7 @@ void VisualInertialTracker::processingLoop()
       // get IMU measurement
       kinematics::ImuMeasurement imuMeasurement;
       uint64_t t = 0;
-      ROS_DEBUG_NAMED("custom", "Processing started...");
+      // ROS_DEBUG_NAMED("custom", "Processing started...");
       while (t<cameraMeasurement.timestampMicroseconds) {
         if(!imuMeasurementQueue_.PopBlocking(&imuMeasurement)){
           return;

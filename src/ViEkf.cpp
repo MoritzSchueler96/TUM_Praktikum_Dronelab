@@ -86,7 +86,7 @@ bool ViEkf::getState(uint64_t timestampMicroseconds,
     if (P) {
       *P = P_;
     }
-    // ROS_DEBUG_NAMED("custom", "first");
+    ROS_DEBUG_NAMED("custom", "first");
 
     return false;
   }
@@ -99,7 +99,7 @@ bool ViEkf::getState(uint64_t timestampMicroseconds,
       if (P) {
         *P = P_;  // Not 100% correct, we should have also propagated  P_...
       }
-      // ROS_DEBUG_NAMED("custom", "second");
+      ROS_DEBUG_NAMED("custom", "second");
 
       return false;
     }
