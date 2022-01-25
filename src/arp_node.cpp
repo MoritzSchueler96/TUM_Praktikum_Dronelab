@@ -474,13 +474,7 @@ int main(int argc, char **argv)
       markerServer.deactivate();
     }
 
-    // Reset Rviz 
-    if(state[SDL_SCANCODE_U]){
-        double x, y, z, yaw;
-        autopilot.getPoseReference(x, y, z, yaw);
-        markerServer.activate(x, y, z, yaw);
-    }
-
+    
     // Press P to toggle application of camera model
     // Press K to toggle depiction of key points
     // Press F to toggle application of sensor fusion    

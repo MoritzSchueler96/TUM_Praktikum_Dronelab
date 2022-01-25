@@ -293,10 +293,10 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
     // keep resetting this to make sure we use the current state as reference as soon as sent to automatic mode
     const double yaw = kinematics::yawAngle(x.q_WS);
     setPoseReference(x.t_WS[0], x.t_WS[1], x.t_WS[2], yaw);
-    /*x_pid.resetIntegrator();
+    x_pid.resetIntegrator();
     y_pid.resetIntegrator();
     z_pid.resetIntegrator();
-    yaw_pid.resetIntegrator();*/
+    yaw_pid.resetIntegrator();
     return;
   }
 

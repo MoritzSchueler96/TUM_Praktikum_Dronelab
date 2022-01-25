@@ -116,11 +116,12 @@ public:
       yaw = -angle;
     }
     if(!autopilot_->setPoseReference(feedback->pose.position.x, feedback->pose.position.y,
-                                 feedback->pose.position.z, yaw)){
-                                    double x, y, z, yaw;
-                                    autopilot_->getPoseReference(x, y, z, yaw);
-                                    activate(x, y, z, yaw);
-                                 }
+                                 feedback->pose.position.z, yaw))
+    {
+      double x, y, z, yaw;
+      autopilot_->getPoseReference(x, y, z, yaw);
+      activate(x, y, z, yaw);
+    }
   }
 protected:
   std::unique_ptr<interactive_markers::InteractiveMarkerServer> server_;
