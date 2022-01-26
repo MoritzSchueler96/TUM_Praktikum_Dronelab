@@ -29,8 +29,7 @@
 
 #include <arp/InteractiveMarkerServer.hpp>
 
-#define IMAGE_WIDTH 1920
-#define IMAGE_HEIGHT 960
+
 #define CAM_IMAGE_WIDTH 640
 #define CAM_IMAGE_HEIGHT 360
 #define FONT_SCALING 1.5
@@ -94,6 +93,14 @@ struct globalParams{
   bool enableFusion;
   bool cameraModelApplied;
   bool displayKeypoints;  
+  int numKeypoints;
+  double map_focallength;
+  double Brisk_uniformityRadius;
+  double Brisk_absoluteThreshold;
+  int ImageWidth;
+  int ImageHeight;
+  bool displayAllKeypoints;
+
 };
 
  /// \brief Load global variables
@@ -110,6 +117,14 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
   if(!nh.getParam("/arp_node/displayKeypoints", gp.displayKeypoints)) ROS_FATAL("error loading parameter");
   ROS_DEBUG_STREAM("Read parameter display Keypoints...    value=" << gp.displayKeypoints);
 
+  if(!nh.getParam("/arp_node/map_focallength", gp.map_focallength)) ROS_FATAL("error loading map focallength");
+  if(!nh.getParam("/arp_node/Brisk_uniformityRadius", gp.Brisk_uniformityRadius)) ROS_FATAL("error loading Brisk_uniformityRadius");
+  if(!nh.getParam("/arp_node/Brisk_absoluteThreshold", gp.Brisk_absoluteThreshold)) ROS_FATAL("error loading Brisk_absoluteThreshold");
+  if(!nh.getParam("/arp_node/numKeypoints", gp.numKeypoints)) ROS_FATAL("error loading numKeypoints");
+  if(!nh.getParam("/arp_node/ImageWidth", gp.ImageWidth)) ROS_FATAL("error loading ImageWidth");
+  if(!nh.getParam("/arp_node/ImageHeight", gp.ImageHeight)) ROS_FATAL("error loading ImageHeight");
+  if(!nh.getParam("/arp_node/displayAllKeypoints", gp.displayAllKeypoints)) ROS_FATAL("error loading displayAllKeypoints");
+  
   return true;
 }
 
@@ -291,14 +306,10 @@ int main(int argc, char **argv)
   // setup frontend
   ROS_INFO("Setup Frontend...");
   std::string map;
-  int numKeypoints;
+  
+ 
   if(!nh.getParam("/arp_node/map", map)) ROS_FATAL("error loading world");
-  if (map.find("map_garching") != std::string::npos ) {
-    numKeypoints = 2000;
-  } else {
-    numKeypoints = 200;
-  }
-  arp::Frontend frontend(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2, numKeypoints);
+  arp::Frontend frontend(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2, gp.numKeypoints, gp.map_focallength,gp.Brisk_uniformityRadius ,gp.Brisk_absoluteThreshold);
   //setup OccupancyMap
   ROS_INFO("Setup OccupancyMap...");
   cv::Mat wrappedMapData;
@@ -319,7 +330,9 @@ int main(int argc, char **argv)
   // display keypoints
   frontend.showKeypoints(gp.displayKeypoints);
   ROS_INFO_STREAM("Display Keypoints set to: " << gp.displayKeypoints);
-
+  // display all keypoints
+  frontend.showAllKeypoints(gp.displayAllKeypoints);
+  ROS_INFO_STREAM("Display all Keypoints set to: " << gp.displayAllKeypoints);
   // enable / disable fusion
   vit.enableFusion(gp.enableFusion);
   ROS_INFO_STREAM("Sensor fusion set to: " << gp.enableFusion);
@@ -337,7 +350,7 @@ int main(int argc, char **argv)
   SDL_Event event;
   SDL_Init(SDL_INIT_VIDEO);
   SDL_Window * window = SDL_CreateWindow("Hello AR Drone", SDL_WINDOWPOS_UNDEFINED,
-                                         SDL_WINDOWPOS_UNDEFINED, IMAGE_WIDTH, IMAGE_HEIGHT, 0);
+                                         SDL_WINDOWPOS_UNDEFINED, gp.ImageWidth, gp.ImageHeight, 0);
   SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, 0);
   SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
   SDL_RenderClear(renderer);
@@ -382,7 +395,7 @@ int main(int argc, char **argv)
           if(gp.cameraModelApplied && !phcam.undistortImage(image, image)) ROS_WARN("Warning: Undistortion failed...");
 
           // resize image
-          cv::resize(image, image,cv::Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_INTER_CUBIC);
+          cv::resize(image, image,cv::Size(gp.ImageWidth, gp.ImageHeight), CV_INTER_CUBIC);
           cv::Size image_size= image.size();
 
           // generate Text for drone state and add it to picture
