@@ -2,9 +2,17 @@
   ✔ collision check @done(22-01-25 17:46)
   ☐ auto mode erst erlauben, wenn x Sek Pose gefunden?
   ☐ pose von drone ausgeben, die sie denkt zu haben, wenn drift
-  ☐ Timer nutzen -> in Sekundentakt Cnt hochzählen, wenn STRG-R gedrückt Cnt=0, und dann solange Cnt<=3 anzeigen, dass Auto Mode nicht verfügbar
-  ☐ same für switch in manual mode
-  ☐ camParams struct in camerbase anlegen und als übergabe für frontend und cam nutzen
+  ✔ Timer nutzen -> in Sekundentakt Cnt hochzählen, wenn STRG-R gedrückt Cnt=0, und dann solange Cnt<=3 anzeigen, dass Auto Mode nicht verfügbar @done(22-01-27 00:46)
+  ✔ same für switch in manual mode @done(22-01-27 00:46)
+  ☐ implement A*
+  ☐ waypoint following
+  ☐ application integration for task 5
+  ☐ PID controller Werte in launch file packen?
+  ☐ ransac parameters in launch file packen?
+  ☐ add explanation of brisk parameters in launch file
+  ✔ rename timeUp variable @done(22-01-27 00:52)
+  ✔ add comment in launch file how to set params to deactivate their function @done(22-01-26 19:15)
+  ✔ camParams struct in camerbase anlegen und als übergabe für frontend und cam nutzen @done(22-01-27 00:03)
   ✔ auto mode deaktivieren, wenn innerhalb von x Sekunden Pose verloren wurde @done(22-01-26 15:24)
   ✔ auto mode deaktiveren, wenn x Sek keine Pose? -> über param in launch file ein- und ausschaltbar @done(22-01-26 14:32)
   ✔ auto mode erst erlauben, wenn hovering? @done(22-01-25 16:54)
