@@ -308,6 +308,7 @@ int main(int argc, char **argv)
   ROS_INFO("Setup Autopilot...");
   arp::Autopilot autopilot(nh);
   autopilot.setOccupancyMap(wrappedMapData);
+  static int poseLostCnt = 0;
   
   // setup visual inertial tracker
   arp::ViEkf viEkf;
@@ -467,13 +468,18 @@ int main(int argc, char **argv)
     }
 
     //ROS_INFO_STREAM("pose" << vit.getPoseStatus());
-    if (state[SDL_SCANCODE_SPACE] or ((droneStatus==2 or !vit.getPoseStatus()) && !changed)) {
+    if (state[SDL_SCANCODE_SPACE] or (droneStatus==2 && !changed) or (!vit.getPoseStatus() && !changed && poseLostCnt > 100000)) {
       changed = true;
       ROS_INFO_STREAM("Autopilot off...     status=" << droneStatus);
       autopilot.setManual();
       markerServer.deactivate();
     }
 
+    if(!vit.getPoseStatus()){
+       poseLostCnt++;
+    } else {
+      poseLostCnt = 0;
+    }
     
     // Press P to toggle application of camera model
     // Press K to toggle depiction of key points
