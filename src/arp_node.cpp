@@ -32,7 +32,6 @@
 
 #define CAM_IMAGE_WIDTH 640
 #define CAM_IMAGE_HEIGHT 360
-#define FONT_SCALING 1.5
 #define FONT_COLOR cv::Scalar(0,255,0)
 
 class Subscriber
@@ -99,9 +98,11 @@ struct globalParams{
   double Brisk_absoluteThreshold;
   int ImageWidth;
   int ImageHeight;
+  double fontScaling;
   bool displayAllKeypoints;
   int poseLostThreshold;
   int poseSwitchThreshold;
+  ros::Duration poseTimeThreshold;
 };
 
  /// \brief Load global variables
@@ -110,23 +111,21 @@ struct globalParams{
   /// @param[out] success Whether Parameters were read successfully.
 bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
   if(!nh.getParam("/arp_node/enableFusion", gp.enableFusion)) ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter fusion...    value=" << gp.enableFusion);
-
   if(!nh.getParam("/arp_node/camModel", gp.cameraModelApplied)) ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter cam model...    value=" << gp.cameraModelApplied);
-
   if(!nh.getParam("/arp_node/displayKeypoints", gp.displayKeypoints)) ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter display Keypoints...    value=" << gp.displayKeypoints);
-
   if(!nh.getParam("/arp_node/map_focallength", gp.map_focallength)) ROS_FATAL("error loading map focallength");
   if(!nh.getParam("/arp_node/Brisk_uniformityRadius", gp.Brisk_uniformityRadius)) ROS_FATAL("error loading Brisk_uniformityRadius");
   if(!nh.getParam("/arp_node/Brisk_absoluteThreshold", gp.Brisk_absoluteThreshold)) ROS_FATAL("error loading Brisk_absoluteThreshold");
   if(!nh.getParam("/arp_node/numKeypoints", gp.numKeypoints)) ROS_FATAL("error loading numKeypoints");
   if(!nh.getParam("/arp_node/ImageWidth", gp.ImageWidth)) ROS_FATAL("error loading ImageWidth");
   if(!nh.getParam("/arp_node/ImageHeight", gp.ImageHeight)) ROS_FATAL("error loading ImageHeight");
+  if(!nh.getParam("/arp_node/fontScaling", gp.fontScaling)) ROS_FATAL("error loading fontScaling");
   if(!nh.getParam("/arp_node/displayAllKeypoints", gp.displayAllKeypoints)) ROS_FATAL("error loading displayAllKeypoints");
   if(!nh.getParam("/arp_node/poseLostThreshold", gp.poseLostThreshold)) ROS_FATAL("error loading poseLostThreshold");
   if(!nh.getParam("/arp_node/poseSwitchThreshold", gp.poseSwitchThreshold)) ROS_FATAL("error loading poseSwitchThreshold");
+  double threshold;
+  if(!nh.getParam("/arp_node/poseTimeThreshold", threshold)) ROS_FATAL("error loading PoseTimeThreshold");
+  gp.poseTimeThreshold = ros::Duration(threshold);
 
   return true;
 }
@@ -333,6 +332,8 @@ int main(int argc, char **argv)
   bool lastPoseStatus;
   lastPoseStatus = vit.getPoseStatus();
   int poseSwitchCnt=0;
+  ros::Time last = ros::Time::now();
+  bool timeUp=false;
 
   // display keypoints
   frontend.showKeypoints(gp.displayKeypoints);
@@ -366,8 +367,6 @@ int main(int argc, char **argv)
 
   // to get reliable button presses
   bool pressed = false;
-  // to get single switch to manual mode and don't flood terminal
-  bool changed = true;
 
   //create Interactive Marker
   arp::InteractiveMarkerServer markerServer(autopilot);
@@ -407,7 +406,7 @@ int main(int argc, char **argv)
 
           // generate Text for drone state and add it to picture
           std::string display="state: "+std::to_string(droneStatus);
-          cv::putText(image, display, cv::Point(10*FONT_SCALING, 50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING*2, FONT_COLOR, 2, false); //putText( image, text, org, font, fontScale, color, thickness, lineType, bottomLeftOrigin)
+          cv::putText(image, display, cv::Point(10*gp.fontScaling, 50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling*2, FONT_COLOR, 2, false); //putText( image, text, org, font, fontScale, color, thickness, lineType, bottomLeftOrigin)
           
           // creates text of Batterie charge in 0.1% and add it to picture
           std::stringstream stream;
@@ -418,38 +417,38 @@ int main(int argc, char **argv)
           if(droneBattery<10){
               color= cv::Scalar(0,0,255);
           }
-          cv::putText(image, stream.str(), cv::Point(image_size.width-200*FONT_SCALING, 50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING*2, color, 2, false);
+          cv::putText(image, stream.str(), cv::Point(image_size.width-200*gp.fontScaling, 50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling*2, color, 2, false);
           
           // possible commands in buttom of picture, differentiate: drone is flying or not
           if(!autopilot.isAutomatic())
           {
-              cv::putText(image, "STRG-R: Switch to Auto Mode", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-90*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "STRG-R: Switch to Auto Mode", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           } else {
-              cv::putText(image, "Space: Switch to Man. Mode", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-90*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "Space: Switch to Man. Mode", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
           if (gp.enableFusion)
           {
-              cv::putText(image, "F: Sensor Fusion is On", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "F: Sensor Fusion is On", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           } else {
-              cv::putText(image, "F: Sensor Fusion is Off", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "F: Sensor Fusion is Off", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
-          cv::putText(image, "K: Toggle Keypoints", cv::Point(10*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-          cv::putText(image, "P: Toggle Projection", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+          cv::putText(image, "K: Toggle Keypoints", cv::Point(10*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+          cv::putText(image, "P: Toggle Projection", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
               
           if(droneStatus==3||droneStatus==4||droneStatus==7) {
-              cv::putText(image, "W/ S: up/ down", cv::Point(10*FONT_SCALING, image_size.height-90*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              cv::putText(image, "A/ D: yaw left/ right", cv::Point(10*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              cv::putText(image, "^/ v: for-/ backward", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-90*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              cv::putText(image, "</ >: left/ right", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              cv::putText(image, "L: Landing; ESC: Stop", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "W/ S: up/ down", cv::Point(10*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+              cv::putText(image, "A/ D: yaw left/ right", cv::Point(10*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+              cv::putText(image, "^/ v: for-/ backward", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+              cv::putText(image, "</ >: left/ right", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+              cv::putText(image, "L: Landing; ESC: Stop", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
           else if(droneStatus==2)
           {
-              cv::putText(image, "T: Taking off; ESC: Stop", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "T: Taking off; ESC: Stop", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
           else
           {
-              cv::putText(image, "ESC: Stop", cv::Point(image_size.width/2-80*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "ESC: Stop", cv::Point(image_size.width/2-80*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
 
           // https://stackoverflow.com/questions/22702630/converting-cvmat-to-sdl-texture
@@ -486,29 +485,36 @@ int main(int argc, char **argv)
       if (!autopilot.flattrimCalibrate()) ROS_WARN("Warning: flattrim calibration failed...");
     }
 
-    //ROS_INFO_STREAM("pose" << vit.getPoseStatus());
-    if (autopilot.isAutomatic() && (state[SDL_SCANCODE_SPACE] or (droneStatus==2 && !changed) or (!vit.getPoseStatus() && !changed && poseLostCnt >= gp.poseLostThreshold) or poseSwitchCnt >= gp.poseSwitchThreshold)) {
-      changed = true;
+    if (autopilot.isAutomatic() && (state[SDL_SCANCODE_SPACE] or droneStatus==2 or (!vit.getPoseStatus() && (timeUp or poseLostCnt >= gp.poseLostThreshold or poseSwitchCnt >= gp.poseSwitchThreshold)))) {
       poseSwitchCnt=0;
       ROS_INFO_STREAM("Autopilot off...     status=" << droneStatus);
       autopilot.setManual();
       markerServer.deactivate();
     }
 
+    if(vit.getPoseStatus() != lastPoseStatus){
+      // get ros time now
+      last = ros::Time::now();
+      poseSwitchCnt++;
+      ROS_DEBUG_STREAM("Cnt: " << poseSwitchCnt);
+      lastPoseStatus = vit.getPoseStatus();
+    }
+
     if(!vit.getPoseStatus() && autopilot.isAutomatic()){
-       poseLostCnt++;
-      ROS_WARN_STREAM("Lost Cnt: " << poseLostCnt);
+      poseLostCnt++;
+      ROS_DEBUG_STREAM("Lost Cnt: " << poseLostCnt);
+      if(ros::Time::now() - last > gp.poseTimeThreshold && gp.poseTimeThreshold != ros::Duration(0)) {
+          timeUp=true;
+      } else {
+          timeUp=false;
+      }
+      ROS_DEBUG_STREAM("time: " << ros::Time::now() - last);
+      ROS_DEBUG_STREAM("thres: " << gp.poseTimeThreshold);
+      ROS_DEBUG_STREAM("timeUp: " << timeUp);
     } else {
       poseLostCnt = 0;
     }
     
-    if(vit.getPoseStatus() != lastPoseStatus){
-      // get ros time now
-      poseSwitchCnt++;
-      ROS_WARN_STREAM("Cnt: " << poseSwitchCnt);
-      lastPoseStatus = vit.getPoseStatus();
-    }
-
     // Press P to toggle application of camera model
     // Press K to toggle depiction of key points
     // Press F to toggle application of sensor fusion    
@@ -539,8 +545,8 @@ int main(int argc, char **argv)
     {
         
         if (state[SDL_SCANCODE_RCTRL] && vit.getPoseStatus()) {
-          changed = false;
           poseSwitchCnt=0;
+          timeUp=false;
           ROS_INFO_STREAM("Autopilot on...     status=" << droneStatus);
           double x, y, z, yaw;
           autopilot.getPoseReference(x, y, z, yaw);
