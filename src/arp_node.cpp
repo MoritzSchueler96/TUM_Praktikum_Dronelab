@@ -99,7 +99,7 @@ struct globalParams{
   bool displayAllKeypoints;
   int poseLostThreshold;
   int poseSwitchThreshold;
-  ros::Duration poseTimeThreshold;
+  ros::Duration poseLostTimeThreshold;
 };
 
  /// \brief Load global variables
@@ -121,8 +121,8 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
   if(!nh.getParam("/arp_node/poseLostThreshold", gp.poseLostThreshold)) ROS_FATAL("error loading poseLostThreshold");
   if(!nh.getParam("/arp_node/poseSwitchThreshold", gp.poseSwitchThreshold)) ROS_FATAL("error loading poseSwitchThreshold");
   double threshold;
-  if(!nh.getParam("/arp_node/poseTimeThreshold", threshold)) ROS_FATAL("error loading PoseTimeThreshold");
-  gp.poseTimeThreshold = ros::Duration(threshold);
+  if(!nh.getParam("/arp_node/poseLostTimeThreshold", threshold)) ROS_FATAL("error loading poseLostTimeThreshold");
+  gp.poseLostTimeThreshold = ros::Duration(threshold);
 
   return true;
 }
@@ -298,7 +298,6 @@ int main(int argc, char **argv)
   // activate camera model
   ROS_INFO_STREAM("Camera Model Applied set to: " << gp.cameraModelApplied);
 
-  
   // setup frontend
   ROS_INFO("Setup Frontend...");
   std::string map;
@@ -326,7 +325,7 @@ int main(int argc, char **argv)
   lastPoseStatus = vit.getPoseStatus();
   int poseSwitchCnt=0;
   ros::Time last = ros::Time::now();
-  bool timeUp=false;
+  bool poseSwitchTimeUp=false;
 
   // display keypoints
   frontend.showKeypoints(gp.displayKeypoints);
@@ -360,6 +359,10 @@ int main(int argc, char **argv)
 
   // to get reliable button presses
   bool pressed = false;
+
+  // variables for frontend error messages
+  ros::Time displayTime = ros::Time::now() + ros::Duration(24*60*60);
+  std::string errorText = "";
 
   //create Interactive Marker
   arp::InteractiveMarkerServer markerServer(autopilot);
@@ -412,12 +415,15 @@ int main(int argc, char **argv)
           }
           cv::putText(image, stream.str(), cv::Point(image_size.width-200*gp.fontScaling, 50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling*2, color, 2, false);
           
+          // put error Text on image
+          if(ros::Time::now() - displayTime < ros::Duration(3)) cv::putText(image, errorText, cv::Point(image_size.width/2-350*gp.fontScaling, image_size.height/2), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, cv::Scalar(0,0,255), 2, false);
+
           // possible commands in buttom of picture, differentiate: drone is flying or not
           if(!autopilot.isAutomatic())
           {
-              cv::putText(image, "STRG-R: Switch to Auto Mode", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+              cv::putText(image, "STRG-R: Switch to Auto Mode", cv::Point(image_size.width/2-240*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           } else {
-              cv::putText(image, "Space: Switch to Man. Mode", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+              cv::putText(image, "Space: Switch to Man. Mode", cv::Point(image_size.width/2-240*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
           if (gp.enableFusion)
           {
@@ -478,11 +484,16 @@ int main(int argc, char **argv)
       if (!autopilot.flattrimCalibrate()) ROS_WARN("Warning: flattrim calibration failed...");
     }
 
-    if (autopilot.isAutomatic() && (state[SDL_SCANCODE_SPACE] or droneStatus==2 or (!vit.getPoseStatus() && (timeUp or poseLostCnt >= gp.poseLostThreshold or poseSwitchCnt >= gp.poseSwitchThreshold)))) {
+    // logic to guarantee safe operation of auto mode, if some restrictions are violated switch to manual mode
+    if (autopilot.isAutomatic() && (state[SDL_SCANCODE_SPACE] or droneStatus==2 or (!vit.getPoseStatus() && (poseSwitchTimeUp or poseLostCnt >= gp.poseLostThreshold or poseSwitchCnt >= gp.poseSwitchThreshold)))) {
       poseSwitchCnt=0;
       ROS_INFO_STREAM("Autopilot off...     status=" << droneStatus);
       autopilot.setManual();
       markerServer.deactivate();
+
+      if(droneStatus==2) errorText = "Deavtivate auto mode due to landing the drone.";
+      else if(!state[SDL_SCANCODE_SPACE]) errorText = "Deactivate auto mode due to lost pose.";
+      if(!state[SDL_SCANCODE_SPACE]) displayTime = ros::Time::now();
     }
 
     if(vit.getPoseStatus() != lastPoseStatus){
@@ -496,14 +507,14 @@ int main(int argc, char **argv)
     if(!vit.getPoseStatus() && autopilot.isAutomatic()){
       poseLostCnt++;
       ROS_DEBUG_STREAM("Lost Cnt: " << poseLostCnt);
-      if(ros::Time::now() - last > gp.poseTimeThreshold && gp.poseTimeThreshold != ros::Duration(0)) {
-          timeUp=true;
+      if(ros::Time::now() - last > gp.poseLostTimeThreshold && gp.poseLostTimeThreshold != ros::Duration(0)) {
+          poseSwitchTimeUp=true;
       } else {
-          timeUp=false;
+          poseSwitchTimeUp=false;
       }
       ROS_DEBUG_STREAM("time: " << ros::Time::now() - last);
-      ROS_DEBUG_STREAM("thres: " << gp.poseTimeThreshold);
-      ROS_DEBUG_STREAM("timeUp: " << timeUp);
+      ROS_DEBUG_STREAM("thres: " << gp.poseLostTimeThreshold);
+      ROS_DEBUG_STREAM("poseSwitchTimeUp: " << poseSwitchTimeUp);
     } else {
       poseLostCnt = 0;
     }
@@ -533,13 +544,20 @@ int main(int argc, char **argv)
         } 
     }
 
+    // create errorText if auto mode can't be activated
+    if(state[SDL_SCANCODE_RCTRL] && !autopilot.isAutomatic() && (!vit.getPoseStatus() or droneStatus==2)){
+      if(droneStatus==2) errorText = "Can't activate auto mode while not flying.";
+      else if(!vit.getPoseStatus()) errorText = "Can't activate auto mode while pose not found.";
+      displayTime = ros::Time::now();
+    }
+
     // TODO: process moving commands when in state 3, 4 or 7
     if((!autopilot.isAutomatic())&&(droneStatus==3||droneStatus==4||droneStatus==7)) 
     {
         
-        if (state[SDL_SCANCODE_RCTRL] && vit.getPoseStatus()) {
+        if(state[SDL_SCANCODE_RCTRL] && vit.getPoseStatus()) {
           poseSwitchCnt=0;
-          timeUp=false;
+          poseSwitchTimeUp=false;
           ROS_INFO_STREAM("Autopilot on...     status=" << droneStatus);
           double x, y, z, yaw;
           autopilot.getPoseReference(x, y, z, yaw);
