@@ -44,7 +44,7 @@
     <param name="numKeypoints" value="2000" />
     <param name="poseLostThreshold" value="100" />
     <param name="poseSwitchThreshold" value="5" />
-    <param name="poseTimeThreshold" value="2" />
+    <param name="poseLostTimeThreshold" value="2" />
     <param name="map_focallength" value="185.6909" />
     <param name="Brisk_uniformityRadius" value="35" />
     <param name="Brisk_absoluteThreshold" value="100" />
