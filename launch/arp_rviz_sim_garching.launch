@@ -4,8 +4,6 @@
   <!-- Launch simulator. -->
   <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
   <include file="$(find sjtu_drone)/launch/simple.launch">
-
-    <!--arg name="world_name" value="$(find sjtu_drone)/worlds/skokloster_castle.world"/-->
     <arg name="world_name" value="$(find sjtu_drone)/worlds/garching_kitchen.world"/>
   </include>
   
@@ -37,20 +35,20 @@
     <remap from="ardrone/navdata" to="drone/navdata"/> 
 
     <!-- Global Variables -->
-    <param name="enableFusion" type="bool" value="true" />
-    <param name="camModel" type="bool" value="true" />
-    <param name="displayKeypoints" type="bool" value="true" />
-    <param name="displayAllKeypoints" type="bool" value="false" />
-    <param name="numKeypoints" value="2000" />
-    <param name="poseLostThreshold" value="100" />
-    <param name="poseSwitchThreshold" value="5" />
-    <param name="poseTimeThreshold" value="2" />
-    <param name="map_focallength" value="185.6909" />
-    <param name="Brisk_uniformityRadius" value="35" />
-    <param name="Brisk_absoluteThreshold" value="100" />
-    <param name="ImageWidth" value="1920" />
-    <param name="ImageHeight" value="960" />
-    <param name="fontScaling" value="1.5" />
+    <param name="enableFusion" type="bool" value="true" /> <!-- enable sensor fusion with Kalman -->
+    <param name="camModel" type="bool" value="false" /> <!-- enable undistortion model -->
+    <param name="displayKeypoints" type="bool" value="true" /> <!-- show matched keypoints on screen -->
+    <param name="displayAllKeypoints" type="bool" value="false" /> <!-- show (all) found keypoints-->
+    <param name="numKeypoints" value="2000" /> <!-- limit of keypoints for BRISK -->
+    <param name="poseLostThreshold" value="100" /> <!-- Counter how long pose can be lost until returning to manual mode, set to 0 to disable -->
+    <param name="poseSwitchThreshold" value="5" /> <!-- Counter how often drone can loose pose until returning to manual mode, set to 0 to disable -->
+    <param name="poseTimeThreshold" value="2" /> <!-- allowed Time between pose status changes, returns to manual mode after that, set to 0 to disable -->
+    <param name="map_focallength" value="185.6909" /> <!-- focal length of the camera used to record the map file -->
+    <param name="Brisk_uniformityRadius" value="35" /> <!-- add explanation -->
+    <param name="Brisk_absoluteThreshold" value="100" /> <!-- add explanation -->
+    <param name="ImageWidth" value="1920" /> <!-- width for scaling of camera image -->
+    <param name="ImageHeight" value="960" /> <!-- height for scaling of camera image -->
+    <param name="fontScaling" value="1.5" /> <!-- font scaling for text on camera image -->
 
     <!-- Camera parameters -->
     <param name="fu" value="185.6909" />
@@ -64,9 +62,7 @@
     <rosparam param="T_SC">[0.0, 0.0, 1.0, 0.2, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]</rosparam>
     <!-- Make sure to match the map to the world loaded above! -->
 
-    <!--param name="map" value="okvis2-slam-final_map_skokloster_new2.csv" /-->
     <param name="map" value="okvis2-slam-final_map_garching_new2.csv" />
-    <!--param name="occupancymap" value="occupancy-map_skokloster.dat" /-->
     <param name="occupancymap" value="occupancy-map_garching.dat" />
 
   </node>
