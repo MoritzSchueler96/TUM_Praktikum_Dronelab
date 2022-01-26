@@ -86,7 +86,7 @@ bool ViEkf::getState(uint64_t timestampMicroseconds,
     if (P) {
       *P = P_;
     }
-    ROS_DEBUG_NAMED("custom", "first");
+    // ROS_DEBUG_NAMED("custom", "first");
 
     return false;
   }
@@ -99,7 +99,7 @@ bool ViEkf::getState(uint64_t timestampMicroseconds,
       if (P) {
         *P = P_;  // Not 100% correct, we should have also propagated  P_...
       }
-      ROS_DEBUG_NAMED("custom", "second");
+      // ROS_DEBUG_NAMED("custom", "second");
 
       return false;
     }
@@ -111,7 +111,7 @@ bool ViEkf::getState(uint64_t timestampMicroseconds,
     auto it_k = it_k_minus_1;
     it_k++;
     if (it_k == imuMeasurementDeque_.end()) {
-      ROS_DEBUG_NAMED("custom", "third");
+      // ROS_DEBUG_NAMED("custom", "third");
       return false;  // we reached the buffer end...
     }
 
@@ -139,7 +139,7 @@ bool ViEkf::getState(uint64_t timestampMicroseconds,
 
   // remember
   timestampPropagatedMicrosec_ = timestampMicroseconds;
-  ROS_DEBUG_NAMED("custom", "Never");
+  // ROS_DEBUG_NAMED("custom", "Never");
 
   return true;
 }

@@ -50,7 +50,7 @@ Frontend::Frontend(int imageWidth, int imageHeight,
   distCoeffs_.at<double>(3) = p2;
   keypoints_max=numKeypoints;
   // BRISK detector and descriptor
-  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(35, 0, 2, numKeypoints));//10,0,100,2000
+  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(35, 0, 20, numKeypoints));//10,0,100,2000
   //working limit 25-35 for castle, kitchen 
   extractor_.reset(new brisk::BriskDescriptorExtractor(true, false));
   
@@ -201,7 +201,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   static bool oldIni;
   if(oldIni!=needsReInitialisation)
   {
-    ROS_INFO_STREAM_NAMED("custom", "Re-Init: " << needsReInitialisation);
+    ROS_INFO_STREAM("Re-Init: " << needsReInitialisation);
     oldIni=needsReInitialisation;
   }
   
@@ -224,9 +224,8 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   static int skipThres = 3;
   static int reduceLmCnt = 0;
 
-  ROS_DEBUG_STREAM("landmarks: " << landmarks_.size());
-  ROS_DEBUG_STREAM("Re-Init: " << needsReInitialisation);
-  ROS_DEBUG_STREAM("keypoints: " << keypoints.size());
+  ROS_DEBUG_STREAM_THROTTLE(2, "landmarks: " << landmarks_.size());
+  ROS_DEBUG_STREAM_THROTTLE(2, "keypoints: " << keypoints.size());
 
   //loop through landmarks
   for(auto & lm : landmarks_) { 
@@ -245,7 +244,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
       reduceLandmarks++;
       /*reduceLmCnt++;
       if (reduceLmCnt > 250000){
-         ROS_INFO_STREAM_NAMED("custom", "skip: " << skipThres << "cnt: " << reduceLmCnt);
+        ROS_INFO_STREAM_NAMED("custom", "skip: " << skipThres << "cnt: " << reduceLmCnt);
         reduceLmCnt = 0;
         skipThres = std::min(skipThres+1, 3);
       }*/
@@ -265,7 +264,8 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
       {
         Eigen::Vector2d keyPt;
         keyPt << keypoints[k].pt.x, keypoints[k].pt.y;
-              if(displayKeypoints_) cv::circle(visualisationImage, keypoints[k].pt, 10, cv::Scalar(255,0,0), 1); //red
+
+        // if(displayKeypoints_) cv::circle(visualisationImage, keypoints[k].pt, 10, cv::Scalar(255,0,0), 1); //red
 
         //if pose need no reinitialisation, check if distance of 2D points of landmark and keypoint is below threshold 
         if((!needsReInitialisation) && ((landmark2d - keyPt).norm() > 35.0)) continue;
@@ -302,7 +302,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   std::vector<int> inliers;
   // TODO run RANSAC (to remove outliers and get pose T_CW estimate)
   bool returnvalue= ransac(worldPoints, imagePoints, T_CW, inliers);
-  ROS_DEBUG_STREAM("ransac: " << returnvalue);
+  ROS_DEBUG_STREAM_THROTTLE(2, "ransac: " << returnvalue);
 
   // TODO set detections
   //loop through to inlier points of ransac to return list of detections
@@ -319,7 +319,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
     //add detection
     detections.push_back(newDetection);
   }
-  ROS_DEBUG_STREAM("inliers/total: " << inliers.size()<<" / "<<worldPoints.size());
+  ROS_DEBUG_STREAM_THROTTLE(2, "inliers/total: " << inliers.size()<<" / "<<worldPoints.size());
 
   // TODO visualise by painting stuff into visualisationImage
   //to safe runtime points are added directly during calculation

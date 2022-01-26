@@ -62,7 +62,6 @@ void VisualInertialTracker::processingLoop()
       // get IMU measurement
       kinematics::ImuMeasurement imuMeasurement;
       uint64_t t = 0;
-      // ROS_DEBUG_NAMED("custom", "Processing started...");
       while (t<cameraMeasurement.timestampMicroseconds) {
         if(!imuMeasurementQueue_.PopBlocking(&imuMeasurement)){
           return;
@@ -101,14 +100,14 @@ void VisualInertialTracker::processingLoop()
       }
       poseStatus_ = !needsReInitialisation;
 
-      ROS_DEBUG_STREAM("getState / Initialised: " << successGetState << " / "<< estimator_->isInitialised());
+      ROS_DEBUG_STREAM_THROTTLE(2, "getState / Initialised: " << successGetState << " / "<< estimator_->isInitialised());
 
       bool ransacSuccess = frontend_->detectAndMatch(
       cameraMeasurement.image, dir, detections, T_CW, visualisationImage, needsReInitialisation);
-      ROS_DEBUG_STREAM("Ransac Success: " << ransacSuccess);
+      ROS_DEBUG_STREAM_THROTTLE(2, "Ransac Success: " << ransacSuccess);
       if (detections.size() > 0) {
         // feed to estimator (measurement update)
-        ROS_DEBUG_STREAM("Estimator initialised: " << estimator_->isInitialised());
+        ROS_DEBUG_STREAM_THROTTLE(2, "Estimator initialised: " << estimator_->isInitialised());
         if (estimator_->isInitialised() && fusionEnabled_) {
           estimator_->addKeypointMeasurements(
               cameraMeasurement.timestampMicroseconds, detections);
