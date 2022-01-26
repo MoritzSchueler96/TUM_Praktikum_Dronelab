@@ -42,7 +42,7 @@ class Frontend
   Frontend(int imageWidth, int imageHeight, double focalLengthU,
                            double focalLengthV, double imageCenterU,
                            double imageCenterV, double k1, double k2, double p1,
-                           double p2, int numKeypoints);
+                           double p2, int numKeypoints, double map_focallength, double Brisk_uniformityRadius, double Brisk_absoluteThreshold);
 
   /// \brief Load the map
   /// \parameter path The full path to the map file.
@@ -71,6 +71,7 @@ class Frontend
 
   /// \brief Enable/disable keypoints
   void showKeypoints(bool enable) {displayKeypoints_ = enable;}
+  void showAllKeypoints(bool enable){displayAllKeypoints_=enable;}
 
  protected:
   /// \brief Detects BRISK (HARRIS) keypoints and extracts descriptors along the extraction direction.
@@ -100,7 +101,7 @@ class Frontend
   std::shared_ptr<cv::DescriptorExtractor> extractor_;  ///< the BRISK extractor
 
   std::atomic_bool displayKeypoints_{true};
-
+  std::atomic_bool displayAllKeypoints_{false};
  private:
   Frontend() = delete;
   int keypoints_max;
