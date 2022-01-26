@@ -29,9 +29,6 @@
 
 #include <arp/InteractiveMarkerServer.hpp>
 
-
-#define CAM_IMAGE_WIDTH 640
-#define CAM_IMAGE_HEIGHT 360
 #define FONT_COLOR cv::Scalar(0,255,0)
 
 class Subscriber
@@ -129,64 +126,61 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
 
   return true;
 }
-
- /// \brief Struct holding the camera parameters
-struct camParams{
-  double fu;
-  double fv;
-  double cu;
-  double cv;
-  double k1;
-  double k2;
-  double p1;
-  double p2;
-};
  
  /// \brief Read Cam Parameters from launch file
   /// @param[in] nh NodeHandle to read parameters from launch file.
-  /// @param[in] cp Struct with camera parameters to store values.
+  /// @param[in] cp Class Object to store camera parameters.
   /// @param[out] success Whether Parameters were read successfully.
-bool readCameraParameters(ros::NodeHandle& nh, camParams& cp){
+bool readCameraParameters(ros::NodeHandle& nh, arp::cameras::CamParams& cp){
 
   std::cout << std::setprecision(3) << std::fixed;
 
-  if(!nh.getParam("/arp_node/fu", cp.fu)) ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter fu...    value=" << cp.fu);
+  double fu;
+  if(!nh.getParam("/arp_node/fu", fu)) ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter fu...    value=" << fu);
 
-  if(!nh.getParam("/arp_node/fv", cp.fv))ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter fv...    value=" << cp.fv);
+  double fv;
+  if(!nh.getParam("/arp_node/fv", fv))ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter fv...    value=" << fv);
   
-  if(!nh.getParam("/arp_node/cu", cp.cu))ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter cu...    value=" << cp.cu);
+  double cu;
+  if(!nh.getParam("/arp_node/cu", cu))ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter cu...    value=" << cu);
   
-  if(!nh.getParam("/arp_node/cv", cp.cv))ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter cv...    value=" << cp.cv);
+  double cv;
+  if(!nh.getParam("/arp_node/cv", cv))ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter cv...    value=" << cv);
   
-  if(!nh.getParam("/arp_node/k1", cp.k1))ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter k1...    value=" << cp.k1);
+  double k1;
+  if(!nh.getParam("/arp_node/k1", k1))ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter k1...    value=" << k1);
   
-  if(!nh.getParam("/arp_node/k2", cp.k2))ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter k2...    value=" << cp.k2);
+  double k2;
+  if(!nh.getParam("/arp_node/k2", k2))ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter k2...    value=" << k2);
   
-  if(!nh.getParam("/arp_node/p1", cp.p1))ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter p1...    value=" << cp.p1);
+  double p1;
+  if(!nh.getParam("/arp_node/p1", p1))ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter p1...    value=" << p1);
 
-  if(!nh.getParam("/arp_node/p2", cp.p2))ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter p2...    value=" << cp.p2);
+  double p2;
+  if(!nh.getParam("/arp_node/p2", p2))ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter p2...    value=" << p2);
 
+  if(!cp.setParams(640, 360, fu, fv, cu, cv, k1, k2, p1, p2)) ROS_FATAL("error setting parameters");
   return true;
 }
 
  /// \brief initialize Cam Model
   /// @param[in] nh NodeHandle.
-  /// @param[in] cp Struct with camera parameters.
+  /// @param[in] cp Class Object with stored camera parameters.
   /// @param[out] camMod Initialized camera model  
-arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamera(ros::NodeHandle& nh, const camParams cp){
+arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamera(ros::NodeHandle& nh, const arp::cameras::CamParams cp){
   // setup camera model
-  const arp::cameras::RadialTangentialDistortion distortion(cp.k1, cp.k2, cp.p1, cp.p2);
-  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> camMod(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, distortion);
+  const arp::cameras::RadialTangentialDistortion distortion(cp);
+  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> camMod(cp, distortion);
   ROS_DEBUG("Initialize undistort maps...");
-  if(!camMod.initialiseUndistortMaps(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv)) ROS_FATAL("error initializing map");
+  if(!camMod.initialiseUndistortMaps(cp)) ROS_FATAL("error initializing map");
   return camMod;
 }
 
@@ -294,7 +288,7 @@ int main(int argc, char **argv)
   if(!loadGlobalVars(nh, gp)) ROS_FATAL("error loading global variables");
  
   // read camera parameters
-  camParams cp;
+  arp::cameras::CamParams cp;
   ROS_INFO("Read camera parameters...");
   if(!readCameraParameters(nh, cp)) ROS_FATAL("error loading parameters");
 
@@ -308,10 +302,9 @@ int main(int argc, char **argv)
   // setup frontend
   ROS_INFO("Setup Frontend...");
   std::string map;
-  
- 
   if(!nh.getParam("/arp_node/map", map)) ROS_FATAL("error loading world");
-  arp::Frontend frontend(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2, gp.numKeypoints, gp.map_focallength,gp.Brisk_uniformityRadius ,gp.Brisk_absoluteThreshold);
+  arp::Frontend frontend(cp, gp.numKeypoints, gp.map_focallength, gp.Brisk_uniformityRadius, gp.Brisk_absoluteThreshold);
+  
   //setup OccupancyMap
   ROS_INFO("Setup OccupancyMap...");
   cv::Mat wrappedMapData;

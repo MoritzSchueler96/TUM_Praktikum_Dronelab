@@ -56,13 +56,12 @@ RadialTangentialDistortion::RadialTangentialDistortion()
 }
 
 // Constructor initialising ki
-RadialTangentialDistortion::RadialTangentialDistortion(double k1, double k2,
-                                                       double p1, double p2)
+RadialTangentialDistortion::RadialTangentialDistortion(arp::cameras::CamParams cp)
 {
-  k1_ = k1;
-  k2_ = k2;
-  p1_ = p1;
-  p2_ = p2;
+  k1_ = cp.k1();
+  k2_ = cp.k2();
+  p1_ = cp.p1();
+  p2_ = cp.p2();
 }
 
 bool RadialTangentialDistortion::distort(

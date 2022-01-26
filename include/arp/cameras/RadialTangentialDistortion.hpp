@@ -58,16 +58,14 @@ class RadialTangentialDistortion : public DistortionBase
   inline RadialTangentialDistortion();
 
   /// \brief Constructor initialising ki
-  /// @param[in] k1 radial parameter 1
-  /// @param[in] k2 radial parameter 2
-  /// @param[in] p1 tangential parameter 1
-  /// @param[in] p2 tangential parameter 2
-  inline RadialTangentialDistortion(double k1, double k2, double p1, double p2);
+  /// @param[in] cp Camera Parameter Object
+  inline RadialTangentialDistortion(arp::cameras::CamParams cp);
 
   /// \brief Unit test support -- create a test distortion object
   static RadialTangentialDistortion testObject()
   {
-    return RadialTangentialDistortion(-0.16, 0.15, 0.0003, 0.0002);
+    arp::cameras::CamParams cp(-0.16, 0.15, 0.0003, 0.0002);
+    return RadialTangentialDistortion(cp);
   }
 
   //////////////////////////////////////////////////////////////
