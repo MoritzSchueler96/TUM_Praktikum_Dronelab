@@ -4,7 +4,6 @@
   <!-- Launch simulator. -->
   <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
   <include file="$(find sjtu_drone)/launch/simple.launch">
-
     <arg name="world_name" value="$(find sjtu_drone)/worlds/skokloster_castle.world"/>
   </include>
   
@@ -37,7 +36,7 @@
 
     <!-- Global Variables -->
     <param name="enableFusion" type="bool" value="true" />
-    <param name="camModel" type="bool" value="true" />
+    <param name="camModel" type="bool" value="false" />
     <param name="displayKeypoints" type="bool" value="true" />
     <param name="displayAllKeypoints" type="bool" value="false" />
     <param name="numKeypoints" type="int" value="200" />
