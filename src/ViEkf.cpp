@@ -92,7 +92,7 @@ bool ViEkf::getState(uint64_t timestampMicroseconds,
   }
 
   if (timestampPropagatedMicrosec_ > timestampLastUpdateMicrosec_) {
-    if (timestampPropagatedMicrosec_ - timestampLastUpdateMicrosec_ > 100000) {
+    if (timestampPropagatedMicrosec_ - timestampLastUpdateMicrosec_ > 300000) {
       // stop propagation, this will just diverge
       // assign output
       x = x_propagated_;
