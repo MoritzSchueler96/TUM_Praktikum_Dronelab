@@ -29,7 +29,7 @@ namespace arp {
 Frontend::Frontend(int imageWidth, int imageHeight,
                                    double focalLengthU, double focalLengthV,
                                    double imageCenterU, double imageCenterV,
-                                   double k1, double k2, double p1, double p2, int numKeypoints=2000) :
+                                   double k1, double k2, double p1, double p2, int numKeypoints=2000, double map_focallength=185.6909, double Brisk_uniformityRadius=35, double Brisk_absoluteThreshold=100 ) :
   camera_(imageWidth, imageHeight, focalLengthU, focalLengthV, imageCenterU,
           imageCenterV,
           arp::cameras::RadialTangentialDistortion(k1, k2, p1, p2))
@@ -50,7 +50,7 @@ Frontend::Frontend(int imageWidth, int imageHeight,
   distCoeffs_.at<double>(3) = p2;
   keypoints_max=numKeypoints;
   // BRISK detector and descriptor
-  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(35, 0, 20, numKeypoints));//10,0,100,2000
+  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(Brisk_uniformityRadius, 0, Brisk_absoluteThreshold, numKeypoints));//10,0,100,2000 Sim: 35, 0, 100, x, Real: 35, 0, 2, 2000
   //working limit 25-35 for castle, kitchen 
   extractor_.reset(new brisk::BriskDescriptorExtractor(true, false));
   
@@ -82,7 +82,8 @@ Frontend::Frontend(int imageWidth, int imageHeight,
       }
     }
   }
-  std::static_pointer_cast<cv::BriskDescriptorExtractor>(extractor_)->setCameraProperties(rays, imageJacobians, 390.59);//185.6909); -> virtual map focal length, camera focal length to create map
+
+  std::static_pointer_cast<cv::BriskDescriptorExtractor>(extractor_)->setCameraProperties(rays, imageJacobians, map_focallength);//185.6909); -> virtual map focal length, camera focal length to create map
 #endif   
 }
 
@@ -227,6 +228,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   ROS_DEBUG_STREAM_THROTTLE(2, "landmarks: " << landmarks_.size());
   ROS_DEBUG_STREAM_THROTTLE(2, "keypoints: " << keypoints.size());
 
+  bool firstrun=true;
   //loop through landmarks
   for(auto & lm : landmarks_) { 
 
@@ -264,8 +266,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
       {
         Eigen::Vector2d keyPt;
         keyPt << keypoints[k].pt.x, keypoints[k].pt.y;
-
-        // if(displayKeypoints_) cv::circle(visualisationImage, keypoints[k].pt, 10, cv::Scalar(255,0,0), 1); //red
+        if(displayKeypoints_&&displayAllKeypoints_&&firstrun) cv::circle(visualisationImage, keypoints[k].pt, 10, cv::Scalar(255,0,0), 1); //blue
 
         //if pose need no reinitialisation, check if distance of 2D points of landmark and keypoint is below threshold 
         if((!needsReInitialisation) && ((landmark2d - keyPt).norm() > 35.0)) continue;
@@ -298,6 +299,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
       //add marker of matched keypoints to visualisation Image
       if(displayKeypoints_) cv::circle(visualisationImage, bestKeyPt, 10, cv::Scalar(0,0,255), 1); //red
     }
+    firstrun=false;
   }
   std::vector<int> inliers;
   // TODO run RANSAC (to remove outliers and get pose T_CW estimate)
