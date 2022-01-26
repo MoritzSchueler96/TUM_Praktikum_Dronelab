@@ -50,7 +50,7 @@ Frontend::Frontend(int imageWidth, int imageHeight,
   distCoeffs_.at<double>(3) = p2;
   keypoints_max=numKeypoints;
   // BRISK detector and descriptor
-  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(35, 0, 100, numKeypoints));//10,0,100,2000
+  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(35, 0, 2, numKeypoints));//10,0,100,2000
   //working limit 25-35 for castle, kitchen 
   extractor_.reset(new brisk::BriskDescriptorExtractor(true, false));
   
@@ -82,7 +82,7 @@ Frontend::Frontend(int imageWidth, int imageHeight,
       }
     }
   }
-  std::static_pointer_cast<cv::BriskDescriptorExtractor>(extractor_)->setCameraProperties(rays, imageJacobians, 185.6909);
+  std::static_pointer_cast<cv::BriskDescriptorExtractor>(extractor_)->setCameraProperties(rays, imageJacobians, 390.59);//185.6909); -> virtual map focal length, camera focal length to create map
 #endif   
 }
 
@@ -265,8 +265,11 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
       {
         Eigen::Vector2d keyPt;
         keyPt << keypoints[k].pt.x, keypoints[k].pt.y;
+              if(displayKeypoints_) cv::circle(visualisationImage, keypoints[k].pt, 10, cv::Scalar(255,0,0), 1); //red
+
         //if pose need no reinitialisation, check if distance of 2D points of landmark and keypoint is below threshold 
         if((!needsReInitialisation) && ((landmark2d - keyPt).norm() > 35.0)) continue;
+
 
         for(auto lmDescriptor : lm.second.descriptors) { // check agains all available descriptors
           const float dist = brisk::Hamming::PopcntofXORed(
