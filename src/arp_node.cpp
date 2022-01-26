@@ -100,7 +100,8 @@ struct globalParams{
   int ImageWidth;
   int ImageHeight;
   bool displayAllKeypoints;
-
+  int poseLostThreshold;
+  int poseSwitchThreshold;
 };
 
  /// \brief Load global variables
@@ -124,7 +125,9 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
   if(!nh.getParam("/arp_node/ImageWidth", gp.ImageWidth)) ROS_FATAL("error loading ImageWidth");
   if(!nh.getParam("/arp_node/ImageHeight", gp.ImageHeight)) ROS_FATAL("error loading ImageHeight");
   if(!nh.getParam("/arp_node/displayAllKeypoints", gp.displayAllKeypoints)) ROS_FATAL("error loading displayAllKeypoints");
-  
+  if(!nh.getParam("/arp_node/poseLostThreshold", gp.poseLostThreshold)) ROS_FATAL("error loading poseLostThreshold");
+  if(!nh.getParam("/arp_node/poseSwitchThreshold", gp.poseSwitchThreshold)) ROS_FATAL("error loading poseSwitchThreshold");
+
   return true;
 }
 
@@ -319,7 +322,7 @@ int main(int argc, char **argv)
   ROS_INFO("Setup Autopilot...");
   arp::Autopilot autopilot(nh);
   autopilot.setOccupancyMap(wrappedMapData);
-  static int poseLostCnt = 0;
+  int poseLostCnt = 0;
   
   // setup visual inertial tracker
   arp::ViEkf viEkf;
@@ -327,6 +330,9 @@ int main(int argc, char **argv)
   arp::StatePublisher pubState(nh); // state publisher -- provided for rviz visualisation of drone pose:
   ROS_INFO("Setup Visual Inertial Tracker...");
   if(!setupVisualInertialTracker(nh, vit, frontend, viEkf, pubState, autopilot)) ROS_FATAL("error setting up VIT"); 
+  bool lastPoseStatus;
+  lastPoseStatus = vit.getPoseStatus();
+  int poseSwitchCnt=0;
 
   // display keypoints
   frontend.showKeypoints(gp.displayKeypoints);
@@ -481,19 +487,28 @@ int main(int argc, char **argv)
     }
 
     //ROS_INFO_STREAM("pose" << vit.getPoseStatus());
-    if (state[SDL_SCANCODE_SPACE] or (droneStatus==2 && !changed) or (!vit.getPoseStatus() && !changed && poseLostCnt > 100000)) {
+    if (autopilot.isAutomatic() && (state[SDL_SCANCODE_SPACE] or (droneStatus==2 && !changed) or (!vit.getPoseStatus() && !changed && poseLostCnt >= gp.poseLostThreshold) or poseSwitchCnt >= gp.poseSwitchThreshold)) {
       changed = true;
+      poseSwitchCnt=0;
       ROS_INFO_STREAM("Autopilot off...     status=" << droneStatus);
       autopilot.setManual();
       markerServer.deactivate();
     }
 
-    if(!vit.getPoseStatus()){
+    if(!vit.getPoseStatus() && autopilot.isAutomatic()){
        poseLostCnt++;
+      ROS_WARN_STREAM("Lost Cnt: " << poseLostCnt);
     } else {
       poseLostCnt = 0;
     }
     
+    if(vit.getPoseStatus() != lastPoseStatus){
+      // get ros time now
+      poseSwitchCnt++;
+      ROS_WARN_STREAM("Cnt: " << poseSwitchCnt);
+      lastPoseStatus = vit.getPoseStatus();
+    }
+
     // Press P to toggle application of camera model
     // Press K to toggle depiction of key points
     // Press F to toggle application of sensor fusion    
@@ -525,6 +540,7 @@ int main(int argc, char **argv)
         
         if (state[SDL_SCANCODE_RCTRL] && vit.getPoseStatus()) {
           changed = false;
+          poseSwitchCnt=0;
           ROS_INFO_STREAM("Autopilot on...     status=" << droneStatus);
           double x, y, z, yaw;
           autopilot.getPoseReference(x, y, z, yaw);

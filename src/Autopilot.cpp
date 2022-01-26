@@ -220,22 +220,22 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   //in 0.1m schritten in Map checken ob frei
   Eigen::Vector3d goal;
   goal << x, y, z;
-  ROS_INFO_STREAM("goal: " << goal);
+  ROS_DEBUG_STREAM("goal: " << goal);
 
   Eigen::Vector3d start;
   start << ref_x_,ref_y_,ref_z_;
-  ROS_INFO_STREAM("start: " << start);
+  ROS_DEBUG_STREAM("start: " << start);
 
   Eigen::Vector3d cur;
   cur << ref_x_,ref_y_,ref_z_;
-  ROS_INFO_STREAM("cur: " << cur);
+  ROS_DEBUG_STREAM("cur: " << cur);
 
   Eigen::Vector3d last;
   last = cur;
 
   Eigen::Vector3d dir;
   dir << (goal - start).normalized();
-  ROS_INFO_STREAM("dir: " << dir);
+  ROS_DEBUG_STREAM("dir: " << dir);
 
   while((cur - start).norm() < (goal-start).norm())
   {
@@ -265,8 +265,8 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
       last = cur;
   }
 
-  ROS_INFO("Done.");
-  ROS_INFO_STREAM("Goal:"<<goal);
+  ROS_DEBUG("Done.");
+  ROS_DEBUG_STREAM("Goal:"<<goal);
   ref_x_ = goal[0];
   ref_y_ = goal[1];
   ref_z_ = goal[2];
