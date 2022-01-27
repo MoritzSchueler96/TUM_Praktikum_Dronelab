@@ -50,6 +50,7 @@
     <param name="poseLostThreshold" value="100" />
     <param name="poseSwitchThreshold" value="5" />
     <param name="poseLostTimeThreshold" value="2" />
+    <param name="mapFocalLength" value="390.59" />
     <param name="Brisk_uniformityRadius" value="35" />
     <param name="Brisk_absoluteThreshold" value="20" />
     <param name="ImageWidth" value="1920" />

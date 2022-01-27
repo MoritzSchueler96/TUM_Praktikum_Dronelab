@@ -31,10 +31,10 @@ class Frontend
   /// \brief Sets the underlying camera and BRISK parameters (RadialTangentialDistortion)
   /// @param[in] cp Camera Parameter Object
   /// @param[in] numKeypoints The maximum number of Keypoints for BRISK
-  /// @param[in] map_focallength The focal length of the camera which produced the map
+  /// @param[in] mapFocalLength The focal length of the camera which produced the map
   /// @param[in] Brisk_uniformityRadius Add explanation
   /// @param[in] Brisk_absoluteThreshold Add explanation
-  Frontend(arp::cameras::CamParams cp, int numKeypoints, double map_focallength, double Brisk_uniformityRadius, double Brisk_absoluteThreshold);
+  Frontend(arp::cameras::CamParams cp, int numKeypoints, double mapFocalLength, double Brisk_uniformityRadius, double Brisk_absoluteThreshold);
 
   /// \brief Load the map
   /// \parameter path The full path to the map file.

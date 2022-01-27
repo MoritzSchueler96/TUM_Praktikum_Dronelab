@@ -26,7 +26,7 @@
 
 namespace arp {
 
-Frontend::Frontend(arp::cameras::CamParams cp, int numKeypoints=2000, double map_focallength=185.6909, double Brisk_uniformityRadius=35, double Brisk_absoluteThreshold=100 ) :
+Frontend::Frontend(arp::cameras::CamParams cp, int numKeypoints=2000, double mapFocalLength=185.6909, double Brisk_uniformityRadius=35, double Brisk_absoluteThreshold=100 ) :
   camera_(cp, arp::cameras::RadialTangentialDistortion(cp))
 {
   camera_.initialiseUndistortMaps();
@@ -78,7 +78,7 @@ Frontend::Frontend(arp::cameras::CamParams cp, int numKeypoints=2000, double map
     }
   }
 
-  std::static_pointer_cast<cv::BriskDescriptorExtractor>(extractor_)->setCameraProperties(rays, imageJacobians, map_focallength);
+  std::static_pointer_cast<cv::BriskDescriptorExtractor>(extractor_)->setCameraProperties(rays, imageJacobians, mapFocalLength);
 #endif   
 }
 

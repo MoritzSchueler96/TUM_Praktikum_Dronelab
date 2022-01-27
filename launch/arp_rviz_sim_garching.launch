@@ -43,7 +43,7 @@
     <param name="poseLostThreshold" value="100" /> <!-- Counter how long pose can be lost until returning to manual mode, set to 0 to disable -->
     <param name="poseSwitchThreshold" value="5" /> <!-- Counter how often drone can loose pose until returning to manual mode, set to 0 to disable -->
     <param name="poseLostTimeThreshold" value="2" /> <!-- allowed Time between pose status changes, returns to manual mode after that, set to 0 to disable -->
-    <param name="map_focallength" value="185.6909" /> <!-- focal length of the camera used to record the map file -->
+    <param name="mapFocalLength" value="185.6909" /> <!-- focal length of the camera used to record the map file -->
     <param name="Brisk_uniformityRadius" value="35" /> <!-- add explanation -->
     <param name="Brisk_absoluteThreshold" value="100" /> <!-- add explanation -->
     <param name="ImageWidth" value="1920" /> <!-- width for scaling of camera image -->

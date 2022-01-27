@@ -90,7 +90,7 @@ struct globalParams{
   bool cameraModelApplied;
   bool displayKeypoints;  
   int numKeypoints;
-  double map_focallength;
+  double mapFocalLength;
   double Brisk_uniformityRadius;
   double Brisk_absoluteThreshold;
   int ImageWidth;
@@ -110,7 +110,7 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
   if(!nh.getParam("/arp_node/enableFusion", gp.enableFusion)) ROS_FATAL("error loading parameter");
   if(!nh.getParam("/arp_node/camModel", gp.cameraModelApplied)) ROS_FATAL("error loading parameter");
   if(!nh.getParam("/arp_node/displayKeypoints", gp.displayKeypoints)) ROS_FATAL("error loading parameter");
-  if(!nh.getParam("/arp_node/map_focallength", gp.map_focallength)) ROS_FATAL("error loading map focallength");
+  if(!nh.getParam("/arp_node/mapFocalLength", gp.mapFocalLength)) ROS_FATAL("error loading map focal length");
   if(!nh.getParam("/arp_node/Brisk_uniformityRadius", gp.Brisk_uniformityRadius)) ROS_FATAL("error loading Brisk_uniformityRadius");
   if(!nh.getParam("/arp_node/Brisk_absoluteThreshold", gp.Brisk_absoluteThreshold)) ROS_FATAL("error loading Brisk_absoluteThreshold");
   if(!nh.getParam("/arp_node/numKeypoints", gp.numKeypoints)) ROS_FATAL("error loading numKeypoints");
@@ -302,7 +302,7 @@ int main(int argc, char **argv)
   ROS_INFO("Setup Frontend...");
   std::string map;
   if(!nh.getParam("/arp_node/map", map)) ROS_FATAL("error loading world");
-  arp::Frontend frontend(cp, gp.numKeypoints, gp.map_focallength, gp.Brisk_uniformityRadius, gp.Brisk_absoluteThreshold);
+  arp::Frontend frontend(cp, gp.numKeypoints, gp.mapFocalLength, gp.Brisk_uniformityRadius, gp.Brisk_absoluteThreshold);
   
   //setup OccupancyMap
   ROS_INFO("Setup OccupancyMap...");
