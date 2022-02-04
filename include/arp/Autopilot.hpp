@@ -11,6 +11,7 @@
 #include <mutex>
 #include <Eigen/Core>
 #include <atomic>
+#include <deque>
 
 #include <ros/ros.h>
 
@@ -115,9 +116,38 @@ class Autopilot {
   /// \note  This will only do something when in automatic mode and flying.
   void controllerCallback(uint64_t timeMicroseconds,
                           const arp::kinematics::RobotState& x);
+
   
   /// \brief Set to automatic control mode.
   void setOccupancyMap(cv::Mat MapData);
+
+
+  /// \brief A Helper struct to send lists of waypoints.
+  struct Waypoint {
+    double x; ///< The World frame x coordinate.
+    double y; ///< The World frame y coordinate.
+    double z; ///< The World frame z coordinate.
+    double yaw; ///< The yaw angle of the robot w.r.t. the World frame.
+    double posTolerance; ///< The position tolerance: if within, it's considered reached.
+  };
+
+  /// \brief Command the drone to fly to these waypoints in order
+  ///        (front to back). When finished, the drone will hover at
+  ///        the last waypoint.
+  /// @param[in] waypoints Waypoint list.
+  void flyPath(const std::deque<Waypoint>& waypoints) {
+    std::lock_guard<std::mutex> l(waypointMutex_);
+    waypoints_ = waypoints;
+  }
+
+  /// \brief How many waypoints still have to be flown to?
+  /// \return The number of waypoints still not reached.
+  int waypointsLeft() {
+    std::lock_guard<std::mutex> l(waypointMutex_);
+    return waypoints_.size();
+  }
+
+
  protected:
   /// \brief Move the drone.
   /// @param[in] forward Forward tilt [-1,...,1] scaling the maximum tilt ROS parameter.
@@ -147,7 +177,7 @@ class Autopilot {
   double ref_yaw_ = 0.0; ///< World frame yaw reference [rad].
   std::mutex refMutex_; ///< We need to lock the reference access due to asynchronous arrival.
   std::atomic<bool> isAutomatic_; ///< True, if in automatic control mode.
-  PidController x_pid;
+PidController x_pid;
   PidController y_pid;
   PidController z_pid;
   PidController yaw_pid;
@@ -155,6 +185,11 @@ class Autopilot {
   double z_limit;
   double yaw_limit;
   cv::Mat wrappedMapData_;
+
+
+
+  std::deque<Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.
+  std::mutex waypointMutex_;  ///< We need to lock the waypoint access due to asynchronous arrival.
 
 };
 
