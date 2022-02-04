@@ -68,6 +68,13 @@ class PinholeCamera; // forward declaration
 class PinholeCameraBase : public CameraBase {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  /// \brief Default Constructor
+  inline PinholeCameraBase()
+        : CameraBase()
+  {
+  }
+
   /// \brief Constructor for width, height and Id
   inline PinholeCameraBase(int imageWidth, int imageHeight)
         : CameraBase(imageWidth, imageHeight)
@@ -87,16 +94,9 @@ class PinholeCameraBase : public CameraBase {
   virtual bool initialiseUndistortMaps() = 0;
 
   /// \brief Initialise undistort maps, provide custom parameters for the undistorted cam.
-  /// @param[in] undistortedImageWidth The width in pixels.
-  /// @param[in] undistortedImageHeight The height in pixels.
-  /// @param[in] undistortedFocalLengthU The horizontal focal length in pixels.
-  /// @param[in] undistortedFocalLengthV The vertical focal length in pixels.
-  /// @param[in] undistortedImageCenterU The horizontal centre in pixels.
-  /// @param[in] undistortedImageCenterV The vertical centre in pixels.
+  /// @param[in] cp Camera Parameter Object
   /// \return True on success.
-  virtual bool initialiseUndistortMaps(int undistortedImageWidth, int undistortedImageHeight, 
-      double undistortedFocalLengthU, double undistortedFocalLengthV, 
-      double undistortedImageCenterU, double undistortedImageCenterV) = 0;
+   virtual bool initialiseUndistortMaps(arp::cameras::CamParams cp) = 0;
 
   /// \brief Get the model of the undistorted camera.
   /// \return The PinholeCamera without distortion associated with the undistorted image.
@@ -135,17 +135,13 @@ class PinholeCamera : public PinholeCameraBase
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   typedef DISTORTION_T distortion_t; ///< Makes the distortion type accessible.
 
+  /// \brief Default Constructor that will figure out the type of distortion
+  PinholeCamera(const distortion_t & distortion);
+
   /// \brief Constructor that will figure out the type of distortion
-  /// @param[in] imageWidth The width in pixels.
-  /// @param[in] imageHeight The height in pixels.
-  /// @param[in] focalLengthU The horizontal focal length in pixels.
-  /// @param[in] focalLengthV The vertical focal length in pixels.
-  /// @param[in] imageCenterU The horizontal centre in pixels.
-  /// @param[in] imageCenterV The vertical centre in pixels.
+  /// @param[in] cp Camera Parameter Object
   /// @param[in] distortion The distortion object to be used.
-  /// @param[in] id Assign a generic ID, if desired.
-  PinholeCamera(int imageWidth, int imageHeight, double focalLengthU,
-                double focalLengthV, double imageCenterU, double imageCenterV,
+  PinholeCamera(const arp::cameras::CamParams cp,
                 const distortion_t & distortion);
 
   /// \brief Destructor.
@@ -189,16 +185,9 @@ class PinholeCamera : public PinholeCameraBase
   virtual bool initialiseUndistortMaps();
 
   /// \brief Initialise undistort maps, provide custom parameters for the undistorted cam.
-  /// @param[in] undistortedImageWidth The width in pixels.
-  /// @param[in] undistortedImageHeight The height in pixels.
-  /// @param[in] undistortedFocalLengthU The horizontal focal length in pixels.
-  /// @param[in] undistortedFocalLengthV The vertical focal length in pixels.
-  /// @param[in] undistortedImageCenterU The horizontal centre in pixels.
-  /// @param[in] undistortedImageCenterV The vertical centre in pixels.
+  /// @param[in] cp Camera Parameter Object
   /// \return True on success.
-  virtual bool initialiseUndistortMaps(int undistortedImageWidth, int undistortedImageHeight, 
-      double undistortedFocalLengthU, double undistortedFocalLengthV, 
-      double undistortedImageCenterU, double undistortedImageCenterV);
+  virtual bool initialiseUndistortMaps(arp::cameras::CamParams cp);
 			
   /// \brief Get the model of the undistorted camera.
   /// \return The PinholeCamera without distortion associated with the undistorted image.
@@ -252,8 +241,8 @@ class PinholeCamera : public PinholeCameraBase
   /// \brief get a test instance
   static PinholeCamera testObject()
   {
-    return PinholeCamera(752, 480, 350, 360, 378, 238,
-                          distortion_t::testObject());
+    arp::cameras::CamParams cp(752, 480, 350, 360, 378, 238);
+    return PinholeCamera(cp, distortion_t::testObject());
   }
 
   /// \brief Obtain the projection type

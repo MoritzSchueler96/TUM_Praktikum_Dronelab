@@ -28,21 +28,13 @@ class Frontend
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  /// \brief Sets the underlying camera parameters (RadialTangentialDistortion)
-  /// \parameter imageWidth The image width.
-  /// \parameter imageHeight The image height.
-  /// \parameter focalLengthU The focal length in u direction.
-  /// \parameter focalLengthV The focal length in v direction.
-  /// \parameter imageCenterU The image centre in u direction.
-  /// \parameter imageCenterV The image centre in v direction.
-  /// \parameter k1 1st radial distortion parameter.
-  /// \parameter k2 2nd radial distortion parameter. 
-  /// \parameter p1 1st tangential distortion parameter.
-  /// \parameter p2 2nd tangential distortion parameter.
-  Frontend(int imageWidth, int imageHeight, double focalLengthU,
-                           double focalLengthV, double imageCenterU,
-                           double imageCenterV, double k1, double k2, double p1,
-                           double p2, int numKeypoints, double map_focallength, double Brisk_uniformityRadius, double Brisk_absoluteThreshold);
+  /// \brief Sets the underlying camera and BRISK parameters (RadialTangentialDistortion)
+  /// @param[in] cp Camera Parameter Object
+  /// @param[in] numKeypoints The maximum number of Keypoints for BRISK
+  /// @param[in] mapFocalLength The focal length of the camera which produced the map
+  /// @param[in] Brisk_uniformityRadius Add explanation
+  /// @param[in] Brisk_absoluteThreshold Add explanation
+  Frontend(arp::cameras::CamParams cp, int numKeypoints, double mapFocalLength, double Brisk_uniformityRadius, double Brisk_absoluteThreshold);
 
   /// \brief Load the map
   /// \parameter path The full path to the map file.

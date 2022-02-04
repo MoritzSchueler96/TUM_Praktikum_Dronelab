@@ -26,40 +26,35 @@
 
 namespace arp {
 
-Frontend::Frontend(int imageWidth, int imageHeight,
-                                   double focalLengthU, double focalLengthV,
-                                   double imageCenterU, double imageCenterV,
-                                   double k1, double k2, double p1, double p2, int numKeypoints=2000, double map_focallength=185.6909, double Brisk_uniformityRadius=35, double Brisk_absoluteThreshold=100 ) :
-  camera_(imageWidth, imageHeight, focalLengthU, focalLengthV, imageCenterU,
-          imageCenterV,
-          arp::cameras::RadialTangentialDistortion(k1, k2, p1, p2))
+Frontend::Frontend(arp::cameras::CamParams cp, int numKeypoints=2000, double mapFocalLength=185.6909, double Brisk_uniformityRadius=35, double Brisk_absoluteThreshold=100 ) :
+  camera_(cp, arp::cameras::RadialTangentialDistortion(cp))
 {
   camera_.initialiseUndistortMaps();
 
   // also save for OpenCV RANSAC later
   cameraMatrix_ = cv::Mat::zeros(3, 3, CV_64FC1);
-  cameraMatrix_.at<double>(0,0) = focalLengthU;
-  cameraMatrix_.at<double>(1,1) = focalLengthV;
-  cameraMatrix_.at<double>(0,2) = imageCenterU;
-  cameraMatrix_.at<double>(1,2) = imageCenterV;
+  cameraMatrix_.at<double>(0,0) = cp.fu();
+  cameraMatrix_.at<double>(1,1) = cp.fv();
+  cameraMatrix_.at<double>(0,2) = cp.cu();
+  cameraMatrix_.at<double>(1,2) = cp.cv();
   cameraMatrix_.at<double>(2,2) = 1.0;
   distCoeffs_ = cv::Mat::zeros(1, 4, CV_64FC1);
-  distCoeffs_.at<double>(0) = k1;
-  distCoeffs_.at<double>(1) = k2;
-  distCoeffs_.at<double>(2) = p1;
-  distCoeffs_.at<double>(3) = p2;
+  distCoeffs_.at<double>(0) = cp.k1();
+  distCoeffs_.at<double>(1) = cp.k2();
+  distCoeffs_.at<double>(2) = cp.p1();
+  distCoeffs_.at<double>(3) = cp.p2();
   keypoints_max=numKeypoints;
   // BRISK detector and descriptor
-  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(Brisk_uniformityRadius, 0, Brisk_absoluteThreshold, numKeypoints));//10,0,100,2000 Sim: 35, 0, 100, x, Real: 35, 0, 2, 2000
+  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(Brisk_uniformityRadius, 0, Brisk_absoluteThreshold, numKeypoints));//10,0,100,2000 Sim: 35, 0, 100, x, Real: 35, 0, 2, 200
   //working limit 25-35 for castle, kitchen 
   extractor_.reset(new brisk::BriskDescriptorExtractor(true, false));
   
 #if 1
   // leverage camera-aware BRISK (caution: needs the *_new* maps...)
-  cv::Mat rays = cv::Mat(imageHeight, imageWidth, CV_32FC3);
-  cv::Mat imageJacobians = cv::Mat(imageHeight, imageWidth, CV_32FC(6));
-  for (int v=0; v<imageHeight; ++v) {
-    for (int u=0; u<imageWidth; ++u) {
+  cv::Mat rays = cv::Mat(cp.imageHeight(), cp.imageWidth(), CV_32FC3);
+  cv::Mat imageJacobians = cv::Mat(cp.imageHeight(), cp.imageWidth(), CV_32FC(6));
+  for (int v=0; v<cp.imageHeight(); ++v) {
+    for (int u=0; u<cp.imageWidth(); ++u) {
       Eigen::Vector3d ray;
       Eigen::Matrix<double, 2, 3> jacobian;
       if(camera_.backProject(Eigen::Vector2d(u,v), &ray)) {
@@ -83,7 +78,7 @@ Frontend::Frontend(int imageWidth, int imageHeight,
     }
   }
 
-  std::static_pointer_cast<cv::BriskDescriptorExtractor>(extractor_)->setCameraProperties(rays, imageJacobians, map_focallength);//185.6909); -> virtual map focal length, camera focal length to create map
+  std::static_pointer_cast<cv::BriskDescriptorExtractor>(extractor_)->setCameraProperties(rays, imageJacobians, mapFocalLength);
 #endif   
 }
 

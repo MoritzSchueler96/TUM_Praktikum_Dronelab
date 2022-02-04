@@ -29,10 +29,6 @@
 
 #include <arp/InteractiveMarkerServer.hpp>
 
-
-#define CAM_IMAGE_WIDTH 640
-#define CAM_IMAGE_HEIGHT 360
-#define FONT_SCALING 1.5
 #define FONT_COLOR cv::Scalar(0,255,0)
 
 class Subscriber
@@ -94,14 +90,16 @@ struct globalParams{
   bool cameraModelApplied;
   bool displayKeypoints;  
   int numKeypoints;
-  double map_focallength;
+  double mapFocalLength;
   double Brisk_uniformityRadius;
   double Brisk_absoluteThreshold;
   int ImageWidth;
   int ImageHeight;
+  double fontScaling;
   bool displayAllKeypoints;
   int poseLostThreshold;
   int poseSwitchThreshold;
+  ros::Duration poseLostTimeThreshold;
 };
 
  /// \brief Load global variables
@@ -110,84 +108,79 @@ struct globalParams{
   /// @param[out] success Whether Parameters were read successfully.
 bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
   if(!nh.getParam("/arp_node/enableFusion", gp.enableFusion)) ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter fusion...    value=" << gp.enableFusion);
-
   if(!nh.getParam("/arp_node/camModel", gp.cameraModelApplied)) ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter cam model...    value=" << gp.cameraModelApplied);
-
   if(!nh.getParam("/arp_node/displayKeypoints", gp.displayKeypoints)) ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter display Keypoints...    value=" << gp.displayKeypoints);
-
-  if(!nh.getParam("/arp_node/map_focallength", gp.map_focallength)) ROS_FATAL("error loading map focallength");
+  if(!nh.getParam("/arp_node/mapFocalLength", gp.mapFocalLength)) ROS_FATAL("error loading map focal length");
   if(!nh.getParam("/arp_node/Brisk_uniformityRadius", gp.Brisk_uniformityRadius)) ROS_FATAL("error loading Brisk_uniformityRadius");
   if(!nh.getParam("/arp_node/Brisk_absoluteThreshold", gp.Brisk_absoluteThreshold)) ROS_FATAL("error loading Brisk_absoluteThreshold");
   if(!nh.getParam("/arp_node/numKeypoints", gp.numKeypoints)) ROS_FATAL("error loading numKeypoints");
   if(!nh.getParam("/arp_node/ImageWidth", gp.ImageWidth)) ROS_FATAL("error loading ImageWidth");
   if(!nh.getParam("/arp_node/ImageHeight", gp.ImageHeight)) ROS_FATAL("error loading ImageHeight");
+  if(!nh.getParam("/arp_node/fontScaling", gp.fontScaling)) ROS_FATAL("error loading fontScaling");
   if(!nh.getParam("/arp_node/displayAllKeypoints", gp.displayAllKeypoints)) ROS_FATAL("error loading displayAllKeypoints");
   if(!nh.getParam("/arp_node/poseLostThreshold", gp.poseLostThreshold)) ROS_FATAL("error loading poseLostThreshold");
   if(!nh.getParam("/arp_node/poseSwitchThreshold", gp.poseSwitchThreshold)) ROS_FATAL("error loading poseSwitchThreshold");
+  double threshold;
+  if(!nh.getParam("/arp_node/poseLostTimeThreshold", threshold)) ROS_FATAL("error loading poseLostTimeThreshold");
+  gp.poseLostTimeThreshold = ros::Duration(threshold);
 
   return true;
 }
-
- /// \brief Struct holding the camera parameters
-struct camParams{
-  double fu;
-  double fv;
-  double cu;
-  double cv;
-  double k1;
-  double k2;
-  double p1;
-  double p2;
-};
  
  /// \brief Read Cam Parameters from launch file
   /// @param[in] nh NodeHandle to read parameters from launch file.
-  /// @param[in] cp Struct with camera parameters to store values.
+  /// @param[in] cp Class Object to store camera parameters.
   /// @param[out] success Whether Parameters were read successfully.
-bool readCameraParameters(ros::NodeHandle& nh, camParams& cp){
+bool readCameraParameters(ros::NodeHandle& nh, arp::cameras::CamParams& cp){
 
   std::cout << std::setprecision(3) << std::fixed;
 
-  if(!nh.getParam("/arp_node/fu", cp.fu)) ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter fu...    value=" << cp.fu);
+  double fu;
+  if(!nh.getParam("/arp_node/fu", fu)) ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter fu...    value=" << fu);
 
-  if(!nh.getParam("/arp_node/fv", cp.fv))ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter fv...    value=" << cp.fv);
+  double fv;
+  if(!nh.getParam("/arp_node/fv", fv))ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter fv...    value=" << fv);
   
-  if(!nh.getParam("/arp_node/cu", cp.cu))ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter cu...    value=" << cp.cu);
+  double cu;
+  if(!nh.getParam("/arp_node/cu", cu))ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter cu...    value=" << cu);
   
-  if(!nh.getParam("/arp_node/cv", cp.cv))ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter cv...    value=" << cp.cv);
+  double cv;
+  if(!nh.getParam("/arp_node/cv", cv))ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter cv...    value=" << cv);
   
-  if(!nh.getParam("/arp_node/k1", cp.k1))ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter k1...    value=" << cp.k1);
+  double k1;
+  if(!nh.getParam("/arp_node/k1", k1))ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter k1...    value=" << k1);
   
-  if(!nh.getParam("/arp_node/k2", cp.k2))ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter k2...    value=" << cp.k2);
+  double k2;
+  if(!nh.getParam("/arp_node/k2", k2))ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter k2...    value=" << k2);
   
-  if(!nh.getParam("/arp_node/p1", cp.p1))ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter p1...    value=" << cp.p1);
+  double p1;
+  if(!nh.getParam("/arp_node/p1", p1))ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter p1...    value=" << p1);
 
-  if(!nh.getParam("/arp_node/p2", cp.p2))ROS_FATAL("error loading parameter");
-  ROS_DEBUG_STREAM("Read parameter p2...    value=" << cp.p2);
+  double p2;
+  if(!nh.getParam("/arp_node/p2", p2))ROS_FATAL("error loading parameter");
+  ROS_DEBUG_STREAM("Read parameter p2...    value=" << p2);
 
+  if(!cp.setParams(640, 360, fu, fv, cu, cv, k1, k2, p1, p2)) ROS_FATAL("error setting parameters");
   return true;
 }
 
  /// \brief initialize Cam Model
   /// @param[in] nh NodeHandle.
-  /// @param[in] cp Struct with camera parameters.
+  /// @param[in] cp Class Object with stored camera parameters.
   /// @param[out] camMod Initialized camera model  
-arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamera(ros::NodeHandle& nh, const camParams cp){
+arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> setupCamera(ros::NodeHandle& nh, const arp::cameras::CamParams cp){
   // setup camera model
-  const arp::cameras::RadialTangentialDistortion distortion(cp.k1, cp.k2, cp.p1, cp.p2);
-  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> camMod(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, distortion);
+  const arp::cameras::RadialTangentialDistortion distortion(cp);
+  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> camMod(cp, distortion);
   ROS_DEBUG("Initialize undistort maps...");
-  if(!camMod.initialiseUndistortMaps(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv)) ROS_FATAL("error initializing map");
+  if(!camMod.initialiseUndistortMaps(cp)) ROS_FATAL("error initializing map");
   return camMod;
 }
 
@@ -295,7 +288,7 @@ int main(int argc, char **argv)
   if(!loadGlobalVars(nh, gp)) ROS_FATAL("error loading global variables");
  
   // read camera parameters
-  camParams cp;
+  arp::cameras::CamParams cp;
   ROS_INFO("Read camera parameters...");
   if(!readCameraParameters(nh, cp)) ROS_FATAL("error loading parameters");
 
@@ -305,14 +298,12 @@ int main(int argc, char **argv)
   // activate camera model
   ROS_INFO_STREAM("Camera Model Applied set to: " << gp.cameraModelApplied);
 
-  
   // setup frontend
   ROS_INFO("Setup Frontend...");
   std::string map;
-  
- 
   if(!nh.getParam("/arp_node/map", map)) ROS_FATAL("error loading world");
-  arp::Frontend frontend(CAM_IMAGE_WIDTH, CAM_IMAGE_HEIGHT, cp.fu, cp.fv, cp.cu, cp.cv, cp.k1, cp.k2, cp.p1, cp.p2, gp.numKeypoints, gp.map_focallength,gp.Brisk_uniformityRadius ,gp.Brisk_absoluteThreshold);
+  arp::Frontend frontend(cp, gp.numKeypoints, gp.mapFocalLength, gp.Brisk_uniformityRadius, gp.Brisk_absoluteThreshold);
+  
   //setup OccupancyMap
   ROS_INFO("Setup OccupancyMap...");
   cv::Mat wrappedMapData;
@@ -333,6 +324,8 @@ int main(int argc, char **argv)
   bool lastPoseStatus;
   lastPoseStatus = vit.getPoseStatus();
   int poseSwitchCnt=0;
+  ros::Time last = ros::Time::now();
+  bool poseSwitchTimeUp=false;
 
   // display keypoints
   frontend.showKeypoints(gp.displayKeypoints);
@@ -366,8 +359,10 @@ int main(int argc, char **argv)
 
   // to get reliable button presses
   bool pressed = false;
-  // to get single switch to manual mode and don't flood terminal
-  bool changed = true;
+
+  // variables for frontend error messages
+  ros::Time displayTime = ros::Time::now() + ros::Duration(24*60*60);
+  std::string errorText = "";
 
   //create Interactive Marker
   arp::InteractiveMarkerServer markerServer(autopilot);
@@ -407,7 +402,7 @@ int main(int argc, char **argv)
 
           // generate Text for drone state and add it to picture
           std::string display="state: "+std::to_string(droneStatus);
-          cv::putText(image, display, cv::Point(10*FONT_SCALING, 50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING*2, FONT_COLOR, 2, false); //putText( image, text, org, font, fontScale, color, thickness, lineType, bottomLeftOrigin)
+          cv::putText(image, display, cv::Point(10*gp.fontScaling, 50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling*2, FONT_COLOR, 2, false); //putText( image, text, org, font, fontScale, color, thickness, lineType, bottomLeftOrigin)
           
           // creates text of Batterie charge in 0.1% and add it to picture
           std::stringstream stream;
@@ -418,38 +413,41 @@ int main(int argc, char **argv)
           if(droneBattery<10){
               color= cv::Scalar(0,0,255);
           }
-          cv::putText(image, stream.str(), cv::Point(image_size.width-200*FONT_SCALING, 50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING*2, color, 2, false);
+          cv::putText(image, stream.str(), cv::Point(image_size.width-200*gp.fontScaling, 50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling*2, color, 2, false);
           
+          // put error Text on image
+          if(ros::Time::now() - displayTime < ros::Duration(3)) cv::putText(image, errorText, cv::Point(image_size.width/2-350*gp.fontScaling, image_size.height/2), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, cv::Scalar(0,0,255), 2, false);
+
           // possible commands in buttom of picture, differentiate: drone is flying or not
           if(!autopilot.isAutomatic())
           {
-              cv::putText(image, "STRG-R: Switch to Auto Mode", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-90*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "STRG-R: Switch to Auto Mode", cv::Point(image_size.width/2-240*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           } else {
-              cv::putText(image, "Space: Switch to Man. Mode", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-90*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "Space: Switch to Man. Mode", cv::Point(image_size.width/2-240*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
           if (gp.enableFusion)
           {
-              cv::putText(image, "F: Sensor Fusion is On", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "F: Sensor Fusion is On", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           } else {
-              cv::putText(image, "F: Sensor Fusion is Off", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "F: Sensor Fusion is Off", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
-          cv::putText(image, "K: Toggle Keypoints", cv::Point(10*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-          cv::putText(image, "P: Toggle Projection", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+          cv::putText(image, "K: Toggle Keypoints", cv::Point(10*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+          cv::putText(image, "P: Toggle Projection", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
               
           if(droneStatus==3||droneStatus==4||droneStatus==7) {
-              cv::putText(image, "W/ S: up/ down", cv::Point(10*FONT_SCALING, image_size.height-90*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              cv::putText(image, "A/ D: yaw left/ right", cv::Point(10*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              cv::putText(image, "^/ v: for-/ backward", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-90*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              cv::putText(image, "</ >: left/ right", cv::Point(image_size.width-370*FONT_SCALING, image_size.height-50*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
-              cv::putText(image, "L: Landing; ESC: Stop", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "W/ S: up/ down", cv::Point(10*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+              cv::putText(image, "A/ D: yaw left/ right", cv::Point(10*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+              cv::putText(image, "^/ v: for-/ backward", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+              cv::putText(image, "</ >: left/ right", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+              cv::putText(image, "L: Landing; ESC: Stop", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
           else if(droneStatus==2)
           {
-              cv::putText(image, "T: Taking off; ESC: Stop", cv::Point(image_size.width/2-185*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "T: Taking off; ESC: Stop", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
           else
           {
-              cv::putText(image, "ESC: Stop", cv::Point(image_size.width/2-80*FONT_SCALING, image_size.height-10*FONT_SCALING), cv::FONT_HERSHEY_SIMPLEX,FONT_SCALING, FONT_COLOR, 2, false);
+              cv::putText(image, "ESC: Stop", cv::Point(image_size.width/2-80*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
 
           // https://stackoverflow.com/questions/22702630/converting-cvmat-to-sdl-texture
@@ -486,29 +484,41 @@ int main(int argc, char **argv)
       if (!autopilot.flattrimCalibrate()) ROS_WARN("Warning: flattrim calibration failed...");
     }
 
-    //ROS_INFO_STREAM("pose" << vit.getPoseStatus());
-    if (autopilot.isAutomatic() && (state[SDL_SCANCODE_SPACE] or (droneStatus==2 && !changed) or (!vit.getPoseStatus() && !changed && poseLostCnt >= gp.poseLostThreshold) or poseSwitchCnt >= gp.poseSwitchThreshold)) {
-      changed = true;
+    // logic to guarantee safe operation of auto mode, if some restrictions are violated switch to manual mode
+    if (autopilot.isAutomatic() && (state[SDL_SCANCODE_SPACE] or droneStatus==2 or (!vit.getPoseStatus() && (poseSwitchTimeUp or poseLostCnt >= gp.poseLostThreshold or poseSwitchCnt >= gp.poseSwitchThreshold)))) {
       poseSwitchCnt=0;
       ROS_INFO_STREAM("Autopilot off...     status=" << droneStatus);
       autopilot.setManual();
       markerServer.deactivate();
+
+      if(droneStatus==2) errorText = "Deavtivate auto mode due to landing the drone.";
+      else if(!state[SDL_SCANCODE_SPACE]) errorText = "Deactivate auto mode due to lost pose.";
+      if(!state[SDL_SCANCODE_SPACE]) displayTime = ros::Time::now();
+    }
+
+    if(vit.getPoseStatus() != lastPoseStatus){
+      // get ros time now
+      last = ros::Time::now();
+      poseSwitchCnt++;
+      ROS_DEBUG_STREAM("Cnt: " << poseSwitchCnt);
+      lastPoseStatus = vit.getPoseStatus();
     }
 
     if(!vit.getPoseStatus() && autopilot.isAutomatic()){
-       poseLostCnt++;
-      ROS_WARN_STREAM("Lost Cnt: " << poseLostCnt);
+      poseLostCnt++;
+      ROS_DEBUG_STREAM("Lost Cnt: " << poseLostCnt);
+      if(ros::Time::now() - last > gp.poseLostTimeThreshold && gp.poseLostTimeThreshold != ros::Duration(0)) {
+          poseSwitchTimeUp=true;
+      } else {
+          poseSwitchTimeUp=false;
+      }
+      ROS_DEBUG_STREAM("time: " << ros::Time::now() - last);
+      ROS_DEBUG_STREAM("thres: " << gp.poseLostTimeThreshold);
+      ROS_DEBUG_STREAM("poseSwitchTimeUp: " << poseSwitchTimeUp);
     } else {
       poseLostCnt = 0;
     }
     
-    if(vit.getPoseStatus() != lastPoseStatus){
-      // get ros time now
-      poseSwitchCnt++;
-      ROS_WARN_STREAM("Cnt: " << poseSwitchCnt);
-      lastPoseStatus = vit.getPoseStatus();
-    }
-
     // Press P to toggle application of camera model
     // Press K to toggle depiction of key points
     // Press F to toggle application of sensor fusion    
@@ -534,13 +544,20 @@ int main(int argc, char **argv)
         } 
     }
 
+    // create errorText if auto mode can't be activated
+    if(state[SDL_SCANCODE_RCTRL] && !autopilot.isAutomatic() && (!vit.getPoseStatus() or droneStatus==2)){
+      if(droneStatus==2) errorText = "Can't activate auto mode while not flying.";
+      else if(!vit.getPoseStatus()) errorText = "Can't activate auto mode while pose not found.";
+      displayTime = ros::Time::now();
+    }
+
     // TODO: process moving commands when in state 3, 4 or 7
     if((!autopilot.isAutomatic())&&(droneStatus==3||droneStatus==4||droneStatus==7)) 
     {
         
-        if (state[SDL_SCANCODE_RCTRL] && vit.getPoseStatus()) {
-          changed = false;
+        if(state[SDL_SCANCODE_RCTRL] && vit.getPoseStatus()) {
           poseSwitchCnt=0;
+          poseSwitchTimeUp=false;
           ROS_INFO_STREAM("Autopilot on...     status=" << droneStatus);
           double x, y, z, yaw;
           autopilot.getPoseReference(x, y, z, yaw);

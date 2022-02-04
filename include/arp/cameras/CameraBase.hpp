@@ -67,6 +67,181 @@ typedef std::vector<Detection, Eigen::aligned_allocator<Detection>> DetectionVec
 /// \brief cameras Namespace for camera-related functionality.
 namespace cameras {
 
+/// \class CamParams
+/// \brief Base class for all camera parameters.
+class CamParams
+{
+ public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  /// \brief default Constructor -- does nothing serious
+  inline CamParams()
+      : imageWidth_(0),
+        imageHeight_(0),
+        fu_(0.0),
+        fv_(0.0),
+        cu_(0.0),
+        cv_(0.0),
+        k1_(0.0),
+        k2_(0.0),
+        p1_(0.0),
+        p2_(0.0)
+  {
+  }
+
+  /// \brief Constructor for width, height
+  inline CamParams(int imageWidth, int imageHeight)
+        : imageWidth_(imageWidth),
+          imageHeight_(imageHeight)
+    {
+    }
+
+  /// \brief Constructor for width, height, fu, fv, cu and cv
+  inline CamParams(int imageWidth, int imageHeight, double fu, double fv, double cu, double cv)
+        : imageWidth_(imageWidth),
+          imageHeight_(imageHeight),
+          fu_(fu),
+          fv_(fv),
+          cu_(cu),
+          cv_(cv)
+    {
+    }
+
+  /// \brief Constructor for width, height, fu, fv, cu, cv, k1, k2, p1 and p2
+  inline CamParams(int imageWidth, int imageHeight, double fu, double fv, double cu, double cv, double k1, double k2, double p1, double p2)
+        : imageWidth_(imageWidth),
+          imageHeight_(imageHeight),
+          fu_(fu),
+          fv_(fv),
+          cu_(cu),
+          cv_(cv),
+          k1_(k1),
+          k2_(k2),
+          p1_(p1),
+          p2_(p2)
+    {
+    }
+
+  /// \brief Constructor for cameraParams
+  inline CamParams(const arp::cameras::CamParams& cp)
+        : imageWidth_(cp.imageWidth()),
+          imageHeight_(cp.imageHeight()),
+          fu_(cp.fu()),
+          fv_(cp.fv()),
+          cu_(cp.cu()),
+          cv_(cp.cv()),
+          k1_(cp.k1()),
+          k2_(cp.k2()),
+          p1_(cp.p1()),
+          p2_(cp.p2())
+    {
+    }
+
+  /// \brief Constructor for k1, k2, p1 and p2
+  inline CamParams(double k1, double k2, double p1, double p2)
+        : k1_(k1),
+          k2_(k2),
+          p1_(p1),
+          p2_(p2)
+    {
+    }
+
+  /// \brief Destructor -- does nothing
+  inline virtual ~CamParams()
+  {
+  }
+
+   /// \brief The width of the image in pixels.
+  inline uint32_t imageWidth() const
+  {
+    return imageWidth_;
+  }
+  /// \brief The height of the image in pixels.
+  inline uint32_t imageHeight() const
+  {
+    return imageHeight_;
+  }
+
+  /// \brief The horizontal focal length in pixels.
+  inline double fu() const
+  {
+    return fu_;
+  }
+
+  /// \brief The vertical focal length in pixels.
+  inline double fv() const
+  {
+    return fv_;
+  }
+
+  /// \brief The horizontal centre in pixels.
+  inline double cu() const
+  {
+    return cu_;
+  }
+
+  /// \brief The vertical centre in pixels.
+  inline double cv() const
+  {
+    return cv_;
+  }
+
+  /// \brief The radial parameter 1.
+  inline double k1() const
+  {
+    return k1_;
+  }
+
+  /// \brief The radial parameter 2.
+  inline double k2() const
+  {
+    return k2_;
+  }
+
+  /// \brief The tangential parameter 1.
+  inline double p1() const
+  {
+    return p1_;
+  }
+
+  /// \brief The tangential parameter 2.
+  inline double p2() const
+  {
+    return p2_;
+  }
+
+  /// \brief setter to set all parameters at once
+  inline bool setParams(int imageWidth, int imageHeight, double fu, double fv, double cu, double cv, double k1, double k2, double p1, double p2)
+  {
+      imageWidth_ = imageWidth;
+      imageHeight_ = imageHeight;
+      fu_ = fu;
+      fv_ = fv;
+      cu_ = cu;
+      cv_ = cv;
+      k1_ = k1;
+      k2_ = k2;
+      p1_ = p1;
+      p2_ = p2;
+
+      return true;
+  }
+
+ protected:
+
+  int imageWidth_;  ///< image width in pixels
+  int imageHeight_;  ///< image height in pixels
+  double fu_;  ///< horizontal focal length in pixels
+  double fv_;  ///< vertical focal length in pixels
+  double cu_;  ///< horizontal centre in pixels
+  double cv_;  ///< vertical centre in pixels
+  double k1_;  ///< radial parameter 1
+  double k2_;  ///< radial parameter 2
+  double p1_;  ///< tangential parameter 1
+  double p2_;  ///< tangential parameter 2
+
+};
+
 /// \class ProjectionStatus
 /// \brief Indicates what happened when applying any of the project functions.
 enum class ProjectionStatus

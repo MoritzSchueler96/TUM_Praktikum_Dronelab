@@ -12,8 +12,7 @@
 namespace arp {
 
 ViEkf::ViEkf()
-    : cameraModel_(0, 0, 0, 0, 0, 0,
-                   arp::cameras::RadialTangentialDistortion(0,0,0,0))
+    : cameraModel_(arp::cameras::RadialTangentialDistortion())
 {
   x_.t_WS.setZero();
   x_.q_WS.setIdentity();
