@@ -179,6 +179,7 @@ target_link_libraries(${PROJECT_NAME}
 add_library(${PROJECT_NAME}_autopilot
    src/Autopilot.cpp
    src/VisualInertialTracker.cpp
+   src/Planner.cpp
 )
 target_link_libraries(${PROJECT_NAME}_autopilot
   ${catkin_LIBRARIES}
