@@ -56,6 +56,8 @@
     <param name="ImageWidth" value="1920" />
     <param name="ImageHeight" value="960" />
     <param name="fontScaling" value="1.5" />
+    <param name="skipThresInit" value="3" /> <!-- default 1 -->
+    <param name="skipThresLimit" value="3" /> <!-- default 4 -->
 
     <!-- Camera parameters-->
     <param name="fu" value="582.047949" />

@@ -34,7 +34,7 @@ class Frontend
   /// @param[in] mapFocalLength The focal length of the camera which produced the map
   /// @param[in] Brisk_uniformityRadius Add explanation
   /// @param[in] Brisk_absoluteThreshold Add explanation
-  Frontend(arp::cameras::CamParams cp, int numKeypoints, double mapFocalLength, double Brisk_uniformityRadius, double Brisk_absoluteThreshold);
+  Frontend(arp::cameras::CamParams cp, int numKeypoints, double mapFocalLength, double Brisk_uniformityRadius, double Brisk_absoluteThreshold, int skipThresInit, int skipThresLimit);
 
   /// \brief Load the map
   /// \parameter path The full path to the map file.
@@ -96,7 +96,8 @@ class Frontend
   std::atomic_bool displayAllKeypoints_{false};
  private:
   Frontend() = delete;
-  int keypoints_max;
+  int skipThresInit_;
+  int skipThresLimit_;
 };
 
 }  // namespace arp

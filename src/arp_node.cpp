@@ -100,6 +100,8 @@ struct globalParams{
   int poseLostThreshold;
   int poseSwitchThreshold;
   ros::Duration poseLostTimeThreshold;
+  int skipThresInit;
+  int skipThresLimit;
 };
 
  /// \brief Load global variables
@@ -118,6 +120,8 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
   if(!nh.getParam("/arp_node/ImageHeight", gp.ImageHeight)) ROS_FATAL("error loading ImageHeight");
   if(!nh.getParam("/arp_node/fontScaling", gp.fontScaling)) ROS_FATAL("error loading fontScaling");
   if(!nh.getParam("/arp_node/displayAllKeypoints", gp.displayAllKeypoints)) ROS_FATAL("error loading displayAllKeypoints");
+  if(!nh.getParam("/arp_node/skipThresInit", gp.skipThresInit)) ROS_FATAL("error loading skipThresInit");
+  if(!nh.getParam("/arp_node/skipThresLimit", gp.skipThresLimit)) ROS_FATAL("error loading skipThresLimit");
   if(!nh.getParam("/arp_node/poseLostThreshold", gp.poseLostThreshold)) ROS_FATAL("error loading poseLostThreshold");
   if(!nh.getParam("/arp_node/poseSwitchThreshold", gp.poseSwitchThreshold)) ROS_FATAL("error loading poseSwitchThreshold");
   double threshold;
@@ -302,7 +306,7 @@ int main(int argc, char **argv)
   ROS_INFO("Setup Frontend...");
   std::string map;
   if(!nh.getParam("/arp_node/map", map)) ROS_FATAL("error loading world");
-  arp::Frontend frontend(cp, gp.numKeypoints, gp.mapFocalLength, gp.Brisk_uniformityRadius, gp.Brisk_absoluteThreshold);
+  arp::Frontend frontend(cp, gp.numKeypoints, gp.mapFocalLength, gp.Brisk_uniformityRadius, gp.Brisk_absoluteThreshold, gp.skipThresInit, gp.skipThresLimit);
   
   //setup OccupancyMap
   ROS_INFO("Setup OccupancyMap...");

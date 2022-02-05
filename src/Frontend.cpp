@@ -26,7 +26,7 @@
 
 namespace arp {
 
-Frontend::Frontend(arp::cameras::CamParams cp, int numKeypoints=2000, double mapFocalLength=185.6909, double Brisk_uniformityRadius=35, double Brisk_absoluteThreshold=100 ) :
+Frontend::Frontend(arp::cameras::CamParams cp, int numKeypoints=2000, double mapFocalLength=185.6909, double Brisk_uniformityRadius=35, double Brisk_absoluteThreshold=100, int skipThresInit=1, int skipThresLimit=3) :
   camera_(cp, arp::cameras::RadialTangentialDistortion(cp))
 {
   camera_.initialiseUndistortMaps();
@@ -43,7 +43,8 @@ Frontend::Frontend(arp::cameras::CamParams cp, int numKeypoints=2000, double map
   distCoeffs_.at<double>(1) = cp.k2();
   distCoeffs_.at<double>(2) = cp.p1();
   distCoeffs_.at<double>(3) = cp.p2();
-  keypoints_max=numKeypoints;
+  skipThresInit_=skipThresInit;
+  skipThresLimit_=skipThresLimit;
   // BRISK detector and descriptor
   detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(Brisk_uniformityRadius, 0, Brisk_absoluteThreshold, numKeypoints));//10,0,100,2000 Sim: 35, 0, 100, x, Real: 35, 0, 2, 200
   //working limit 25-35 for castle, kitchen 
@@ -217,7 +218,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
   std::vector<cv::Point2d> imagePoints;
   std::vector<uint64_t> lmID;
   int reduceLandmarks = 0;
-  static int skipThres = 3;
+  static int skipThres = skipThresInit_;
   static int reduceLmCnt = 0;
 
   ROS_DEBUG_STREAM_THROTTLE(2, "landmarks: " << landmarks_.size());
@@ -234,18 +235,18 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
     // skip invisible landmarks if no Init needed
     // reduce Landmarks by factor 4 if Init needed
     if(!needsReInitialisation){
-      skipThres = 3;
+      skipThres = skipThresInit_;
       reduceLmCnt = 0;
       if(camera_.project((T_CW*landmark4d).head<3>(), &landmark2d)!=arp::cameras::ProjectionStatus::Successful) continue;
     } else {
       reduceLandmarks++;
-      /*reduceLmCnt++;
-      if (reduceLmCnt > 250000){
-        ROS_INFO_STREAM_NAMED("custom", "skip: " << skipThres << "cnt: " << reduceLmCnt);
+      reduceLmCnt++;
+      if (reduceLmCnt > 750000){
+        ROS_DEBUG_STREAM_NAMED("custom", "skip: " << skipThres << " cnt: " << reduceLmCnt);
         reduceLmCnt = 0;
-        skipThres = std::min(skipThres+1, 3);
-      }*/
-      if((reduceLandmarks > skipThres) || (keypoints_max>1500)) reduceLandmarks=0;
+        skipThres = std::min(skipThres+1, skipThresLimit_);
+      }
+      if(reduceLandmarks > skipThres) reduceLandmarks=0;
        else continue;
     }
     
