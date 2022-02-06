@@ -324,51 +324,52 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
 
         // TODO: remove the current waypoint, if the position error is below \
         the tolerance.
-
-        error_<< referencePose-x.t_WS;
+        Eigen::Vector3d referencePose_waypoint(w.x,w.y, w.z);
+        error_<< referencePose_waypoint-x.t_WS;
         if(abs(error_.norm()) < w.posTolerance) waypoints_.pop_back(); // maybe waypoints_.pop_front()
         
     } else {
         // This is the original line of code:
-        // getPoseReference(positionReference[0], positionReference[1], \
+        //getPoseReference(positionReference[0], positionReference[1], \
         positionReference[2], yaw_ref);
     
         //TODO:calculate error
         error_<< referencePose-x.t_WS;
     }
-        //x.q_WS.toRotationMatrix().transpose() = R_SW
-        error_=x.q_WS.toRotationMatrix().transpose()*error_;
-        double yaw_error= ref_yaw_-arp::kinematics::yawAngle(x.q_WS);
+    //x.q_WS.toRotationMatrix().transpose() = R_SW
+    error_=x.q_WS.toRotationMatrix().transpose()*error_;
+    double yaw_error= ref_yaw_-arp::kinematics::yawAngle(x.q_WS);
 
-        //TODO: boundaries of yaw angle
-        if(yaw_error>ROS_PI)
-        {
-          yaw_error=ROS_PI;
-        }else if(yaw_error<-ROS_PI)
-        {
-          yaw_error=-ROS_PI;
-        }
+    //TODO: boundaries of yaw angle
+    if(yaw_error>ROS_PI)
+    {
+      yaw_error=ROS_PI;
+    }else if(yaw_error<-ROS_PI)
+    {
+      yaw_error=-ROS_PI;
+    }
 
-        Eigen::Vector3d e_dot(0,0,0);
-        //x.q_WS.toRotationMatrix().transpose() = R_SW
-        e_dot=-x.q_WS.toRotationMatrix().transpose()*x.v_W;
+    Eigen::Vector3d e_dot(0,0,0);
+    //x.q_WS.toRotationMatrix().transpose() = R_SW
+    e_dot=-x.q_WS.toRotationMatrix().transpose()*x.v_W;
 
-        // TODO: get ros parameter
-        // is done in constructor and saved to x_y_limit, z_limit and yaw_limit, since values are fixed
-        // TODO: compute control output
-        double x_move=x_pid.control(timeMicroseconds,error_[0], e_dot[0])/x_y_limit;
-        double y_move=y_pid.control(timeMicroseconds,error_[1], e_dot[1])/x_y_limit;
-        double z_move=z_pid.control(timeMicroseconds,error_[2], e_dot[2])/z_limit;
-        double yaw_move=yaw_pid.control(timeMicroseconds,yaw_error, 0)/yaw_limit;
+    // TODO: get ros parameter
+    // is done in constructor and saved to x_y_limit, z_limit and yaw_limit, since values are fixed
+    // TODO: compute control output
+    double x_move=x_pid.control(timeMicroseconds,error_[0], e_dot[0])/x_y_limit;
+    double y_move=y_pid.control(timeMicroseconds,error_[1], e_dot[1])/x_y_limit;
+    double z_move=z_pid.control(timeMicroseconds,error_[2], e_dot[2])/z_limit;
+    double yaw_move=yaw_pid.control(timeMicroseconds,yaw_error, 0)/yaw_limit;
 
-        // TODO: send to move
-        move(x_move,y_move,z_move,yaw_move);
+    // TODO: send to move
+    move(x_move,y_move,z_move,yaw_move);
 
     
 
   }
   return;
 }
+
 
 }  // namespace arp
 

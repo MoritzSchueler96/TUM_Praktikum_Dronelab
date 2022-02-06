@@ -36,18 +36,13 @@ class Planner {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   Planner(ros::NodeHandle& nh);
 
-  /// \brief These are reverse engineered AR Drone states.
-  enum DroneStatus {
-    Unknown = 0,
-    Inited = 1,
-    Landed = 2,
-    Flying = 3,
-    Hovering = 4,
-    Test = 5, // ?
-    TakingOff = 6,
-    Flying2 = 7,
-    Landing = 8,
-    Looping = 9 // ?
+  
+  struct Node {
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    Eigen::Vector3d point;        ///< The 3d point in occupancy grid.
+    double totDistEst;            ///< distance to goal
+    double dist;                  ///< distance from Start
+    Eigen::Vector3d prev_point;   ///< The 3d point in occupancy grid.
   };
 
     /// \brief A Helper struct to send lists of waypoints.
@@ -61,7 +56,14 @@ class Planner {
 
   /// \brief Plan the trajectory.
    /// \return The value: false means planning failed
-  bool plan();
+  bool plan(Eigen::Vector3d Start,Eigen::Vector3d Goal);
+  //Set Occupancy Map
+  void setOccupancyMap(cv::Mat MapData);
+  /// \brief Load the map
+  /// \parameter path The full path to the map file.
+  /// \return True on success.
+  bool  loadMap(std::string path);
+
 
  protected:
   ros::NodeHandle * nh_;  ///< ROS node handle.
@@ -69,7 +71,10 @@ class Planner {
 
   std::deque<Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.
   std::mutex waypointMutex_;  ///< We need to lock the waypoint access due to asynchronous arrival.
-
+  cv::Mat wrappedMapData_;
+  std::map<uint64_t, Frontend::Landmark, std::less<uint64_t>, 
+      Eigen::aligned_allocator<std::pair<const uint64_t, Frontend::Landmark> > > landmarks_; ///< Landmarks by ID.
+  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> camera_; ///< Camera model
 };
 
 } // namespace arp
