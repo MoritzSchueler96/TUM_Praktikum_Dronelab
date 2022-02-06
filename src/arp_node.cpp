@@ -3,9 +3,7 @@
 #include <stdlib.h>
 #include <fstream>
 #include <SDL2/SDL.h>
-#include <iostream>
 
-#include <sstream>
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
 #include <geometry_msgs/TransformStamped.h>
