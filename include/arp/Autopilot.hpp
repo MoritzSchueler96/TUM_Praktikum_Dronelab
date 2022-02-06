@@ -57,14 +57,20 @@ class Autopilot {
    /// \return The value: 0 means no battery, 100 means full battery.
   float droneBattery();
 
-  /// \brief Set to automatic control mode.
+  /// \brief Set to manual control mode.
   void setManual();
 
-  /// \brief Set to manual control mode.
+  /// \brief Set to automatic control mode.
   void setAutomatic();
 
   /// \brief Are we currently in automatic mode?;
   bool isAutomatic() { return isAutomatic_; }
+
+  /// \brief Set to tracking control mode.
+  void setTracking();
+
+  /// \brief Are we currently in tracking mode?;
+  bool isTracking() { return isTracking_; }
 
   /// \brief Request flattrim calibration.
   /// \return True on success.
@@ -177,7 +183,8 @@ class Autopilot {
   double ref_yaw_ = 0.0; ///< World frame yaw reference [rad].
   std::mutex refMutex_; ///< We need to lock the reference access due to asynchronous arrival.
   std::atomic<bool> isAutomatic_; ///< True, if in automatic control mode.
-PidController x_pid;
+  std::atomic<bool> isTracking_; ///< True, if in tracking control mode.
+  PidController x_pid;
   PidController y_pid;
   PidController z_pid;
   PidController yaw_pid;

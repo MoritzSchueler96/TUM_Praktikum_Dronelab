@@ -270,6 +270,27 @@ bool setupOccupancyMap(ros::NodeHandle& nh,cv::Mat& retwrappedMapData)
   return true;
 }
 
+ /// \brief load waypoints
+  /// @param[in] nh NodeHandle.
+  /// @param[out] success Whether loading was successfull. 
+bool loadWaypoint(ros::NodeHandle& nh, arp::Autopilot::Waypoint& waypoint){
+  double x, y, z, yaw, tolerance;
+
+  if(!nh.getParam("/arp_node/waypointX", x)) ROS_FATAL("error loading poseLostThreshold");
+  if(!nh.getParam("/arp_node/waypointY", y)) ROS_FATAL("error loading poseLostThreshold");
+  if(!nh.getParam("/arp_node/waypointZ", z)) ROS_FATAL("error loading poseLostThreshold");
+  if(!nh.getParam("/arp_node/waypointYaw", yaw)) ROS_FATAL("error loading poseLostThreshold");
+  if(!nh.getParam("/arp_node/waypointTolerance", tolerance)) ROS_FATAL("error loading poseLostThreshold");
+
+  waypoint.x = x;
+  waypoint.y = y;
+  waypoint.z = z;
+  waypoint.yaw = yaw;
+  waypoint.posTolerance = tolerance;
+
+  return true;
+}
+
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "arp_node");
@@ -291,6 +312,10 @@ int main(int argc, char **argv)
   ROS_INFO("Read global parameters...");
   if(!loadGlobalVars(nh, gp)) ROS_FATAL("error loading global variables");
  
+  // load waypoints
+  arp::Autopilot::Waypoint waypointB;
+  if(!loadWaypoint(nh, waypointB)) ROS_FATAL("error loading waypoint");
+
   // read camera parameters
   arp::cameras::CamParams cp;
   ROS_INFO("Read camera parameters...");
@@ -364,6 +389,8 @@ int main(int argc, char **argv)
   // to get reliable button presses
   bool pressed = false;
 
+  bool flyChallenge = false;
+
   // variables for frontend error messages
   ros::Time displayTime = ros::Time::now() + ros::Duration(24*60*60);
   std::string errorText = "";
@@ -436,7 +463,7 @@ int main(int argc, char **argv)
               cv::putText(image, "F: Sensor Fusion is Off", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
           cv::putText(image, "K: Toggle Keypoints", cv::Point(10*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
-          cv::putText(image, "P: Toggle Projection", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+          cv::putText(image, "M: Toggle Projection", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
               
           if(droneStatus==3||droneStatus==4||droneStatus==7) {
               cv::putText(image, "W/ S: up/ down", cv::Point(10*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
@@ -467,162 +494,179 @@ int main(int argc, char **argv)
           // cleanup (only after you're done displaying. you can repeatedly call UpdateTexture without destroying it)
           SDL_DestroyTexture(texture);
       }
-    // command
-    if (state[SDL_SCANCODE_ESCAPE]) {
-      std::cout << "ESTOP PRESSED, SHUTTING OFF ALL MOTORS status=" << droneStatus << std::endl;
-      if(!autopilot.estopReset()) ROS_WARN("Warning: Shutdown failed...");
-    }
 
-    if (state[SDL_SCANCODE_T]) {
-      ROS_INFO_STREAM("Taking off...                          status=" << droneStatus);
-      if (!autopilot.takeoff()) ROS_WARN("Warning: Take Off failed...");
-    }
-
-    if (state[SDL_SCANCODE_L]) {
-      ROS_INFO_STREAM("Going to land...                       status=" << droneStatus);
-      if (!autopilot.land()) ROS_WARN("Warning: Landing failed...");
-    }
-
-    if (state[SDL_SCANCODE_C]) {
-      ROS_INFO_STREAM("Requesting flattrim calibration...     status=" << droneStatus);
-      if (!autopilot.flattrimCalibrate()) ROS_WARN("Warning: flattrim calibration failed...");
-    }
-
-    // logic to guarantee safe operation of auto mode, if some restrictions are violated switch to manual mode
-    if (autopilot.isAutomatic() && (state[SDL_SCANCODE_SPACE] or droneStatus==2 or (!vit.getPoseStatus() && (poseSwitchTimeUp or poseLostCnt >= gp.poseLostThreshold or poseSwitchCnt >= gp.poseSwitchThreshold)))) {
-      poseSwitchCnt=0;
-      ROS_INFO_STREAM("Autopilot off...     status=" << droneStatus);
-      autopilot.setManual();
-      markerServer.deactivate();
-
-      if(droneStatus==2) errorText = "Deavtivate auto mode due to landing the drone.";
-      else if(!state[SDL_SCANCODE_SPACE]) errorText = "Deactivate auto mode due to lost pose.";
-      if(!state[SDL_SCANCODE_SPACE]) displayTime = ros::Time::now();
-    }
-
-    if(vit.getPoseStatus() != lastPoseStatus){
-      // get ros time now
-      last = ros::Time::now();
-      poseSwitchCnt++;
-      ROS_DEBUG_STREAM("Cnt: " << poseSwitchCnt);
-      lastPoseStatus = vit.getPoseStatus();
-    }
-
-    if(!vit.getPoseStatus() && autopilot.isAutomatic()){
-      poseLostCnt++;
-      ROS_DEBUG_STREAM("Lost Cnt: " << poseLostCnt);
-      if(ros::Time::now() - last > gp.poseLostTimeThreshold && gp.poseLostTimeThreshold != ros::Duration(0)) {
-          poseSwitchTimeUp=true;
-      } else {
-          poseSwitchTimeUp=false;
+      // trajectory tracking
+      if(flyChallenge && autopilot.isTracking()){
+        // check progress
+        ROS_INFO("Challenge");
+        // comand autopilot
       }
-      ROS_DEBUG_STREAM("time: " << ros::Time::now() - last);
-      ROS_DEBUG_STREAM("thres: " << gp.poseLostTimeThreshold);
-      ROS_DEBUG_STREAM("poseSwitchTimeUp: " << poseSwitchTimeUp);
-    } else {
-      poseLostCnt = 0;
-    }
-    
-    // Press P to toggle application of camera model
-    // Press K to toggle depiction of key points
-    // Press F to toggle application of sensor fusion    
-    while(SDL_PollEvent(&event))
-    {
-        if(state[SDL_SCANCODE_P] && pressed){
-            gp.cameraModelApplied = gp.cameraModelApplied ^ 1;
-            ROS_INFO_STREAM("Toggle Camera Model...  status=" << gp.cameraModelApplied);
-            pressed = false;
-        } else if(state[SDL_SCANCODE_K] && pressed){
-            gp.displayKeypoints = gp.displayKeypoints ^ 1;
-            frontend.showKeypoints(gp.displayKeypoints);
-            ROS_INFO_STREAM("Toggle Key points...  status=" << gp.displayKeypoints);
-            pressed = false;
-        } else if(state[SDL_SCANCODE_F] && pressed){
-            gp.enableFusion = gp.enableFusion ^ 1;
-            vit.enableFusion(gp.enableFusion);
-            ROS_INFO_STREAM("Toggle Sensor Fusion...  status=" << gp.enableFusion);
-            pressed = false;
+
+      // command
+      if (state[SDL_SCANCODE_ESCAPE]) {
+        std::cout << "ESTOP PRESSED, SHUTTING OFF ALL MOTORS status=" << droneStatus << std::endl;
+        if(!autopilot.estopReset()) ROS_WARN("Warning: Shutdown failed...");
+      }
+
+      if (state[SDL_SCANCODE_T]) {
+        ROS_INFO_STREAM("Taking off...                          status=" << droneStatus);
+        if (!autopilot.takeoff()) ROS_WARN("Warning: Take Off failed...");
+      }
+
+      if (state[SDL_SCANCODE_L]) {
+        ROS_INFO_STREAM("Going to land...                       status=" << droneStatus);
+        if (!autopilot.land()) ROS_WARN("Warning: Landing failed...");
+      }
+
+      if (state[SDL_SCANCODE_C]) {
+        ROS_INFO_STREAM("Requesting flattrim calibration...     status=" << droneStatus);
+        if (!autopilot.flattrimCalibrate()) ROS_WARN("Warning: flattrim calibration failed...");
+      }
+
+      // logic to guarantee safe operation of auto mode, if some restrictions are violated switch to manual mode
+      if ((autopilot.isAutomatic() or autopilot.isTracking()) && (state[SDL_SCANCODE_SPACE] or droneStatus==2 or (!vit.getPoseStatus() && (poseSwitchTimeUp or poseLostCnt >= gp.poseLostThreshold or poseSwitchCnt >= gp.poseSwitchThreshold)))) {
+        poseSwitchCnt=0;
+        ROS_INFO_STREAM("Autopilot off...     status=" << droneStatus);
+        flyChallenge = false;
+        autopilot.setManual();
+        markerServer.deactivate();
+
+        if(droneStatus==2) errorText = "Deavtivate auto mode due to landing the drone.";
+        else if(!state[SDL_SCANCODE_SPACE]) errorText = "Deactivate auto mode due to lost pose.";
+        if(!state[SDL_SCANCODE_SPACE]) displayTime = ros::Time::now();
+      }
+
+      if(vit.getPoseStatus() != lastPoseStatus){
+        // get ros time now
+        last = ros::Time::now();
+        poseSwitchCnt++;
+        ROS_DEBUG_STREAM("Cnt: " << poseSwitchCnt);
+        lastPoseStatus = vit.getPoseStatus();
+      }
+
+      if(!vit.getPoseStatus() && (autopilot.isAutomatic() or autopilot.isTracking())){
+        poseLostCnt++;
+        ROS_DEBUG_STREAM("Lost Cnt: " << poseLostCnt);
+        if(ros::Time::now() - last > gp.poseLostTimeThreshold && gp.poseLostTimeThreshold != ros::Duration(0)) {
+            poseSwitchTimeUp=true;
+        } else {
+            poseSwitchTimeUp=false;
         }
-        if(state[SDL_SCANCODE_P] || state[SDL_SCANCODE_K] || state[SDL_SCANCODE_F]){
-          pressed = true;
-        } 
-    }
+        ROS_DEBUG_STREAM("time: " << ros::Time::now() - last);
+        ROS_DEBUG_STREAM("thres: " << gp.poseLostTimeThreshold);
+        ROS_DEBUG_STREAM("poseSwitchTimeUp: " << poseSwitchTimeUp);
+      } else {
+        poseLostCnt = 0;
+      }
+      
+      // Press P to toggle application of camera model
+      // Press K to toggle depiction of key points
+      // Press F to toggle application of sensor fusion    
+      while(SDL_PollEvent(&event))
+      {
+          if(state[SDL_SCANCODE_M] && pressed){
+              gp.cameraModelApplied = gp.cameraModelApplied ^ 1;
+              ROS_INFO_STREAM("Toggle Camera Model...  status=" << gp.cameraModelApplied);
+              pressed = false;
+          } else if(state[SDL_SCANCODE_K] && pressed){
+              gp.displayKeypoints = gp.displayKeypoints ^ 1;
+              frontend.showKeypoints(gp.displayKeypoints);
+              ROS_INFO_STREAM("Toggle Key points...  status=" << gp.displayKeypoints);
+              pressed = false;
+          } else if(state[SDL_SCANCODE_F] && pressed){
+              gp.enableFusion = gp.enableFusion ^ 1;
+              vit.enableFusion(gp.enableFusion);
+              ROS_INFO_STREAM("Toggle Sensor Fusion...  status=" << gp.enableFusion);
+              pressed = false;
+          }
+          if(state[SDL_SCANCODE_M] || state[SDL_SCANCODE_K] || state[SDL_SCANCODE_F]){
+            pressed = true;
+          } 
+      }
 
-    // create errorText if auto mode can't be activated
-    if(state[SDL_SCANCODE_RCTRL] && !autopilot.isAutomatic() && (!vit.getPoseStatus() or droneStatus==2)){
-      if(droneStatus==2) errorText = "Can't activate auto mode while not flying.";
-      else if(!vit.getPoseStatus()) errorText = "Can't activate auto mode while pose not found.";
-      displayTime = ros::Time::now();
-    }
+      // create errorText if auto mode can't be activated
+      if(state[SDL_SCANCODE_RCTRL] && !autopilot.isAutomatic() && (!vit.getPoseStatus() or droneStatus==2)){
+        if(droneStatus==2) errorText = "Can't activate auto mode while not flying.";
+        else if(!vit.getPoseStatus()) errorText = "Can't activate auto mode while pose not found.";
+        displayTime = ros::Time::now();
+      }
 
-    // TODO: process moving commands when in state 3, 4 or 7
-    if((!autopilot.isAutomatic())&&(droneStatus==3||droneStatus==4||droneStatus==7)) 
-    {
+      // TODO: process moving commands when in state 3, 4 or 7
+      if((!autopilot.isTracking())&&(!autopilot.isAutomatic())&&(droneStatus==3||droneStatus==4||droneStatus==7)) 
+      {
         
-        if(state[SDL_SCANCODE_RCTRL] && vit.getPoseStatus()) {
-          poseSwitchCnt=0;
-          poseSwitchTimeUp=false;
-          ROS_INFO_STREAM("Autopilot on...     status=" << droneStatus);
-          double x, y, z, yaw;
-          autopilot.getPoseReference(x, y, z, yaw);
-          markerServer.activate(x, y, z, yaw);
-          autopilot.setAutomatic();
-        }
+          if(state[SDL_SCANCODE_RCTRL] && vit.getPoseStatus()) {
+            poseSwitchCnt=0;
+            poseSwitchTimeUp=false;
+            ROS_INFO_STREAM("Autopilot on...     status=" << droneStatus);
+            double x, y, z, yaw;
+            autopilot.getPoseReference(x, y, z, yaw);
+            markerServer.activate(x, y, z, yaw);
+            autopilot.setAutomatic();
+          }
 
-        double forward=0;
-        double left=0;
-        double up=0;
-        double rotateLeft=0;
-        //UP Arrow: move drone forward
-        if (state[SDL_SCANCODE_UP]&&!state[SDL_SCANCODE_DOWN]) {
-            ROS_DEBUG_NAMED("custom", "Forward ...     ");
-            forward+=1;
+          if(state[SDL_SCANCODE_P] && vit.getPoseStatus()){
+            ROS_INFO_STREAM("Waypoint Tracking on...     status=" << droneStatus);
+            flyChallenge = true;
+            autopilot.setTracking();
 
-        }
-        //Down Arrow: move drone backwards
-        if (state[SDL_SCANCODE_DOWN]&&!state[SDL_SCANCODE_UP]) {
-            ROS_DEBUG_NAMED("custom", "Backwards ...   ");
-            forward-=1;
-        }
-        //Right Arrow: move drone right
-        if (state[SDL_SCANCODE_RIGHT]&&!state[SDL_SCANCODE_LEFT]) {
-            ROS_DEBUG_NAMED("custom", "Right ...       ");
-            left-=1;
-        }
-        //Left Arrow: move drone left
-        if (state[SDL_SCANCODE_LEFT]&&!state[SDL_SCANCODE_RIGHT]) {
-            ROS_DEBUG_NAMED("custom", "Left ...        ");
-            left+=1;
-        }
-        //'W': move drone Up
-        if (state[SDL_SCANCODE_W]&&!state[SDL_SCANCODE_S]) {
-            ROS_DEBUG_NAMED("custom", "Up ...          ");
-            up+=1;
-        }
-        //'S': move drone Down
-        if (state[SDL_SCANCODE_S]&&!state[SDL_SCANCODE_W]) {
-            ROS_DEBUG_NAMED("custom", "Down ...        ");
-            up-=1;
-        }
-        //'A': yaw drone left
-        if (state[SDL_SCANCODE_A]&&!state[SDL_SCANCODE_D]) {
-            ROS_DEBUG_NAMED("custom", "Rotate Left ... ");
-            rotateLeft+=1;
-        }
-        //'D': yaw drone right
-        if (state[SDL_SCANCODE_D]&& !state[SDL_SCANCODE_A]) {
-            ROS_DEBUG_NAMED("custom", "Rotate Right ...");
-            rotateLeft-=1;
-        }
-        if(forward==0&&left==0&&up==0&rotateLeft==0) ROS_DEBUG_NAMED("custom", "Hover ...       ");
+            // invoke Planner
+          }
 
-        std::cout << std::setprecision(2) << std::fixed;
-        ROS_DEBUG_STREAM_NAMED("custom", "     status=" << droneStatus);
-        ROS_DEBUG_STREAM_NAMED("custom", "...             battery=" << droneBattery);
+          double forward=0;
+          double left=0;
+          double up=0;
+          double rotateLeft=0;
+          //UP Arrow: move drone forward
+          if (state[SDL_SCANCODE_UP]&&!state[SDL_SCANCODE_DOWN]) {
+              ROS_DEBUG_NAMED("custom", "Forward ...     ");
+              forward+=1;
 
-        //forward moving instructions to Autopilot class
-        if (!autopilot.manualMove(forward, left, up, rotateLeft)) ROS_WARN("Warning: Drone Movement failed...");
-    }
+          }
+          //Down Arrow: move drone backwards
+          if (state[SDL_SCANCODE_DOWN]&&!state[SDL_SCANCODE_UP]) {
+              ROS_DEBUG_NAMED("custom", "Backwards ...   ");
+              forward-=1;
+          }
+          //Right Arrow: move drone right
+          if (state[SDL_SCANCODE_RIGHT]&&!state[SDL_SCANCODE_LEFT]) {
+              ROS_DEBUG_NAMED("custom", "Right ...       ");
+              left-=1;
+          }
+          //Left Arrow: move drone left
+          if (state[SDL_SCANCODE_LEFT]&&!state[SDL_SCANCODE_RIGHT]) {
+              ROS_DEBUG_NAMED("custom", "Left ...        ");
+              left+=1;
+          }
+          //'W': move drone Up
+          if (state[SDL_SCANCODE_W]&&!state[SDL_SCANCODE_S]) {
+              ROS_DEBUG_NAMED("custom", "Up ...          ");
+              up+=1;
+          }
+          //'S': move drone Down
+          if (state[SDL_SCANCODE_S]&&!state[SDL_SCANCODE_W]) {
+              ROS_DEBUG_NAMED("custom", "Down ...        ");
+              up-=1;
+          }
+          //'A': yaw drone left
+          if (state[SDL_SCANCODE_A]&&!state[SDL_SCANCODE_D]) {
+              ROS_DEBUG_NAMED("custom", "Rotate Left ... ");
+              rotateLeft+=1;
+          }
+          //'D': yaw drone right
+          if (state[SDL_SCANCODE_D]&& !state[SDL_SCANCODE_A]) {
+              ROS_DEBUG_NAMED("custom", "Rotate Right ...");
+              rotateLeft-=1;
+          }
+          if(forward==0&&left==0&&up==0&rotateLeft==0) ROS_DEBUG_NAMED("custom", "Hover ...       ");
+
+          std::cout << std::setprecision(2) << std::fixed;
+          ROS_DEBUG_STREAM_NAMED("custom", "     status=" << droneStatus);
+          ROS_DEBUG_STREAM_NAMED("custom", "...             battery=" << droneBattery);
+
+          //forward moving instructions to Autopilot class
+          if (!autopilot.manualMove(forward, left, up, rotateLeft)) ROS_WARN("Warning: Drone Movement failed...");
+      }
 
   }
 

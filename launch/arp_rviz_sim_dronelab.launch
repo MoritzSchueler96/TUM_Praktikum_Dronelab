@@ -52,7 +52,14 @@
     <param name="fontScaling" value="1.5" />
     <param name="skipThresInit" value="3" /> <!-- default 1 -->
     <param name="skipThresLimit" value="3" /> <!-- default 4 -->
-    
+
+    <!-- WaypointB -->
+    <param name="waypointX" value="100" />
+    <param name="waypointY" value="100" />
+    <param name="waypointZ" value="100" />
+    <param name="waypointYaw" value="0" />
+    <param name="waypointTolerance" value="10" />  
+  
     <!-- Camera parameters -->
     <param name="fu" value="185.6909" />
     <param name="fv" value="185.6909" />

@@ -186,12 +186,19 @@ bool Autopilot::move(double forward, double left, double up, double rotateLeft)
 void Autopilot::setManual()
 {
   isAutomatic_ = false;
+  isTracking_ = false;
 }
 
 // Set to automatic control mode.
 void Autopilot::setAutomatic()
 {
   isAutomatic_ = true;
+}
+
+// Set to tracking control mode.
+void Autopilot::setTracking()
+{
+  isTracking_ = true;
 }
 
 //Set Occupancy Map
@@ -208,7 +215,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   int k = std::round(ref_z_/0.1)+(wrappedMapData_.size[2]-1)/2;
   bool not_occupied=true;
   
-  if (!isAutomatic_) {
+  if (!isAutomatic_ && !isTracking_) {
       ref_x_ = x;
       ref_y_ = y;
       ref_z_ = z;
@@ -289,7 +296,7 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
                                   const arp::kinematics::RobotState& x)
 {
   // only do anything here, if automatic
-  if (!isAutomatic_) {
+  if (!isAutomatic_ && !isTracking_) {
     // keep resetting this to make sure we use the current state as reference as soon as sent to automatic mode
     const double yaw = kinematics::yawAngle(x.q_WS);
     setPoseReference(x.t_WS[0], x.t_WS[1], x.t_WS[2], yaw);
@@ -304,37 +311,60 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
   DroneStatus status = droneStatus();
   if(status>2&&status<8)
   {
-    //TODO:calculate error
     Eigen::Vector3d referencePose(ref_x_,ref_y_, ref_z_);
     Eigen::Vector3d error_(0,0,0);
-    error_<< referencePose-x.t_WS;
-    //x.q_WS.toRotationMatrix().transpose() = R_SW
-    error_=x.q_WS.toRotationMatrix().transpose()*error_;
-    double yaw_error= ref_yaw_-arp::kinematics::yawAngle(x.q_WS);
+    // Get waypoint list, if available
+    std::lock_guard<std::mutex> l(waypointMutex_);
+    if(!waypoints_.empty()) {
+        // TODO: setPoseReference() from current waypoint
+        Waypoint w = waypoints_.back(); // maybe waypoints_.front()
+        setPoseReference(w.x, w.y, w.z, w.yaw);
+        // getPoseReference(positionReference[0], positionReference[1], \
+        positionReference[2], yaw_ref);
 
-    //TODO: boundaries of yaw angle
-    if(yaw_error>ROS_PI)
-    {
-      yaw_error=ROS_PI;
-    }else if(yaw_error<-ROS_PI)
-    {
-      yaw_error=-ROS_PI;
+        // TODO: remove the current waypoint, if the position error is below \
+        the tolerance.
+
+        error_<< referencePose-x.t_WS;
+        if(abs(error_.norm()) < w.posTolerance) waypoints_.pop_back(); // maybe waypoints_.pop_front()
+        
+    } else {
+        // This is the original line of code:
+        // getPoseReference(positionReference[0], positionReference[1], \
+        positionReference[2], yaw_ref);
+    
+        //TODO:calculate error
+        error_<< referencePose-x.t_WS;
     }
+        //x.q_WS.toRotationMatrix().transpose() = R_SW
+        error_=x.q_WS.toRotationMatrix().transpose()*error_;
+        double yaw_error= ref_yaw_-arp::kinematics::yawAngle(x.q_WS);
 
-    Eigen::Vector3d e_dot(0,0,0);
-    //x.q_WS.toRotationMatrix().transpose() = R_SW
-    e_dot=-x.q_WS.toRotationMatrix().transpose()*x.v_W;
+        //TODO: boundaries of yaw angle
+        if(yaw_error>ROS_PI)
+        {
+          yaw_error=ROS_PI;
+        }else if(yaw_error<-ROS_PI)
+        {
+          yaw_error=-ROS_PI;
+        }
 
-    // TODO: get ros parameter
-    // is done in constructor and saved to x_y_limit, z_limit and yaw_limit, since values are fixed
-    // TODO: compute control output
-    double x_move=x_pid.control(timeMicroseconds,error_[0], e_dot[0])/x_y_limit;
-    double y_move=y_pid.control(timeMicroseconds,error_[1], e_dot[1])/x_y_limit;
-    double z_move=z_pid.control(timeMicroseconds,error_[2], e_dot[2])/z_limit;
-    double yaw_move=yaw_pid.control(timeMicroseconds,yaw_error, 0)/yaw_limit;
+        Eigen::Vector3d e_dot(0,0,0);
+        //x.q_WS.toRotationMatrix().transpose() = R_SW
+        e_dot=-x.q_WS.toRotationMatrix().transpose()*x.v_W;
 
-    // TODO: send to move
-    move(x_move,y_move,z_move,yaw_move);
+        // TODO: get ros parameter
+        // is done in constructor and saved to x_y_limit, z_limit and yaw_limit, since values are fixed
+        // TODO: compute control output
+        double x_move=x_pid.control(timeMicroseconds,error_[0], e_dot[0])/x_y_limit;
+        double y_move=y_pid.control(timeMicroseconds,error_[1], e_dot[1])/x_y_limit;
+        double z_move=z_pid.control(timeMicroseconds,error_[2], e_dot[2])/z_limit;
+        double yaw_move=yaw_pid.control(timeMicroseconds,yaw_error, 0)/yaw_limit;
+
+        // TODO: send to move
+        move(x_move,y_move,z_move,yaw_move);
+
+    
 
   }
   return;
