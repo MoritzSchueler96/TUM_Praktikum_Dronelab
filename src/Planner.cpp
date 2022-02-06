@@ -6,15 +6,16 @@
  */
 
 #include <arp/Planner.hpp>
-
+#include <iostream>
+#include <fstream>
+#include <sstream>
 namespace arp {
 
-Planner::Planner(ros::NodeHandle& nh,arp::cameras::CamParams cp)
-    : nh_(&nh)
+Planner::Planner(ros::NodeHandle& nh): nh_(&nh)
 {
-  const arp::cameras::RadialTangentialDistortion distortion(cp);
-  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> camMod(cp, distortion);
-  camera_=camMod;
+  //const arp::cameras::RadialTangentialDistortion distortion(cp);
+  //arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> camMod(cp, distortion);
+  //camera_=camMod;
   found_ = false; // always assume no found path  
   
 
@@ -39,7 +40,7 @@ bool  Planner::loadMap(std::string path) {
   std::string line;
   uint64_t id=1;
   while (std::getline(mapfile, line)) {
-    Frontend::Landmark landmark;
+    Landmark landmark;
 
     // Convert to stringstream
     std::stringstream ss(line);
@@ -79,6 +80,9 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     // do shit
   std::vector<Planner::Node> openSet;
   //Start point is on floor==> add 1m height
+  int i = std::round(Start[0]/0.1)+(wrappedMapData_.size[0]-1)/2;
+  int j = std::round(Start[1]/0.1)+(wrappedMapData_.size[1]-1)/2;
+  int k = std::round(Start[2]/0.1)+(wrappedMapData_.size[2]-1)/2;
   //same for goal
   //find Path in occupancy map with A* in 1m height
 

@@ -33,3 +33,12 @@ Archive:
   ✔ Reiner P Regler test um Stabilität von Regelstrecke zu testen (Rausfinden Regler oder Verlust der Pose Problem sind) -> Verlust der Pose @done(22-01-22 15:06)
   ✔ clamp function in yaw_rate and PID Controller -> erst ab cpp17, wir haben cpp11 @done(22-01-22 15:06)
   ✔ automatic/ Manual keys in picture @done(22-01-21 11:16)
+
+
+Fragen:
+- B aufm Boden?
+- was ist contest.world? welche Occupancy und Landmark map?
+- Final Challenge in Castle map?
+- Ein Ziel oder mehrere?
+- Wie wird der Ziel Punkt gecheckt? RVIZ Box abhängig von Ros Param mit bestimmten Namen?
+- Bewertung P4? Mögliche fehler beheben

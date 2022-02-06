@@ -12,7 +12,10 @@
 #include <Eigen/Core>
 #include <atomic>
 #include <deque>
-
+#include <vector>
+#include <map>
+#include <Eigen/Core>
+#include <opencv2/features2d/features2d.hpp>
 #include <ros/ros.h>
 
 #include <image_transport/image_transport.h>
@@ -27,6 +30,10 @@
 #include <arp/kinematics/Imu.hpp>
 #include <arp/PidController.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <arp/Frontend.hpp>
+#include <arp/cameras/PinholeCamera.hpp>
+#include <arp/cameras/RadialTangentialDistortion.hpp>
+
 
 namespace arp {
 
@@ -66,15 +73,20 @@ class Planner {
 
 
  protected:
+  struct Landmark {
+      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+      Eigen::Vector3d point; ///< The 3d point in World coordinates.
+      std::vector<cv::Mat> descriptors; ///< The descriptors: organised one descriptor per row.
+  };
   ros::NodeHandle * nh_;  ///< ROS node handle.
   std::atomic<bool> found_; ///< True, if in automatic control mode.
 
   std::deque<Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.
   std::mutex waypointMutex_;  ///< We need to lock the waypoint access due to asynchronous arrival.
   cv::Mat wrappedMapData_;
-  std::map<uint64_t, Frontend::Landmark, std::less<uint64_t>, 
-      Eigen::aligned_allocator<std::pair<const uint64_t, Frontend::Landmark> > > landmarks_; ///< Landmarks by ID.
-  arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> camera_; ///< Camera model
+  std::map<uint64_t, Landmark, std::less<uint64_t>, 
+      Eigen::aligned_allocator<std::pair<const uint64_t, Landmark> > > landmarks_; ///< Landmarks by ID.
+
 };
 
 } // namespace arp
