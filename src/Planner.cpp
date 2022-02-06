@@ -17,7 +17,7 @@ Planner::Planner(ros::NodeHandle& nh): nh_(&nh)
   //arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> camMod(cp, distortion);
   //camera_=camMod;
   found_ = false; // always assume no found path  
-  
+  isReady_ = false; // always set Planner to not ready
 
   
 }
@@ -75,13 +75,17 @@ bool  Planner::loadMap(std::string path) {
   return landmarks_.size() > 0;
 }
 
+void Planner::resetPath(){
+    waypoints_.clear();
+    waypoints_wayback.clear();
+}
 
 
 bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     // do shit
   
   #if 1 //Sequence to test further steps
-    Waypoint temp;
+    arp::Autopilot::Waypoint temp;
     //Hinweg
     temp.x=Start[0];
     temp.y=Start[1];
@@ -115,6 +119,10 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     temp.z=Start[2]+0.1;
     temp.posTolerance=0.1;
     waypoints_wayback.push_back(temp);
+
+    found_ = true;
+    isReady_ = true;
+
     return true;
   #else
 std::vector<Planner::Node> openSet;

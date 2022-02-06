@@ -53,11 +53,11 @@
     <param name="skipThresLimit" value="3" /> <!-- default 4 -->
 
     <!-- WaypointB -->
-    <param name="waypointX" value="100" />
-    <param name="waypointY" value="100" />
-    <param name="waypointZ" value="100" />
+    <param name="waypointX" value="3" />
+    <param name="waypointY" value="3" />
+    <param name="waypointZ" value="0.3" />
     <param name="waypointYaw" value="0" />
-    <param name="waypointTolerance" value="10" />
+    <param name="waypointTolerance" value="0.2" />
     
     <!-- Camera parameters -->
     <param name="fu" value="185.6909" />

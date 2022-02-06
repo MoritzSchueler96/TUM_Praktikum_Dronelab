@@ -31,11 +31,13 @@
 #include <arp/PidController.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <arp/Frontend.hpp>
+#include <arp/Autopilot.hpp>
 #include <arp/cameras/PinholeCamera.hpp>
 #include <arp/cameras/RadialTangentialDistortion.hpp>
 
 
 namespace arp {
+
 
 /// \brief The autopilot highlevel interface for commanding the drone manually or automatically.
 class Planner {
@@ -52,14 +54,7 @@ class Planner {
     Eigen::Vector3d prev_point;   ///< The 3d point in occupancy grid.
   };
 
-    /// \brief A Helper struct to send lists of waypoints.
-  struct Waypoint {
-    double x; ///< The World frame x coordinate.
-    double y; ///< The World frame y coordinate.
-    double z; ///< The World frame z coordinate.
-    double yaw; ///< The yaw angle of the robot w.r.t. the World frame.
-    double posTolerance; ///< The position tolerance: if within, it's considered reached.
-  };
+
 
   /// \brief Plan the trajectory.
    /// \return The value: false means planning failed
@@ -73,16 +68,31 @@ class Planner {
 
   /// \brief returns Queue of waypoints from A to B
   /// \return std::deque<Waypoint>.
-   std::deque<Waypoint> get_waypoints()
+   std::deque<arp::Autopilot::Waypoint> get_waypoints()
    {
      return waypoints_;
    }
    /// \brief returns Queue of waypoints from B to A
   /// \return std::deque<Waypoint>.
-   std::deque<Waypoint> get_waypoints_wayback()
+   std::deque<arp::Autopilot::Waypoint> get_waypoints_wayback()
    {
      return waypoints_wayback;
    }
+
+  /// \brief Is Planner ready?;
+  bool isReady() { return isReady_; }
+
+  /// \brief Has Planner found a path?;
+  bool pathFound() { return found_; }
+
+  /// \brief Reset Path found;
+  void resetPathFound() { found_=false; }
+
+  /// \brief Reset isReady;
+  void resetReady() { isReady_=false; }
+
+  /// \brief Reset Path;
+  void resetPath();
 
  protected:
   struct Landmark {
@@ -91,10 +101,11 @@ class Planner {
       std::vector<cv::Mat> descriptors; ///< The descriptors: organised one descriptor per row.
   };
   ros::NodeHandle * nh_;  ///< ROS node handle.
-  std::atomic<bool> found_; ///< True, if in automatic control mode.
+  std::atomic<bool> found_; ///< True, if in path found.
+  std::atomic<bool> isReady_; ///< True, if in planner ready.
 
-  std::deque<Waypoint> waypoints_wayback;  ///< A list of waypoints that will be approached, if not empty.
-  std::deque<Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.
+  std::deque<arp::Autopilot::Waypoint> waypoints_wayback;  ///< A list of waypoints that will be approached, if not empty.
+  std::deque<arp::Autopilot::Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.
   std::mutex waypointMutex_;  ///< We need to lock the waypoint access due to asynchronous arrival.
   cv::Mat wrappedMapData_;
   std::map<uint64_t, Landmark, std::less<uint64_t>, 

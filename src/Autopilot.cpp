@@ -6,6 +6,8 @@
  */
 
 #include <arp/Autopilot.hpp>
+#include <ros/console.h>
+
 #include <arp/kinematics/operators.hpp>
 #define ROS_PI 3.141592653589793238462643383279502884L
 namespace arp {
@@ -14,6 +16,7 @@ Autopilot::Autopilot(ros::NodeHandle& nh)
     : nh_(&nh)
 {
   isAutomatic_ = false; // always start in manual mode  
+  isTracking_ = false; // always start in manual mode
 
   // receive navdata
   subNavdata_ = nh.subscribe("ardrone/navdata", 50, &Autopilot::navdataCallback,
@@ -256,14 +259,14 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
         if(wrappedMapData_.at<char>(i,j,k)>=0)
         {
             goal = last;
-            ROS_WARN("Wall in front.");
+            ROS_WARN_THROTTLE(10, "Wall in front.");
             not_occupied=false;
             break;
         }
       }
       else
       {
-        ROS_WARN("Index out of range");
+        ROS_WARN_THROTTLE(10, "Index out of range");
         goal=last;
         not_occupied=false;
         break;
@@ -317,7 +320,10 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
     std::lock_guard<std::mutex> l(waypointMutex_);
     if(!waypoints_.empty()) {
         // TODO: setPoseReference() from current waypoint
-        Waypoint w = waypoints_.back(); // maybe waypoints_.front()
+        Waypoint w = waypoints_.front(); // maybe waypoints_.front()
+        // ROS_WARN_STREAM_THROTTLE(2, "Current waypointX: " << w.x);
+        // ROS_WARN_STREAM_THROTTLE(2, "Current waypointY: " << w.y);
+        // ROS_WARN_STREAM_THROTTLE(2, "Current waypointZ: " << w.z);
         setPoseReference(w.x, w.y, w.z, w.yaw);
         // getPoseReference(positionReference[0], positionReference[1], \
         positionReference[2], yaw_ref);
@@ -326,7 +332,7 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
         the tolerance.
         Eigen::Vector3d referencePose_waypoint(w.x,w.y, w.z);
         error_<< referencePose_waypoint-x.t_WS;
-        if(abs(error_.norm()) < w.posTolerance) waypoints_.pop_back(); // maybe waypoints_.pop_front()
+        if(abs(error_.norm()) < w.posTolerance) waypoints_.pop_front(); // maybe waypoints_.pop_front()
         
     } else {
         // This is the original line of code:

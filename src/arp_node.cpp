@@ -17,6 +17,7 @@
 #include <std_srvs/Empty.h>
 
 #include <arp/Autopilot.hpp>
+#include <arp/Planner.hpp>
 #include <arp/cameras/PinholeCamera.hpp>
 #include "arp/cameras/RadialTangentialDistortion.hpp"
 
@@ -312,7 +313,7 @@ int main(int argc, char **argv)
   ROS_INFO("Read global parameters...");
   if(!loadGlobalVars(nh, gp)) ROS_FATAL("error loading global variables");
  
-  // load waypoints
+  // load waypoint
   arp::Autopilot::Waypoint waypointB;
   if(!loadWaypoint(nh, waypointB)) ROS_FATAL("error loading waypoint");
 
@@ -343,6 +344,9 @@ int main(int argc, char **argv)
   arp::Autopilot autopilot(nh);
   autopilot.setOccupancyMap(wrappedMapData);
   int poseLostCnt = 0;
+
+  // set up Planner
+  arp::Planner planner(nh);
   
   // setup visual inertial tracker
   arp::ViEkf viEkf;
@@ -390,6 +394,8 @@ int main(int argc, char **argv)
   bool pressed = false;
 
   bool flyChallenge = false;
+  bool flyBack = false;
+  bool challengeCompleted = false;
 
   // variables for frontend error messages
   ros::Time displayTime = ros::Time::now() + ros::Duration(24*60*60);
@@ -498,8 +504,40 @@ int main(int argc, char **argv)
       // trajectory tracking
       if(flyChallenge && autopilot.isTracking()){
         // check progress
-        ROS_INFO("Challenge");
-        // comand autopilot
+        // Planner ready
+        /*
+        abheben am anfang
+        wenn planner ready -> get waypoints list von planner -> flypath aufrufen
+        waypoints list checken
+        wenn liste leer dann landen und planner mit flyBack mode aufrufen
+        variable flyBack -> ob auf Rückweg -> nutzen um in Manual Mode wenn Challenge done + Ausgabe auf Screen
+        */
+
+        if(droneStatus == 2)autopilot.takeoff();
+
+        if(planner.pathFound()){
+            ROS_INFO("Load Path");
+            autopilot.flyPath(planner.get_waypoints());
+            planner.resetPathFound();
+        }
+
+        if(autopilot.waypointsLeft() == 0 && planner.isReady() && !planner.pathFound()){
+            ROS_INFO("Land.");
+            autopilot.land();
+            if(flyBack) {
+                ROS_INFO("Challenge Completed");
+                flyChallenge = false;
+                flyBack = false;
+                challengeCompleted = true;
+                planner.resetReady();
+                planner.resetPath();
+                autopilot.setManual();
+            } else {
+                ROS_INFO("Get back");
+                flyBack = true;
+                autopilot.flyPath(planner.get_waypoints_wayback());  
+            }
+        }
       }
 
       // command
@@ -524,16 +562,21 @@ int main(int argc, char **argv)
       }
 
       // logic to guarantee safe operation of auto mode, if some restrictions are violated switch to manual mode
-      if ((autopilot.isAutomatic() or autopilot.isTracking()) && (state[SDL_SCANCODE_SPACE] or droneStatus==2 or (!vit.getPoseStatus() && (poseSwitchTimeUp or poseLostCnt >= gp.poseLostThreshold or poseSwitchCnt >= gp.poseSwitchThreshold)))) {
+      if (autopilot.isAutomatic() && (state[SDL_SCANCODE_SPACE] or droneStatus==2 or (!vit.getPoseStatus() && (poseSwitchTimeUp or poseLostCnt >= gp.poseLostThreshold or poseSwitchCnt >= gp.poseSwitchThreshold)))) {
         poseSwitchCnt=0;
         ROS_INFO_STREAM("Autopilot off...     status=" << droneStatus);
-        flyChallenge = false;
         autopilot.setManual();
         markerServer.deactivate();
 
         if(droneStatus==2) errorText = "Deavtivate auto mode due to landing the drone.";
         else if(!state[SDL_SCANCODE_SPACE]) errorText = "Deactivate auto mode due to lost pose.";
         if(!state[SDL_SCANCODE_SPACE]) displayTime = ros::Time::now();
+      }
+
+      if(autopilot.isTracking() && state[SDL_SCANCODE_SPACE]){
+        ROS_INFO_STREAM("Challenge aborted...     status=" << droneStatus);
+        flyChallenge = false;        
+        autopilot.setManual();
       }
 
       if(vit.getPoseStatus() != lastPoseStatus){
@@ -559,7 +602,7 @@ int main(int argc, char **argv)
         poseLostCnt = 0;
       }
       
-      // Press P to toggle application of camera model
+      // Press M to toggle application of camera model
       // Press K to toggle depiction of key points
       // Press F to toggle application of sensor fusion    
       while(SDL_PollEvent(&event))
@@ -591,6 +634,25 @@ int main(int argc, char **argv)
         displayTime = ros::Time::now();
       }
 
+      if(state[SDL_SCANCODE_P] && vit.getPoseStatus() && !autopilot.isTracking()){
+        ROS_INFO_STREAM("Start Challenge...     status=" << droneStatus);
+        flyChallenge = true;
+        challengeCompleted = false;
+        flyBack = false;
+        autopilot.setTracking();
+
+        // invoke Planner
+        Eigen::Vector3d start;
+        double x, y, z, yaw;
+        autopilot.getPoseReference(x, y, z, yaw);
+        start << x,y,z;
+
+        Eigen::Vector3d goal;
+        goal << waypointB.x, waypointB.y, waypointB.z;
+
+        planner.plan(start, goal);
+      }
+
       // TODO: process moving commands when in state 3, 4 or 7
       if((!autopilot.isTracking())&&(!autopilot.isAutomatic())&&(droneStatus==3||droneStatus==4||droneStatus==7)) 
       {
@@ -603,14 +665,6 @@ int main(int argc, char **argv)
             autopilot.getPoseReference(x, y, z, yaw);
             markerServer.activate(x, y, z, yaw);
             autopilot.setAutomatic();
-          }
-
-          if(state[SDL_SCANCODE_P] && vit.getPoseStatus()){
-            ROS_INFO_STREAM("Waypoint Tracking on...     status=" << droneStatus);
-            flyChallenge = true;
-            autopilot.setTracking();
-
-            // invoke Planner
           }
 
           double forward=0;
