@@ -71,6 +71,18 @@ class Planner {
   /// \return True on success.
   bool  loadMap(std::string path);
 
+  /// \brief returns Queue of waypoints from A to B
+  /// \return std::deque<Waypoint>.
+   std::deque<Waypoint> get_waypoints()
+   {
+     return waypoints_;
+   }
+   /// \brief returns Queue of waypoints from B to A
+  /// \return std::deque<Waypoint>.
+   std::deque<Waypoint> get_waypoints_wayback()
+   {
+     return waypoints_wayback;
+   }
 
  protected:
   struct Landmark {
@@ -81,6 +93,7 @@ class Planner {
   ros::NodeHandle * nh_;  ///< ROS node handle.
   std::atomic<bool> found_; ///< True, if in automatic control mode.
 
+  std::deque<Waypoint> waypoints_wayback;  ///< A list of waypoints that will be approached, if not empty.
   std::deque<Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.
   std::mutex waypointMutex_;  ///< We need to lock the waypoint access due to asynchronous arrival.
   cv::Mat wrappedMapData_;

@@ -76,22 +76,63 @@ bool  Planner::loadMap(std::string path) {
 }
 
 
+
 bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     // do shit
-  std::vector<Planner::Node> openSet;
+  
+  #if 1 //Sequence to test further steps
+    Waypoint temp;
+    //Hinweg
+    temp.x=Start[0];
+    temp.y=Start[1];
+    temp.yaw=0;
+    temp.z=Start[2]+1;
+    temp.posTolerance=0.5;
+    waypoints_.push_back(temp);
+    temp.x=Goal[0];
+    temp.y=Goal[1];
+    temp.z=Goal[2]+1;
+    temp.yaw=0;
+    temp.posTolerance=0.5;
+    waypoints_.push_back(temp);
+    temp.z=Goal[2]+0.1;
+    temp.posTolerance=0.1;
+    waypoints_.push_back(temp);
+
+    //Rueckweg
+    temp.x=Goal[0];
+    temp.y=Goal[1];
+    temp.yaw=0;
+    temp.z=Goal[2]+1;
+    temp.posTolerance=0.5;
+    waypoints_wayback.push_back(temp);
+    temp.x=Start[0];
+    temp.y=Start[1];
+    temp.z=Start[2]+1;
+    temp.yaw=0;
+    temp.posTolerance=0.5;
+    waypoints_wayback.push_back(temp);
+    temp.z=Start[2]+0.1;
+    temp.posTolerance=0.1;
+    waypoints_wayback.push_back(temp);
+    return true;
+  #else
+std::vector<Planner::Node> openSet;
   //Start point is on floor==> add 1m height
   int i = std::round(Start[0]/0.1)+(wrappedMapData_.size[0]-1)/2;
   int j = std::round(Start[1]/0.1)+(wrappedMapData_.size[1]-1)/2;
   int k = std::round(Start[2]/0.1)+(wrappedMapData_.size[2]-1)/2;
   //same for goal
   //find Path in occupancy map with A* in 1m height
-
-  //add to heuristic if neighborhood is occupied
+    //add to heuristic if neighborhood is occupied
 
   //for orientation look where the most landmarks are visible
 
   //for tolerance: look how far next obstacle is
-    return false;
+  #endif
+
+
+    
 }
 
 } // namespace arp
