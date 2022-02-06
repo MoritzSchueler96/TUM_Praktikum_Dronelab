@@ -17,7 +17,7 @@ Planner::Planner(ros::NodeHandle& nh): nh_(&nh)
   //arp::cameras::PinholeCamera<arp::cameras::RadialTangentialDistortion> camMod(cp, distortion);
   //camera_=camMod;
   found_ = false; // always assume no found path  
-  isReady_ = false; // always set Planner to not ready
+  
 
   
 }
@@ -75,10 +75,7 @@ bool  Planner::loadMap(std::string path) {
   return landmarks_.size() > 0;
 }
 
-void Planner::resetPath(){
-    waypoints_.clear();
-    waypoints_wayback.clear();
-}
+
 bool Planner::is_occupied(int i, int j, int k)
 {
   if(i<wrappedMapData_.size[0]& j<wrappedMapData_.size[1]&k<wrappedMapData_.size[2]&i>=0&j>=0&k>=0)
@@ -169,40 +166,10 @@ void Planner::addNeighbour(Eigen::Vector3i curPoint, double dist,  Eigen::Vector
   }
 
 }
-bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
-{
-  //Start point is on floor==> add 1m height
-  Node Start_Node;
-  Node Goal_Node;
-
-  Start_Node.totDistEst=calcDist(Start_Node.point, Goal_Node.point);
-  Start_Node.dist=0;
-  Goal_Node.totDistEst=0;
-  Goal_Node.dist=0xFFFFFFFFFF;//max value
-  openSet.push_back(Start_Node);
-  exploredSet.clear();
-  //same for goal
-  //find Path in occupancy map with A* in 1m height
-  bool finished=false;
-  while( openSet.empty()!=true&&finished!=true)
-  {
-    int index_next_Node= getSmallestTotDist();
-    Node Next_Node=openSet.at(index_next_Node);
-    exploredSet.push_back(Next_Node);
-    openSet.erase(openSet.begin()+index_next_Node);
-    //already at goal position?
-    if(calcDist(Next_Node.point, Goal_Node.point)<1e-3)
-    {
-      finished=true;
-      continue;
-    }
-    addNeighbour(Next_Node.point, Next_Node.dist, Goal_Node.point);
-  }
-}
 bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     // do shit
   
-  
+  #if 1 //Sequence to test further steps
     arp::Autopilot::Waypoint temp;
     //Hinweg
     temp.x=Start[0];
@@ -242,20 +209,16 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     isReady_ = true;
 
     return true;
-
-
-}
-
-bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal ){
+  #else
   openSet.clear();
   //Check if Start and Endpoint are not occupied
-  int start_x = std::round(Start.x/0.1)+(wrappedMapData_.size[0]-1)/2;
-  int start_y = std::round(Start.y/0.1)+(wrappedMapData_.size[1]-1)/2;
-  int start_z = std::round(Start.z/0.1)+(wrappedMapData_.size[2]-1)/2;
+  int start_x = std::round(Start[0]/0.1)+(wrappedMapData_.size[0]-1)/2;
+  int start_y = std::round(Start[1]/0.1)+(wrappedMapData_.size[1]-1)/2;
+  int start_z = std::round(Start[2]/0.1)+(wrappedMapData_.size[2]-1)/2;
   if(is_occupied(start_x, start_y, start_z)) return false;
-  int goal_x = std::round(Goal.x/0.1)+(wrappedMapData_.size[0]-1)/2;
-  int goal_y = std::round(Goal.y/0.1)+(wrappedMapData_.size[1]-1)/2;
-  int goal_z = std::round(Goal.z/0.1)+(wrappedMapData_.size[2]-1)/2;
+  int goal_x = std::round(Goal[0]/0.1)+(wrappedMapData_.size[0]-1)/2;
+  int goal_y = std::round(Goal[1]/0.1)+(wrappedMapData_.size[1]-1)/2;
+  int goal_z = std::round(Goal[2]/0.1)+(wrappedMapData_.size[2]-1)/2;
   if(is_occupied(goal_x, goal_y, goal_z)) return false;
   //check if B is below flight height
   int height=10;//10cm resolution==>1m
@@ -282,34 +245,46 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal 
         break;
       }
     }
-      Eigen::Vector3i start_p;
-      start_p<<start_x, start_y, flight_height;
-      Eigen::Vector3i goal_p(goal_x, goal_y, flight_height);
-      found_=A_Star(start_p, goal_p);
+    
   }
-  
+  //Start point is on floor==> add 1m height
+  Node Start_Node;
+  Node Goal_Node;
+  Start_Node.point<<start_x, start_y, flight_height;
+  Goal_Node.point<<goal_x, goal_y, flight_height;
+  Start_Node.totDistEst=calcDist(Start_Node.point, Goal_Node.point);
+  Start_Node.dist=0;
+  Goal_Node.totDistEst=0;
+  Goal_Node.dist=0xFFFFFFFFFF;//max value
+  openSet.push_back(Start_Node);
+  //same for goal
+  //find Path in occupancy map with A* in 1m height
+  bool finished=false;
+  while( openSet.empty()!=true&&finished!=true)
+  {
+    int index_next_Node= getSmallestTotDist();
+    Node Next_Node=openSet.at(index_next_Node);
+    openSet.erase(openSet.begin()+index_next_Node);
+    //already at goal position?
+    if(calcDist(Next_Node.point, Goal_Node.point)<1e-3)
+    {
+      finished=true;
+      continue;
+    }
+    addNeighbour(Next_Node.point, Next_Node.dist, Goal_Node.point);
+  }
     //add to heuristic if neighborhood is occupied
 
   //for orientation look where the most landmarks are visible
 
   //for tolerance: look how far next obstacle is
-  
+  #endif
+
 
     return false;
-
-
-}
-///\brief create Waypoints
-void Planner::createWaypoints(Planner::Node StartNode)
-{
-
 }
 
-///\brief Check if a obstacle is on estraight line between start and goal position
-bool Planner::LineCheck(Eigen::Vector3i& Start, Eigen::Vector3i& Goal)
-{
 
-}
 } // namespace arp
 
 

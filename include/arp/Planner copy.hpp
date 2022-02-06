@@ -31,13 +31,11 @@
 #include <arp/PidController.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <arp/Frontend.hpp>
-#include <arp/Autopilot.hpp>
 #include <arp/cameras/PinholeCamera.hpp>
 #include <arp/cameras/RadialTangentialDistortion.hpp>
 
 
 namespace arp {
-
 
 /// \brief The autopilot highlevel interface for commanding the drone manually or automatically.
 class Planner {
@@ -54,13 +52,18 @@ class Planner {
     Eigen::Vector3i prev_point;   ///< The 3d point in occupancy grid.
   };
 
-
+    /// \brief A Helper struct to send lists of waypoints.
+  struct Waypoint {
+    double x; ///< The World frame x coordinate.
+    double y; ///< The World frame y coordinate.
+    double z; ///< The World frame z coordinate.
+    double yaw; ///< The yaw angle of the robot w.r.t. the World frame.
+    double posTolerance; ///< The position tolerance: if within, it's considered reached.
+  };
 
   /// \brief Plan the trajectory.
    /// \return The value: false means planning failed
   bool plan(Eigen::Vector3d Start,Eigen::Vector3d Goal);
-  bool plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal );
-
   //Set Occupancy Map
   void setOccupancyMap(cv::Mat MapData);
   /// \brief Load the map
@@ -70,13 +73,13 @@ class Planner {
 
   /// \brief returns Queue of waypoints from A to B
   /// \return std::deque<Waypoint>.
-   std::deque<arp::Autopilot::Waypoint> get_waypoints()
+   std::deque<Waypoint> get_waypoints()
    {
      return waypoints_;
    }
    /// \brief returns Queue of waypoints from B to A
   /// \return std::deque<Waypoint>.
-   std::deque<arp::Autopilot::Waypoint> get_waypoints_wayback()
+   std::deque<Waypoint> get_waypoints_wayback()
    {
      return waypoints_wayback;
    }
@@ -96,13 +99,6 @@ class Planner {
   /// \brief Reset Path;
   void resetPath();
 
-  ///\brief create Waypoints
-  void createWaypoints(Node StartNode);
-
-  ///\brief Check if a obstacle is on estraight line between start and goal position
-  bool LineCheck(Eigen::Vector3i& Start, Eigen::Vector3i& Goal);
-
-
  protected:
  /// \brief check if given index is occupied
   /// \return true if occupied
@@ -111,24 +107,21 @@ class Planner {
  int getSmallestTotDist(void);
  int NodeinQueue(Eigen::Vector3i Point);
  void addNeighbour(Eigen::Vector3i curPoint, double dist,  Eigen::Vector3i GoalPoint);
- bool A_Star(Eigen::Vector3i start, Eigen::Vector3i goal);
   struct Landmark {
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
       Eigen::Vector3d point; ///< The 3d point in World coordinates.
       std::vector<cv::Mat> descriptors; ///< The descriptors: organised one descriptor per row.
   };
   ros::NodeHandle * nh_;  ///< ROS node handle.
-  std::atomic<bool> found_; ///< True, if in path found.
-  std::atomic<bool> isReady_; ///< True, if in planner ready.
+  std::atomic<bool> found_; ///< True, if in automatic control mode.
 
-  std::deque<arp::Autopilot::Waypoint> waypoints_wayback;  ///< A list of waypoints that will be approached, if not empty.
-  std::deque<arp::Autopilot::Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.
+  std::deque<Waypoint> waypoints_wayback;  ///< A list of waypoints that will be approached, if not empty.
+  std::deque<Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.
   std::mutex waypointMutex_;  ///< We need to lock the waypoint access due to asynchronous arrival.
   cv::Mat wrappedMapData_;
   std::map<uint64_t, Landmark, std::less<uint64_t>, 
       Eigen::aligned_allocator<std::pair<const uint64_t, Landmark> > > landmarks_; ///< Landmarks by ID.
   std::deque<Planner::Node> openSet;
-  std::deque<Planner::Node> exploredSet;
 };
 
 } // namespace arp

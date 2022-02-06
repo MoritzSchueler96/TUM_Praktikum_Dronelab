@@ -218,7 +218,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   int k = std::round(ref_z_/0.1)+(wrappedMapData_.size[2]-1)/2;
   bool not_occupied=true;
   
-  if (!isAutomatic_ && !isTracking_) {
+  if (!isAutomatic_ ) {
       ref_x_ = x;
       ref_y_ = y;
       ref_z_ = z;
