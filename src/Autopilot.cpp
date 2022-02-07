@@ -319,9 +319,9 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
     if(!waypoints_.empty()) {
         // TODO: setPoseReference() from current waypoint
         Waypoint w = waypoints_.front();
-        // ROS_WARN_STREAM_THROTTLE(2, "Current waypointX: " << w.x);
-        // ROS_WARN_STREAM_THROTTLE(2, "Current waypointY: " << w.y);
-        // ROS_WARN_STREAM_THROTTLE(2, "Current waypointZ: " << w.z);
+        ROS_WARN_STREAM_THROTTLE(2, "Current waypointX: " << w.x);
+        ROS_WARN_STREAM_THROTTLE(2, "Current waypointY: " << w.y);
+        ROS_WARN_STREAM_THROTTLE(2, "Current waypointZ: " << w.z);
         setPoseReference(w.x, w.y, w.z, w.yaw);
         // getPoseReference(positionReference[0], positionReference[1], \
         positionReference[2], yaw_ref);

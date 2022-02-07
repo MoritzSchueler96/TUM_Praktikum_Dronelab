@@ -594,6 +594,7 @@ int main(int argc, char **argv)
         ROS_INFO_STREAM("Challenge aborted...     status=" << droneStatus);
         flyChallenge = false;        
         autopilot.setManual();
+        // set conditions to continue when pressing P again
       }
 
       if(vit.getPoseStatus() != lastPoseStatus){
