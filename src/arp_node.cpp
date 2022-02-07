@@ -401,7 +401,8 @@ int main(int argc, char **argv)
   ros::Time landingTime = ros::Time::now() + ros::Duration(24*60*60);
   ros::Time challengePauseTime = ros::Time::now() + ros::Duration(24*60*60);
 
-  Eigen::Vector3d challengeStart;
+  Eigen::Vector3d challengeStartPos;
+  arp::Autopilot::Waypoint challengeStartWaypoint;
 
 
   // variables for frontend error messages
@@ -518,7 +519,7 @@ int main(int argc, char **argv)
       if(flyChallenge && autopilot.isTracking()){
 
        // Takeoff if standing on the ground
-        if(droneStatus == 2 && ros::Time::now() - landingTime > ros::Duration(3)) autopilot.takeoff();
+        if(droneStatus == 2 && ros::Time::now() - landingTime > ros::Duration(4)) autopilot.takeoff();
 
         // load path once per challenge
         if(planner.pathFound()){
@@ -673,6 +674,32 @@ int main(int argc, char **argv)
           planner.resetReady();
       }
 
+      // Start Challenge with linear planner when hitting O
+      if(state[SDL_SCANCODE_O] && vit.getPoseStatus() && !autopilot.isTracking()){
+        ROS_INFO_STREAM("Start Challenge with linear Planner...     status=" << droneStatus);
+        flyChallenge = true;
+        challengeCompleted = false;
+        autopilot.setTracking();
+        autopilot.takeoff();
+        displayTimeChallengeCompleted = ros::Time::now();
+        landingTime = ros::Time::now();
+        challengePauseTime = ros::Time::now();
+
+        // invoke Planner if challenge not paused
+        if(!challengePaused){
+            double x, y, z, yaw;
+            autopilot.getPoseReference(x, y, z, yaw);
+            challengeStartPos << x,y,z;
+            Eigen::Vector3d goal;
+            goal << waypointB.x, waypointB.y, waypointB.z;
+
+            planner.plan(challengeStartPos, goal);
+        } else {
+            challengePaused = false;
+        }
+
+      }
+
       // Start Challenge when hitting P
       if(state[SDL_SCANCODE_P] && vit.getPoseStatus() && !autopilot.isTracking()){
         ROS_INFO_STREAM("Start Challenge...     status=" << droneStatus);
@@ -688,11 +715,14 @@ int main(int argc, char **argv)
         if(!challengePaused){
             double x, y, z, yaw;
             autopilot.getPoseReference(x, y, z, yaw);
-            challengeStart << x,y,z;
-            Eigen::Vector3d goal;
-            goal << waypointB.x, waypointB.y, waypointB.z;
 
-            planner.plan(challengeStart, goal);
+            challengeStartWaypoint.x = x;
+            challengeStartWaypoint.y = y;
+            challengeStartWaypoint.z = z;
+            challengeStartWaypoint.yaw = yaw;
+            challengeStartWaypoint.posTolerance = 0.1;
+
+            planner.plan(challengeStartWaypoint, waypointB);
         } else {
             challengePaused = false;
         }
