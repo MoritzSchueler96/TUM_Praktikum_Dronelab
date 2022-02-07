@@ -11,8 +11,8 @@
   ☐ ransac parameters in launch file packen?
   ☐ add explanation of brisk parameters in launch file
 
-  ☐ arp node checken, dass mittendrin continued werden kann
   ☐ weirdes Verhalten beim Landen untersuchen
+  ✔ arp node checken, dass mittendrin continued werden kann @done(22-02-07 22:41)
   ✔ plan -> wenn Start oder Ziel auf z=0 -> einen Punkt vorher mit z=0.2 einfügen? @done(22-02-07 08:28)
   ✔ Punkt rausuchen, wo untendrunter occupied ist und testen ob ausweichen klappt @done(22-02-07 02:48)
   ✔ line check -> while schleife bis landen zum Boden klappt @done(22-02-07 02:20)

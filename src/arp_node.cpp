@@ -397,7 +397,12 @@ int main(int argc, char **argv)
   bool flyChallenge = false;
   bool flyBack = false;
   bool challengeCompleted = false;
+  bool challengePaused = false;
   ros::Time landingTime = ros::Time::now() + ros::Duration(24*60*60);
+  ros::Time challengePauseTime = ros::Time::now() + ros::Duration(24*60*60);
+
+  Eigen::Vector3d challengeStart;
+
 
   // variables for frontend error messages
   ros::Time displayTime = ros::Time::now() + ros::Duration(24*60*60);
@@ -511,36 +516,38 @@ int main(int argc, char **argv)
 
       // trajectory tracking
       if(flyChallenge && autopilot.isTracking()){
-        // check progress
-        // Planner ready
-        /*
-        abheben am anfang
-        wenn planner ready -> get waypoints list von planner -> flypath aufrufen
-        waypoints list checken
-        wenn liste leer dann landen und planner mit flyBack mode aufrufen
-        variable flyBack -> ob auf Rückweg -> nutzen um in Manual Mode wenn Challenge done + Ausgabe auf Screen
-        */
+
+       // Takeoff if standing on the ground
         if(droneStatus == 2 && ros::Time::now() - landingTime > ros::Duration(3)) autopilot.takeoff();
 
+        // load path once per challenge
         if(planner.pathFound()){
             ROS_INFO("Load Path");
             autopilot.flyPath(planner.get_waypoints());
             planner.resetPathFound();
         }
 
+        // check progress
         if(autopilot.waypointsLeft() == 0 && planner.isReady() && !planner.pathFound()){
+
+            // land when reached last waypoint
             ROS_INFO("Land.");
             autopilot.land();
             landingTime = ros::Time::now();
+
+            // check if on the way back
             if(flyBack) {
+                // completed challenge - reset everything
                 ROS_INFO("Challenge Completed");
                 flyChallenge = false;
                 flyBack = false;
                 challengeCompleted = true;
+                challengePaused = false;
                 displayTimeChallengeCompleted = ros::Time::now();
                 planner.resetReady();
                 autopilot.setManual();
             } else {
+                // command way back
                 ROS_INFO("Get back");
                 flyBack = true;
                 autopilot.flyPath(planner.get_waypoints_wayback());  
@@ -569,6 +576,7 @@ int main(int argc, char **argv)
         if (!autopilot.flattrimCalibrate()) ROS_WARN("Warning: flattrim calibration failed...");
       }
 
+      // log current position when hitting U
       if (state[SDL_SCANCODE_U]){
         double x, y, z, yaw;
         autopilot.getPoseReference(x, y, z, yaw);
@@ -590,11 +598,14 @@ int main(int argc, char **argv)
         if(!state[SDL_SCANCODE_SPACE]) displayTime = ros::Time::now();
       }
 
+      // Pause Challenge by hitting Space
       if(autopilot.isTracking() && state[SDL_SCANCODE_SPACE]){
-        ROS_INFO_STREAM("Challenge aborted...     status=" << droneStatus);
+        ROS_INFO_STREAM("Challenge paused...     status=" << droneStatus);
         flyChallenge = false;        
+        challengeCompleted = false;
+        challengePaused = true;
+        challengePauseTime = ros::Time::now();
         autopilot.setManual();
-        // set conditions to continue when pressing P again
       }
 
       if(vit.getPoseStatus() != lastPoseStatus){
@@ -605,7 +616,7 @@ int main(int argc, char **argv)
         lastPoseStatus = vit.getPoseStatus();
       }
 
-      if(!vit.getPoseStatus() && (autopilot.isAutomatic() or autopilot.isTracking())){
+      if(!vit.getPoseStatus() && autopilot.isAutomatic()){
         poseLostCnt++;
         ROS_DEBUG_STREAM("Lost Cnt: " << poseLostCnt);
         if(ros::Time::now() - last > gp.poseLostTimeThreshold && gp.poseLostTimeThreshold != ros::Duration(0)) {
@@ -652,27 +663,40 @@ int main(int argc, char **argv)
         displayTime = ros::Time::now();
       }
 
+      // abort Challenge if waited too long or hit the space a second time
+      if(challengePaused && (ros::Time::now() - challengePauseTime > ros::Duration(20) or (ros::Time::now() - challengePauseTime > ros::Duration(1) && state[SDL_SCANCODE_SPACE]))){
+          ROS_INFO_STREAM("Challenge aborted...     status=" << droneStatus);
+          challengePaused = false;
+          challengeCompleted = false;
+          flyChallenge = false;
+          flyBack = false;
+          planner.resetReady();
+      }
+
+      // Start Challenge when hitting P
       if(state[SDL_SCANCODE_P] && vit.getPoseStatus() && !autopilot.isTracking()){
         ROS_INFO_STREAM("Start Challenge...     status=" << droneStatus);
         flyChallenge = true;
         challengeCompleted = false;
-        flyBack = false;
         autopilot.setTracking();
         autopilot.takeoff();
         displayTimeChallengeCompleted = ros::Time::now();
         landingTime = ros::Time::now();
+        challengePauseTime = ros::Time::now();
 
+        // invoke Planner if challenge not paused
+        if(!challengePaused){
+            double x, y, z, yaw;
+            autopilot.getPoseReference(x, y, z, yaw);
+            challengeStart << x,y,z;
+            Eigen::Vector3d goal;
+            goal << waypointB.x, waypointB.y, waypointB.z;
 
-        // invoke Planner
-        Eigen::Vector3d start;
-        double x, y, z, yaw;
-        autopilot.getPoseReference(x, y, z, yaw);
-        start << x,y,z;
+            planner.plan(challengeStart, goal);
+        } else {
+            challengePaused = false;
+        }
 
-        Eigen::Vector3d goal;
-        goal << waypointB.x, waypointB.y, waypointB.z;
-
-        planner.plan(start, goal);
       }
 
       // TODO: process moving commands when in state 3, 4 or 7
