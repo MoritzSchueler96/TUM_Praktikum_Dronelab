@@ -75,10 +75,6 @@ bool  Planner::loadMap(std::string path) {
   return landmarks_.size() > 0;
 }
 
-void Planner::resetPath(){
-    waypoints_.clear();
-    waypoints_wayback.clear();
-}
 bool Planner::is_occupied(int i, int j, int k)
 {
   if(i<wrappedMapData_.size[0]& j<wrappedMapData_.size[1]&k<wrappedMapData_.size[2]&i>=0&j>=0&k>=0)
@@ -198,45 +194,73 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
     }
     addNeighbour(Next_Node.point, Next_Node.dist, Goal_Node.point);
   }
+
+  return true;
 }
+
+
 bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
-    // do shit
-  
-  
+
+    waypoints_.clear();
+    waypoints_wayback.clear();
     arp::Autopilot::Waypoint temp;
     //Hinweg
     temp.x=Start[0];
     temp.y=Start[1];
+    temp.z=Start[2];
     temp.yaw=0;
-    temp.z=Start[2]+1;
-    temp.posTolerance=0.5;
+    temp.posTolerance=0.3;
     waypoints_.push_back(temp);
     temp.x=Goal[0];
     temp.y=Goal[1];
-    temp.z=Goal[2]+1;
+    temp.z=Goal[2];
     temp.yaw=0;
-    temp.posTolerance=0.5;
-    waypoints_.push_back(temp);
-    temp.z=Goal[2]+0.1;
     temp.posTolerance=0.1;
     waypoints_.push_back(temp);
 
     //Rueckweg
     temp.x=Goal[0];
     temp.y=Goal[1];
+    temp.z=Goal[2];
     temp.yaw=0;
-    temp.z=Goal[2]+1;
-    temp.posTolerance=0.5;
+    temp.posTolerance=0.3;
     waypoints_wayback.push_back(temp);
     temp.x=Start[0];
     temp.y=Start[1];
-    temp.z=Start[2]+1;
+    temp.z=Start[2];
     temp.yaw=0;
-    temp.posTolerance=0.5;
-    waypoints_wayback.push_back(temp);
-    temp.z=Start[2]+0.1;
     temp.posTolerance=0.1;
     waypoints_wayback.push_back(temp);
+
+    // check if extra landing pos is needed
+    if(Goal[2] > 0.2){
+        // add landing position that is not occupied
+        Eigen::Vector3d landingPos;
+        if(!calcLandingPosition(Goal, landingPos)) ROS_ERROR("Could not add landing position.");
+        else {
+            arp::Autopilot::Waypoint landingWaypoint;
+            landingWaypoint.x=landingPos[0];
+            landingWaypoint.y=landingPos[1];
+            landingWaypoint.z=landingPos[2];
+            landingWaypoint.yaw=0.0;
+            landingWaypoint.posTolerance=0.1;
+            waypoints_.push_back(landingWaypoint);
+        }
+    }
+
+    if(Start[2] > 0.2){
+        Eigen::Vector3d landingPos;
+        if(!calcLandingPosition(Start, landingPos)) ROS_ERROR("Could not add landing position.");
+        else {
+            arp::Autopilot::Waypoint landingWaypoint;
+            landingWaypoint.x=landingPos[0];
+            landingWaypoint.y=landingPos[1];
+            landingWaypoint.z=landingPos[2];
+            landingWaypoint.yaw=0.0;
+            landingWaypoint.posTolerance=0.1;
+            waypoints_wayback.push_back(landingWaypoint);
+        }
+    }
 
     found_ = true;
     isReady_ = true;
@@ -246,7 +270,7 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
 
 }
 
-bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal ){
+bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal){
   openSet.clear();
   //Check if Start and Endpoint are not occupied
   int start_x = std::round(Start.x/0.1)+(wrappedMapData_.size[0]-1)/2;
@@ -293,21 +317,147 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal 
   //for orientation look where the most landmarks are visible
 
   //for tolerance: look how far next obstacle is
-  
 
-    return false;
+    // create waypoints from graph
+    //createWaypoints(goal_p);
 
+
+    // check if extra landing pos is needed
+    if(Goal.z > 0.2){
+
+        Eigen::Vector3d goal(Goal.x, Goal.y, Goal.z);
+
+        // add landing position that is not occupied
+        Eigen::Vector3d landingPos;
+        if(!calcLandingPosition(goal, landingPos)) ROS_ERROR("Could not add landing position.");
+        arp::Autopilot::Waypoint landingWaypoint;
+        landingWaypoint.x=landingPos[0];
+        landingWaypoint.y=landingPos[1];
+        landingWaypoint.z=landingPos[2];
+        landingWaypoint.yaw=0.0;
+        landingWaypoint.posTolerance=0.1;
+        waypoints_.push_back(landingWaypoint);
+    }
+
+    if(Start.z > 0.2){
+        Eigen::Vector3d start(Start.x, Start.y, Start.z);
+
+        Eigen::Vector3d landingPos;
+        if(!calcLandingPosition(start, landingPos)) ROS_ERROR("Could not add landing position.");
+        arp::Autopilot::Waypoint landingWaypoint;
+        landingWaypoint.x=landingPos[0];
+        landingWaypoint.y=landingPos[1];
+        landingWaypoint.z=landingPos[2];
+        landingWaypoint.yaw=0.0;
+        landingWaypoint.posTolerance=0.1;
+        waypoints_wayback.push_back(landingWaypoint);
+    }
+
+    return true;
 
 }
+
+
 ///\brief create Waypoints
 void Planner::createWaypoints(Planner::Node StartNode)
 {
 
 }
 
-///\brief Check if a obstacle is on estraight line between start and goal position
-bool Planner::LineCheck(Eigen::Vector3i& Start, Eigen::Vector3i& Goal)
+bool Planner::calcLandingPosition(Eigen::Vector3d& start, Eigen::Vector3d& goal)
 {
+    ROS_WARN("Calculating Landing Position.");
+    int mode = 1;
+    int step = 0.5;
+    int cnt = 0;
+
+    goal << start;
+    goal[2] = 0.2;
+
+    while(!lineCheck(start, goal) && cnt < 80){
+        goal << start;
+        goal[2] = 0.2;
+
+        switch(mode)
+        {
+          case 1: 
+              goal[0] += step;
+              break;
+          case 2: 
+              goal[1] += step;
+              break;
+          case 3: 
+              goal[0] += step;
+              goal[1] += step;
+              break;
+          case 4:
+              goal[0] -= step;
+              break;
+          case 5:
+              goal[1] -= step;
+              break;
+          case 6:
+              goal[0] -= step;
+              goal[1] -= step;
+              break;
+          case 7:
+              goal[0] += step;
+              goal[1] -= step;
+              break;
+          case 8:
+              goal[0] -= step;
+              goal[1] += step;
+              step += 0.5;
+              mode = 0;
+              break;
+          default:
+              ROS_WARN_STREAM("Invalid mode: " << mode);
+        }
+        mode++;
+        cnt++;
+    }
+    ROS_WARN_STREAM("Landing Position: " << goal);
+    if(cnt >= 80) return false;
+
+    return true;
+}
+
+///\brief Check if a obstacle is on estraight line between start and goal position
+bool Planner::lineCheck(const Eigen::Vector3d start, const Eigen::Vector3d goal)
+{
+
+    int i, j, k;
+
+    Eigen::Vector3d dir;
+    dir << (goal - start).normalized();
+    Eigen::Vector3d cur;
+    cur << start;
+
+    while((cur - start).norm() <= (goal-start).norm())
+    {
+      cur += 0.1*dir;
+      i = std::round(cur[0]/0.1)+(wrappedMapData_.size[0]-1)/2;
+      j = std::round(cur[1]/0.1)+(wrappedMapData_.size[1]-1)/2;
+      k = std::round(cur[2]/0.1)+(wrappedMapData_.size[2]-1)/2;
+
+      if(i<wrappedMapData_.size[0]& j<wrappedMapData_.size[1]&k<wrappedMapData_.size[2]&i>=0&j>=0&k>=0)
+      {
+        // check if occupied
+        if(wrappedMapData_.at<char>(i,j,k)>=0)
+        {
+            ROS_WARN("Occupied");
+            return false;
+        }
+      }
+      else
+      {
+        // out of range
+        ROS_WARN("out of range.");
+        return false;
+      }
+    }
+    // everything fine
+    return true;
 
 }
 } // namespace arp

@@ -93,15 +93,14 @@ class Planner {
   /// \brief Reset isReady;
   void resetReady() { isReady_=false; }
 
-  /// \brief Reset Path;
-  void resetPath();
-
   ///\brief create Waypoints
   void createWaypoints(Node StartNode);
 
-  ///\brief Check if a obstacle is on estraight line between start and goal position
-  bool LineCheck(Eigen::Vector3i& Start, Eigen::Vector3i& Goal);
+  ///\brief Check if a obstacle is on a straight line between start and goal position
+  bool lineCheck(const Eigen::Vector3d start, const Eigen::Vector3d goal);
 
+  ///\brief Calculate Landing Position
+  bool calcLandingPosition(Eigen::Vector3d& start, Eigen::Vector3d& goal);
 
  protected:
  /// \brief check if given index is occupied

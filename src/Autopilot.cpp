@@ -213,9 +213,7 @@ void Autopilot::setOccupancyMap(cv::Mat MapData)
 bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
 {
   std::lock_guard<std::mutex> l(refMutex_);
-  int i = std::round(ref_x_/0.1)+(wrappedMapData_.size[0]-1)/2;
-  int j = std::round(ref_y_/0.1)+(wrappedMapData_.size[1]-1)/2;
-  int k = std::round(ref_z_/0.1)+(wrappedMapData_.size[2]-1)/2;
+  int i,j,k;
   bool not_occupied=true;
   
   if (!isAutomatic_ ) {
@@ -247,7 +245,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   dir << (goal - start).normalized();
   ROS_DEBUG_STREAM("dir: " << dir);
 
-  while((cur - start).norm() < (goal-start).norm())
+  while((cur - start).norm() <= (goal-start).norm())
   {
       cur += 0.1*dir;
       i = std::round(cur[0]/0.1)+(wrappedMapData_.size[0]-1)/2;
@@ -320,7 +318,7 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
     std::lock_guard<std::mutex> l(waypointMutex_);
     if(!waypoints_.empty()) {
         // TODO: setPoseReference() from current waypoint
-        Waypoint w = waypoints_.front(); // maybe waypoints_.front()
+        Waypoint w = waypoints_.front();
         // ROS_WARN_STREAM_THROTTLE(2, "Current waypointX: " << w.x);
         // ROS_WARN_STREAM_THROTTLE(2, "Current waypointY: " << w.y);
         // ROS_WARN_STREAM_THROTTLE(2, "Current waypointZ: " << w.z);
@@ -332,8 +330,7 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
         the tolerance.
         Eigen::Vector3d referencePose_waypoint(w.x,w.y, w.z);
         error_<< referencePose_waypoint-x.t_WS;
-        if(abs(error_.norm()) < w.posTolerance) waypoints_.pop_front(); // maybe waypoints_.pop_front()
-        
+        if(abs(error_.norm()) < w.posTolerance) waypoints_.pop_front();
     } else {
         // This is the original line of code:
         //getPoseReference(positionReference[0], positionReference[1], \

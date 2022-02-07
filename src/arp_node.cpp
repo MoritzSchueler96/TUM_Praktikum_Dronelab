@@ -347,6 +347,7 @@ int main(int argc, char **argv)
 
   // set up Planner
   arp::Planner planner(nh);
+  planner.setOccupancyMap(wrappedMapData);
   
   // setup visual inertial tracker
   arp::ViEkf viEkf;
@@ -396,9 +397,11 @@ int main(int argc, char **argv)
   bool flyChallenge = false;
   bool flyBack = false;
   bool challengeCompleted = false;
+  ros::Time landingTime = ros::Time::now() + ros::Duration(24*60*60);
 
   // variables for frontend error messages
   ros::Time displayTime = ros::Time::now() + ros::Duration(24*60*60);
+  ros::Time displayTimeChallengeCompleted = ros::Time::now() + ros::Duration(24*60*60);
   std::string errorText = "";
 
   //create Interactive Marker
@@ -454,6 +457,7 @@ int main(int argc, char **argv)
           
           // put error Text on image
           if(ros::Time::now() - displayTime < ros::Duration(3)) cv::putText(image, errorText, cv::Point(image_size.width/2-350*gp.fontScaling, image_size.height/2), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, cv::Scalar(0,0,255), 2, false);
+          if(ros::Time::now() - displayTimeChallengeCompleted < ros::Duration(3) && challengeCompleted) cv::putText(image, "Challenge Completed! Yay!", cv::Point(image_size.width/2-370*gp.fontScaling, image_size.height/2), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, cv::Scalar(0,0,255), 2, false);
 
           // possible commands in buttom of picture, differentiate: drone is flying or not
           if(!autopilot.isAutomatic())
@@ -471,11 +475,15 @@ int main(int argc, char **argv)
           cv::putText(image, "K: Toggle Keypoints", cv::Point(10*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           cv::putText(image, "M: Toggle Projection", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
               
+          cv::putText(image, "U: Log Position", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+          cv::putText(image, "P: Start Challenge", cv::Point(10*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+          
           if(droneStatus==3||droneStatus==4||droneStatus==7) {
-              cv::putText(image, "W/ S: up/ down", cv::Point(10*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
-              cv::putText(image, "A/ D: yaw left/ right", cv::Point(10*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
-              cv::putText(image, "^/ v: for-/ backward", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
-              cv::putText(image, "</ >: left/ right", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+
+              cv::putText(image, "W/ S: up/ down", cv::Point(10*gp.fontScaling, image_size.height-130*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+              cv::putText(image, "A/ D: yaw left/ right", cv::Point(10*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+              cv::putText(image, "^/ v: for-/ backward", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-130*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+              cv::putText(image, "</ >: left/ right", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
               cv::putText(image, "L: Landing; ESC: Stop", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
           else if(droneStatus==2)
@@ -512,8 +520,7 @@ int main(int argc, char **argv)
         wenn liste leer dann landen und planner mit flyBack mode aufrufen
         variable flyBack -> ob auf Rückweg -> nutzen um in Manual Mode wenn Challenge done + Ausgabe auf Screen
         */
-
-        if(droneStatus == 2)autopilot.takeoff();
+        if(droneStatus == 2 && ros::Time::now() - landingTime > ros::Duration(3)) autopilot.takeoff();
 
         if(planner.pathFound()){
             ROS_INFO("Load Path");
@@ -524,13 +531,14 @@ int main(int argc, char **argv)
         if(autopilot.waypointsLeft() == 0 && planner.isReady() && !planner.pathFound()){
             ROS_INFO("Land.");
             autopilot.land();
+            landingTime = ros::Time::now();
             if(flyBack) {
                 ROS_INFO("Challenge Completed");
                 flyChallenge = false;
                 flyBack = false;
                 challengeCompleted = true;
+                displayTimeChallengeCompleted = ros::Time::now();
                 planner.resetReady();
-                planner.resetPath();
                 autopilot.setManual();
             } else {
                 ROS_INFO("Get back");
@@ -559,6 +567,15 @@ int main(int argc, char **argv)
       if (state[SDL_SCANCODE_C]) {
         ROS_INFO_STREAM("Requesting flattrim calibration...     status=" << droneStatus);
         if (!autopilot.flattrimCalibrate()) ROS_WARN("Warning: flattrim calibration failed...");
+      }
+
+      if (state[SDL_SCANCODE_U]){
+        double x, y, z, yaw;
+        autopilot.getPoseReference(x, y, z, yaw);
+        ROS_INFO_STREAM_THROTTLE(1, "Current Position X: " << x);
+        ROS_INFO_STREAM_THROTTLE(1, "Current Position Y: " << y);
+        ROS_INFO_STREAM_THROTTLE(1, "Current Position Z: " << z);
+        ROS_INFO_STREAM_THROTTLE(1, "Current Position Yaw: " << yaw);
       }
 
       // logic to guarantee safe operation of auto mode, if some restrictions are violated switch to manual mode
@@ -640,6 +657,10 @@ int main(int argc, char **argv)
         challengeCompleted = false;
         flyBack = false;
         autopilot.setTracking();
+        autopilot.takeoff();
+        displayTimeChallengeCompleted = ros::Time::now();
+        landingTime = ros::Time::now();
+
 
         // invoke Planner
         Eigen::Vector3d start;

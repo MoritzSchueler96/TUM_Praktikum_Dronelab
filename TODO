@@ -10,6 +10,14 @@
   ☐ PID controller Werte in launch file packen?
   ☐ ransac parameters in launch file packen?
   ☐ add explanation of brisk parameters in launch file
+
+  ☐ arp node checken, dass mittendrin continued werden kann
+  ☐ plan -> wenn Start oder Ziel auf z=0 -> einen Punkt vorher mit z=0.2 einfügen?
+  ✔ line check -> while schleife bis landen zum Boden klappt @done(22-02-07 02:20)
+  ✔ arp nide -> checken, dass wirklich gelandet bevor wieder takeoff @done(22-02-07 02:21)
+  ✔ point in terminal bei tastendruck @done(22-02-06 23:46)
+  ✔ P für challenge start anzeigen @done(22-02-06 23:46)
+  ✔ text für challenge completed anzeigen @done(22-02-06 23:46)
   ✔ rename timeUp variable @done(22-01-27 00:52)
   ✔ add comment in launch file how to set params to deactivate their function @done(22-01-26 19:15)
   ✔ camParams struct in camerbase anlegen und als übergabe für frontend und cam nutzen @done(22-01-27 00:03)
