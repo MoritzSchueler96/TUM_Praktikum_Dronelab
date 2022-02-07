@@ -11,11 +11,12 @@
 #include <sstream>
 
 #define LANDING_HEIGHT 0.2
+#define FLIGHT_HEIGHT 1.7
 #define STEP_SIZE 0.25
-#define POS_TOLERANCE_LAX 0.5
+#define POS_TOLERANCE_LAX 0.3
 #define POS_TOLERANCE_TIGHT 0.1
 #define MAX_TRIES 20
-
+#define ROS_PI 3.141592653589793238462643383279502884L
 namespace arp {
 
 Planner::Planner(ros::NodeHandle& nh): nh_(&nh)
@@ -190,6 +191,10 @@ void Planner::addNeighbour(Eigen::Vector3i curPoint,   double dist,int stepsize,
           {
             alttotal+=2;
           }
+          if((calcDist(neighbor, GoalPoint)>10)&&(neighbor[2]<90))
+          {
+            alttotal+=(90-neighbor[2])*500;
+          }
           if(index<openSet.size())
           {
             if(alt<openSet.at(index).dist)
@@ -267,24 +272,56 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     waypoints_wayback.clear();
     arp::Autopilot::Waypoint temp;
     //Hinweg
-    /*temp.x=Start[0];
+    temp.x=Start[0];
     temp.y=Start[1];
-    temp.z=Start[2];
+    temp.z=Start[2]+FLIGHT_HEIGHT;
     temp.yaw=0;
     temp.posTolerance=POS_TOLERANCE_LAX;
     waypoints_.push_back(temp);
     temp.x=Goal[0];
     temp.y=Goal[1];
-    temp.z=Goal[2];
+    temp.z=Goal[2]+FLIGHT_HEIGHT;
     temp.yaw=0;
     temp.posTolerance=POS_TOLERANCE_TIGHT;
-    waypoints_.push_back(temp);*/
-    int start_x = std::round(Start[0]/0.1)+(wrappedMapData_.size[0]-1)/2;
-    int start_y = std::round(Start[1]/0.1)+(wrappedMapData_.size[1]-1)/2;
-    int start_z = std::round(Start[2]/0.1)+(wrappedMapData_.size[2]-1)/2;
-    int goal_x = std::round(Goal[0]/0.1)+(wrappedMapData_.size[0]-1)/2;
-    int goal_y = std::round(Goal[1]/0.1)+(wrappedMapData_.size[1]-1)/2;
-    int goal_z = std::round(Goal[2]/0.1)+(wrappedMapData_.size[2]-1)/2;
+    waypoints_.push_back(temp);
+    checkLandingPos(temp, waypoints_);
+    //Rueckweg
+    temp.x=Goal[0];
+    temp.y=Goal[1];
+    temp.z=Goal[2]+FLIGHT_HEIGHT;
+    temp.yaw=0;
+    temp.posTolerance=POS_TOLERANCE_LAX;
+    waypoints_wayback.push_back(temp);
+    temp.x=Start[0];
+    temp.y=Start[1];
+    temp.z=Start[2]+FLIGHT_HEIGHT;
+    temp.yaw=0;
+    temp.posTolerance=POS_TOLERANCE_TIGHT;
+    waypoints_wayback.push_back(temp);
+
+    // check if extra landing pos is needed
+    
+    checkLandingPos(temp, waypoints_wayback);
+
+    found_ = true;
+    isReady_ = true;
+
+    return true;
+
+
+}
+
+bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal){
+  waypoints_.clear();
+    waypoints_wayback.clear();
+    arp::Autopilot::Waypoint temp;
+    
+    int start_x = std::round(Start.x/0.1)+(wrappedMapData_.size[0]-1)/2;
+    int start_y = std::round(Start.y/0.1)+(wrappedMapData_.size[1]-1)/2;
+    int start_z = std::round(Start.z/0.1)+(wrappedMapData_.size[2]-1)/2;
+    int goal_x = std::round(Goal.x/0.1)+(wrappedMapData_.size[0]-1)/2;
+    int goal_y = std::round(Goal.y/0.1)+(wrappedMapData_.size[1]-1)/2;
+    int goal_z = std::round(Goal.z/0.1)+(wrappedMapData_.size[2]-1)/2;
     Eigen::Vector3i start_p;
     if(start_z<85)
     {
@@ -302,21 +339,8 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     found_=A_Star(start_p, goal_p);
     createWaypoints(exploredSet.back());
     
-    //Rueckweg
-    /*temp.x=Goal[0];
-    temp.y=Goal[1];
-    temp.z=Goal[2];
-    temp.yaw=0;
-    temp.posTolerance=POS_TOLERANCE_LAX;
-    waypoints_wayback.push_back(temp);
-    temp.x=Start[0];
-    temp.y=Start[1];
-    temp.z=Start[2];
-    temp.yaw=0;
-    temp.posTolerance=POS_TOLERANCE_TIGHT;
-    waypoints_wayback.push_back(temp);*/
-
-    // check if extra landing pos is needed
+    Goal.z=0.6;
+    Start.z=0.6;
     checkLandingPos(Goal, waypoints_);
     checkLandingPos(Start, waypoints_wayback);
 
@@ -325,67 +349,6 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
 
     return true;
 
-
-}
-
-bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal){
-  openSet.clear();
-  //Check if Start and Endpoint are not occupied
-  int start_x = std::round(Start.x/0.1)+(wrappedMapData_.size[0]-1)/2;
-  int start_y = std::round(Start.y/0.1)+(wrappedMapData_.size[1]-1)/2;
-  int start_z = std::round(Start.z/0.1)+(wrappedMapData_.size[2]-1)/2;
-  if(is_occupied(start_x, start_y, start_z)) return false;
-  int goal_x = std::round(Goal.x/0.1)+(wrappedMapData_.size[0]-1)/2;
-  int goal_y = std::round(Goal.y/0.1)+(wrappedMapData_.size[1]-1)/2;
-  int goal_z = std::round(Goal.z/0.1)+(wrappedMapData_.size[2]-1)/2;
-  if(is_occupied(goal_x, goal_y, goal_z)) return false;
-  //check if B is below flight height
-  int height=10;//10cm resolution==>1m
-  if(goal_z>(start_z+height))
-  {
-    height=goal_z-start_z+2;
-  }
-  int flight_height=start_z+10;
-  //check if the area above the Goal and Start until flight height is not occupied
-  for(int i=1; i<=height; i++)
-  {
-    if(is_occupied(start_x, start_y, start_z+i))
-    {
-      //default flight height not possible, set new flight_height
-      flight_height=start_z+i-1;
-      break;
-    }
-    if(goal_z+i<=start_z+height)
-    {
-      if(is_occupied(goal_x, goal_y, goal_z+i))
-      {
-        //default flight height not possible, set new flight_height
-        flight_height=goal_z+i-1;
-        break;
-      }
-    }
-      Eigen::Vector3i start_p;
-      start_p<<start_x, start_y, flight_height;
-      Eigen::Vector3i goal_p(goal_x, goal_y, flight_height);
-      found_=A_Star(start_p, goal_p);
-      createWaypoints(exploredSet.back());
-  }
-  
-    //add to heuristic if neighborhood is occupied
-
-  //for orientation look where the most landmarks are visible
-
-  //for tolerance: look how far next obstacle is
-
-    // create waypoints from graph
-    //createWaypoints(goal_p);
-
-
-    // check if extra landing pos is needed
-    checkLandingPos(Goal, waypoints_);
-    checkLandingPos(Start, waypoints_wayback);
-    
-    return true;
 
 }
 
@@ -418,13 +381,16 @@ void Planner::createWaypoints(Planner::Node StartNode)
     curDirection=nextNode.point-curNode.point;
     if((curDirection-prevDirection).norm()>1e-3)//check if direction changed
     {
+      Eigen::Vector3d prevPoint;
+      calcWorldPoint(curNode.prev_point, tempPoint);
       calcWorldPoint(curNode.point, tempPoint);
       tempWaypoint.x=tempPoint[0];
       tempWaypoint.y=tempPoint[1];
       tempWaypoint.z=tempPoint[2];
-      tempWaypoint.yaw=calcYawRate_area(tempPoint);
+      tempWaypoint.yaw=calcYawRate_area(tempPoint,prevPoint );
       tempWaypoint.posTolerance=POS_TOLERANCE_LAX;
       waypoints_.push_front(tempWaypoint);
+      tempWaypoint.yaw=-tempWaypoint.yaw;
       waypoints_wayback.push_back(tempWaypoint);
       std::cout << "Add Waypoint"<< tempPoint<< std::endl;
     }
@@ -613,13 +579,42 @@ bool Planner::lineCheck(const Eigen::Vector3i start, const Eigen::Vector3i goal)
 
 }
 
-double Planner::calcYawRate_area(Eigen::Vector3d point)
+double Planner::calcYawRate_area(Eigen::Vector3d point, Eigen::Vector3d prev_point)
 {
   //Room: -4 -3.5
   //Room: 5 14
   //Table: 2  6
   //Table: 0.6 4
-  
+  /*if((point[0]>0.6&&point[0]<2)&&(point[1]>7&&point[1]<3)
+  {
+    return 0;
+  }
+  if(point[0]<4&&(point[1]<2&&point[1]>0.6)
+  {
+    return 0;
+  }
+  if(point[0]>4&&point[1]<13)
+  {
+    return ROS_PI;
+  }*/
+  static double prevYawrate=0;
+
+  if((point[1]<7&&point[1]>2.5)&&((point[0]>2)||(point[0]<0.6)))
+  {
+    if(prev_point[1]>7)
+    {
+      prevYawrate=ROS_PI/2;
+        return ROS_PI/2;
+    }
+    if(prev_point[1]<2.5)
+    {
+      prevYawrate=-ROS_PI/2;
+      return -ROS_PI/2;
+    }
+    return prevYawrate;
+    
+  }
+  return 0;
 
 
 

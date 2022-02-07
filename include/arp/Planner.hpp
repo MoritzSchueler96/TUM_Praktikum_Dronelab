@@ -119,7 +119,7 @@ class Planner {
  void addNeighbour(Eigen::Vector3i curPoint, double dist,int stepsize, Eigen::Vector3i direction,  Eigen::Vector3i GoalPoint);
  bool A_Star(Eigen::Vector3i start, Eigen::Vector3i goal);
  void calcWorldPoint(Eigen::Vector3i point, Eigen::Vector3d& retPoint);
- double calcYawRate_area(Eigen::Vector3d point);
+ double calcYawRate_area(Eigen::Vector3d point,Eigen::Vector3d prev_point);
   struct Landmark {
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
       Eigen::Vector3d point; ///< The 3d point in World coordinates.
