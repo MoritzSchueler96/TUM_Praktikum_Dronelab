@@ -13,6 +13,8 @@
 
   ☐ arp node checken, dass mittendrin continued werden kann
   ☐ plan -> wenn Start oder Ziel auf z=0 -> einen Punkt vorher mit z=0.2 einfügen?
+  ☐ weirdes Verhalten beim Landen untersuchen
+  ✔ Punkt rausuchen, wo untendrunter occupied ist und testen ob ausweichen klappt @done(22-02-07 02:48)
   ✔ line check -> while schleife bis landen zum Boden klappt @done(22-02-07 02:20)
   ✔ arp nide -> checken, dass wirklich gelandet bevor wieder takeoff @done(22-02-07 02:21)
   ✔ point in terminal bei tastendruck @done(22-02-06 23:46)

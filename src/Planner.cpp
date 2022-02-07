@@ -330,13 +330,15 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal)
         // add landing position that is not occupied
         Eigen::Vector3d landingPos;
         if(!calcLandingPosition(goal, landingPos)) ROS_ERROR("Could not add landing position.");
-        arp::Autopilot::Waypoint landingWaypoint;
-        landingWaypoint.x=landingPos[0];
-        landingWaypoint.y=landingPos[1];
-        landingWaypoint.z=landingPos[2];
-        landingWaypoint.yaw=0.0;
-        landingWaypoint.posTolerance=0.1;
-        waypoints_.push_back(landingWaypoint);
+        else {
+          arp::Autopilot::Waypoint landingWaypoint;
+          landingWaypoint.x=landingPos[0];
+          landingWaypoint.y=landingPos[1];
+          landingWaypoint.z=landingPos[2];
+          landingWaypoint.yaw=0.0;
+          landingWaypoint.posTolerance=0.1;
+          waypoints_.push_back(landingWaypoint);
+        }
     }
 
     if(Start.z > 0.2){
@@ -344,13 +346,15 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal)
 
         Eigen::Vector3d landingPos;
         if(!calcLandingPosition(start, landingPos)) ROS_ERROR("Could not add landing position.");
-        arp::Autopilot::Waypoint landingWaypoint;
-        landingWaypoint.x=landingPos[0];
-        landingWaypoint.y=landingPos[1];
-        landingWaypoint.z=landingPos[2];
-        landingWaypoint.yaw=0.0;
-        landingWaypoint.posTolerance=0.1;
-        waypoints_wayback.push_back(landingWaypoint);
+        else {
+          arp::Autopilot::Waypoint landingWaypoint;
+          landingWaypoint.x=landingPos[0];
+          landingWaypoint.y=landingPos[1];
+          landingWaypoint.z=landingPos[2];
+          landingWaypoint.yaw=0.0;
+          landingWaypoint.posTolerance=0.1;
+          waypoints_wayback.push_back(landingWaypoint);
+        }
     }
 
     return true;
@@ -368,13 +372,14 @@ bool Planner::calcLandingPosition(Eigen::Vector3d& start, Eigen::Vector3d& goal)
 {
     ROS_WARN("Calculating Landing Position.");
     int mode = 1;
-    int step = 0.5;
+    double stepSize = 0.25;
+    double step = stepSize;
     int cnt = 0;
 
     goal << start;
     goal[2] = 0.2;
 
-    while(!lineCheck(start, goal) && cnt < 80){
+    while(!lineCheck(start, goal) && cnt < 20){
         goal << start;
         goal[2] = 0.2;
 
@@ -407,17 +412,19 @@ bool Planner::calcLandingPosition(Eigen::Vector3d& start, Eigen::Vector3d& goal)
           case 8:
               goal[0] -= step;
               goal[1] += step;
-              step += 0.5;
+              step += stepSize;
               mode = 0;
+              cnt++;
               break;
           default:
               ROS_WARN_STREAM("Invalid mode: " << mode);
         }
         mode++;
-        cnt++;
     }
     ROS_WARN_STREAM("Landing Position: " << goal);
-    if(cnt >= 80) return false;
+    if(cnt >= 20) return false;
+
+    goal[2] = 0.4;
 
     return true;
 }
@@ -445,14 +452,14 @@ bool Planner::lineCheck(const Eigen::Vector3d start, const Eigen::Vector3d goal)
         // check if occupied
         if(wrappedMapData_.at<char>(i,j,k)>=0)
         {
-            ROS_WARN("Occupied");
+            ROS_WARN_THROTTLE(10, "Occupied");
             return false;
         }
       }
       else
       {
         // out of range
-        ROS_WARN("out of range.");
+        ROS_WARN_THROTTLE(2, "out of range.");
         return false;
       }
     }
