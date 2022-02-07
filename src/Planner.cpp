@@ -243,56 +243,8 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     waypoints_wayback.push_back(temp);
 
     // check if extra landing pos is needed
-    if(Goal[2] > LANDING_HEIGHT){
-        // add landing position that is not occupied
-        Eigen::Vector3d landingPos;
-        if(!calcLandingPosition(Goal, landingPos)) ROS_ERROR("Could not add landing position.");
-        else {
-            arp::Autopilot::Waypoint landingWaypoint;
-            landingWaypoint.x=landingPos[0];
-            landingWaypoint.y=landingPos[1];
-            landingWaypoint.z=landingPos[2];
-            landingWaypoint.yaw=0.0;
-            landingWaypoint.posTolerance=POS_TOLERANCE_TIGHT;
-            waypoints_.push_back(landingWaypoint);
-        }
-    } else if(Goal[2] < LANDING_HEIGHT){
-          arp::Autopilot::Waypoint landingWaypoint;
-          landingWaypoint.x=Goal[0];
-          landingWaypoint.y=Goal[1];
-          landingWaypoint.z=LANDING_HEIGHT;
-          landingWaypoint.yaw=0.0;
-          landingWaypoint.posTolerance=POS_TOLERANCE_TIGHT;
-          std::deque<arp::Autopilot::Waypoint >::iterator it = waypoints_.end();
-          --it;
-
-          it = waypoints_.insert(it,landingWaypoint); 
-    }
-
-    if(Start[2] > LANDING_HEIGHT){
-        Eigen::Vector3d landingPos;
-        if(!calcLandingPosition(Start, landingPos)) ROS_ERROR("Could not add landing position.");
-        else {
-            arp::Autopilot::Waypoint landingWaypoint;
-            landingWaypoint.x=landingPos[0];
-            landingWaypoint.y=landingPos[1];
-            landingWaypoint.z=landingPos[2];
-            landingWaypoint.yaw=0.0;
-            landingWaypoint.posTolerance=POS_TOLERANCE_TIGHT;
-            waypoints_wayback.push_back(landingWaypoint);
-        }
-    } else if(Start[2] < LANDING_HEIGHT){
-        arp::Autopilot::Waypoint landingWaypoint;
-        landingWaypoint.x=Start[0];
-        landingWaypoint.y=Start[1];
-        landingWaypoint.z=LANDING_HEIGHT;
-        landingWaypoint.yaw=0.0;
-        landingWaypoint.posTolerance=POS_TOLERANCE_TIGHT;
-        std::deque<arp::Autopilot::Waypoint >::iterator it = waypoints_wayback.end();
-        --it;
-
-        it = waypoints_wayback.insert(it,landingWaypoint); 
-    }
+    checkLandingPos(Goal, waypoints_);
+    checkLandingPos(Start, waypoints_wayback);
 
     found_ = true;
     isReady_ = true;
@@ -355,62 +307,12 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal)
 
 
     // check if extra landing pos is needed
-    if(Goal.z > LANDING_HEIGHT){
-
-        Eigen::Vector3d goal(Goal.x, Goal.y, Goal.z);
-
-        // add landing position that is not occupied
-        Eigen::Vector3d landingPos;
-        if(!calcLandingPosition(goal, landingPos)) ROS_ERROR("Could not add landing position.");
-        else {
-          arp::Autopilot::Waypoint landingWaypoint;
-          landingWaypoint.x=landingPos[0];
-          landingWaypoint.y=landingPos[1];
-          landingWaypoint.z=landingPos[2];
-          landingWaypoint.yaw=0.0;
-          landingWaypoint.posTolerance=0.1;
-          waypoints_.push_back(landingWaypoint);
-        }
-    } else if(Goal.z < LANDING_HEIGHT){
-          arp::Autopilot::Waypoint landingWaypoint;
-          landingWaypoint = Goal;
-          landingWaypoint.z=LANDING_HEIGHT;
-          landingWaypoint.posTolerance=0.1;
-          std::deque<arp::Autopilot::Waypoint >::iterator it = waypoints_.end();
-          --it;
-
-          it = waypoints_.insert(it,landingWaypoint); 
-    }
-
-    if(Start.z > LANDING_HEIGHT){
-        Eigen::Vector3d start(Start.x, Start.y, Start.z);
-
-        Eigen::Vector3d landingPos;
-        if(!calcLandingPosition(start, landingPos)) ROS_ERROR("Could not add landing position.");
-        else {
-          arp::Autopilot::Waypoint landingWaypoint;
-          landingWaypoint.x=landingPos[0];
-          landingWaypoint.y=landingPos[1];
-          landingWaypoint.z=landingPos[2];
-          landingWaypoint.yaw=0.0;
-          landingWaypoint.posTolerance=0.1;
-          waypoints_wayback.push_back(landingWaypoint);
-        }
-    } else if(Start.z < LANDING_HEIGHT){
-          arp::Autopilot::Waypoint landingWaypoint;
-          landingWaypoint = Start;
-          landingWaypoint.z=LANDING_HEIGHT;
-          landingWaypoint.posTolerance=0.1;
-          std::deque<arp::Autopilot::Waypoint >::iterator it = waypoints_wayback.end();
-          --it;
-
-          it = waypoints_wayback.insert(it,landingWaypoint); 
-    }
-
+    checkLandingPos(Goal, waypoints_);
+    checkLandingPos(Start, waypoints_wayback);
+    
     return true;
 
 }
-
 
 ///\brief create Waypoints
 void Planner::createWaypoints(Planner::Node StartNode)
@@ -418,7 +320,61 @@ void Planner::createWaypoints(Planner::Node StartNode)
 
 }
 
-bool Planner::calcLandingPosition(Eigen::Vector3d& start, Eigen::Vector3d& goal)
+void Planner::checkLandingPos(const Eigen::Vector3d pos, std::deque<arp::Autopilot::Waypoint>& waypoints){
+    if(pos[2] > LANDING_HEIGHT){
+        Eigen::Vector3d landingPos;
+        if(!calcLandingPosition(pos, landingPos)) ROS_ERROR("Could not add landing position.");
+        else {
+            arp::Autopilot::Waypoint landingWaypoint;
+            landingWaypoint.x=landingPos[0];
+            landingWaypoint.y=landingPos[1];
+            landingWaypoint.z=landingPos[2];
+            landingWaypoint.yaw=0.0;
+            landingWaypoint.posTolerance=POS_TOLERANCE_TIGHT;
+            waypoints.push_back(landingWaypoint);
+        }
+    } else if(pos[2] < LANDING_HEIGHT){
+        arp::Autopilot::Waypoint landingWaypoint;
+        landingWaypoint.x=pos[0];
+        landingWaypoint.y=pos[1];
+        landingWaypoint.z=LANDING_HEIGHT;
+        landingWaypoint.yaw=0.0;
+        landingWaypoint.posTolerance=POS_TOLERANCE_TIGHT;
+        std::deque<arp::Autopilot::Waypoint >::iterator it = waypoints.end();
+        --it;
+
+        it = waypoints.insert(it,landingWaypoint); 
+    }
+}
+
+void Planner::checkLandingPos(const arp::Autopilot::Waypoint w, std::deque<arp::Autopilot::Waypoint>& waypoints){
+    if(w.z > LANDING_HEIGHT){
+        Eigen::Vector3d pos(w.x, w.y, w.z);
+
+        Eigen::Vector3d landingPos;
+        if(!calcLandingPosition(pos, landingPos)) ROS_ERROR("Could not add landing position.");
+        else {
+          arp::Autopilot::Waypoint landingWaypoint;
+          landingWaypoint.x=landingPos[0];
+          landingWaypoint.y=landingPos[1];
+          landingWaypoint.z=landingPos[2];
+          landingWaypoint.yaw=0.0;
+          landingWaypoint.posTolerance=POS_TOLERANCE_TIGHT;
+          waypoints.push_back(landingWaypoint);
+        }
+    } else if(w.z < LANDING_HEIGHT){
+          arp::Autopilot::Waypoint landingWaypoint;
+          landingWaypoint = w;
+          landingWaypoint.z=LANDING_HEIGHT;
+          landingWaypoint.posTolerance=POS_TOLERANCE_TIGHT;
+          std::deque<arp::Autopilot::Waypoint >::iterator it = waypoints.end();
+          --it;
+
+          it = waypoints.insert(it,landingWaypoint); 
+    }
+}
+
+bool Planner::calcLandingPosition(const Eigen::Vector3d start, Eigen::Vector3d& goal)
 {
     ROS_WARN("Calculating Landing Position.");
     int mode = 1;
@@ -514,6 +470,8 @@ bool Planner::lineCheck(const Eigen::Vector3d start, const Eigen::Vector3d goal)
     return true;
 
 }
+
+
 } // namespace arp
 
 

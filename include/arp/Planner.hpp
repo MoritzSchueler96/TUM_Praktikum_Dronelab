@@ -100,7 +100,12 @@ class Planner {
   bool lineCheck(const Eigen::Vector3d start, const Eigen::Vector3d goal);
 
   ///\brief Calculate Landing Position
-  bool calcLandingPosition(Eigen::Vector3d& start, Eigen::Vector3d& goal);
+  bool calcLandingPosition(const Eigen::Vector3d start, Eigen::Vector3d& goal);
+
+  void checkLandingPos(const arp::Autopilot::Waypoint w, std::deque<arp::Autopilot::Waypoint>& waypoints);
+
+  void checkLandingPos(const Eigen::Vector3d pos, std::deque<arp::Autopilot::Waypoint>& waypoints);
+
 
  protected:
  /// \brief check if given index is occupied
