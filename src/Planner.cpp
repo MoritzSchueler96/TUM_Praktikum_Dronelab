@@ -12,7 +12,7 @@
 
 #define LANDING_HEIGHT 0.2
 #define STEP_SIZE 0.25
-#define POS_TOLERANCE_LAX 0.3
+#define POS_TOLERANCE_LAX 0.5
 #define POS_TOLERANCE_TIGHT 0.1
 #define MAX_TRIES 20
 
@@ -86,7 +86,6 @@ bool Planner::is_occupied(int i, int j, int k)
 {
   if(i<wrappedMapData_.size[0]& j<wrappedMapData_.size[1]&k<wrappedMapData_.size[2]&i>=0&j>=0&k>=0)
   {
-    
     if(wrappedMapData_.at<char>(i,j,k)>=0)
     {
         return true;
@@ -134,8 +133,24 @@ int Planner::NodeinQueue(Eigen::Vector3i Point)
   }
   return index;
 }
+int Planner::NodeExplored(Eigen::Vector3i Point)
+{
+  
+  int index=exploredSet.size();
+  for(int i=0;i<exploredSet.size();i++)
+  {
+    if(calcDist(Point,exploredSet.at(i).point)<1e-3)
+    {
+      index=i;
+      break;
+    }
 
-void Planner::addNeighbour(Eigen::Vector3i curPoint, double dist,  Eigen::Vector3i GoalPoint)
+  }
+
+  return index;
+}
+
+void Planner::addNeighbour(Eigen::Vector3i curPoint,   double dist,int stepsize, Eigen::Vector3i direction,  Eigen::Vector3i GoalPoint)
 {
   Eigen::Vector3i neighbor;
   neighbor=curPoint;
@@ -145,30 +160,54 @@ void Planner::addNeighbour(Eigen::Vector3i curPoint, double dist,  Eigen::Vector
     {
       for(int z=-1; z<=1; z++)
       {
-        neighbor<<curPoint[0]+x,curPoint[1]+y, curPoint[2]+z;
-        if(is_occupied(neighbor[0], neighbor[1], neighbor[2]))
+        neighbor<<curPoint[0]+x*stepsize,curPoint[1]+y*stepsize, curPoint[2]+z*stepsize;
+        if((neighbor-curPoint).norm()<1e-3)
         {
           continue;
         }
-        double alt=dist+1;
-        int index=NodeinQueue(neighbor);
-        if(index<openSet.size())
+        if(stepsize>1)
         {
-          if(alt<openSet.at(index).dist)
+          if(!lineCheck(neighbor, curPoint))
           {
-            openSet.at(index).dist=alt;
-            openSet.at(index).totDistEst=alt+calcDist(neighbor, GoalPoint);
-            openSet.at(index).prev_point=curPoint;
+            continue;
           }
         }
         else
         {
-          Node newNode;
-          newNode.point=neighbor;
-          newNode.dist=alt;
-          newNode.totDistEst=alt+calcDist(neighbor, GoalPoint);
-          newNode.prev_point=curPoint;
-          openSet.push_back(newNode);
+          if(is_occupied(neighbor[0],neighbor[1], neighbor[2]))
+          {
+            continue;
+          }
+        }
+        
+        double alt=dist+(neighbor-curPoint).norm();
+        double alttotal=alt;
+        if(NodeExplored(neighbor)>=exploredSet.size())
+        {
+          int index=NodeinQueue(neighbor);
+          //penelize direction changes
+          if(((neighbor-curPoint)-direction).norm()>1e-3)
+          {
+            alttotal+=2;
+          }
+          if(index<openSet.size())
+          {
+            if(alt<openSet.at(index).dist)
+            {
+              openSet.at(index).dist=alt;
+              openSet.at(index).totDistEst=alttotal+calcDist(neighbor, GoalPoint);
+              openSet.at(index).prev_point=curPoint;
+            }
+          }
+          else
+          {
+            Node newNode;
+            newNode.point=neighbor;
+            newNode.dist=alt;
+            newNode.totDistEst=alt+calcDist(neighbor, GoalPoint);
+            newNode.prev_point=curPoint;
+            openSet.push_back(newNode);
+          }
         }
       }
     }
@@ -181,13 +220,18 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
   //Start point is on floor==> add 1m height
   Node Start_Node;
   Node Goal_Node;
-
+  Goal_Node.point=goal;
+  Start_Node.point=start;
   Start_Node.totDistEst=calcDist(Start_Node.point, Goal_Node.point);
   Start_Node.dist=0;
+  
   Goal_Node.totDistEst=0;
   Goal_Node.dist=0xFFFFFFFFFF;//max value
-  openSet.push_back(Start_Node);
+  
+
   exploredSet.clear();
+  openSet.clear();
+  openSet.push_back(Start_Node);
   //same for goal
   //find Path in occupancy map with A* in 1m height
   bool finished=false;
@@ -195,6 +239,7 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
   {
     int index_next_Node= getSmallestTotDist();
     Node Next_Node=openSet.at(index_next_Node);
+    
     exploredSet.push_back(Next_Node);
     openSet.erase(openSet.begin()+index_next_Node);
     //already at goal position?
@@ -203,11 +248,18 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
       finished=true;
       continue;
     }
-    addNeighbour(Next_Node.point, Next_Node.dist, Goal_Node.point);
+    int stepsize=10;
+    if(calcDist(Next_Node.point, Goal_Node.point)<10)
+    {
+      stepsize=1;
+    }
+    addNeighbour(Next_Node.point, Next_Node.dist,stepsize,(Next_Node.point-Next_Node.prev_point), Goal_Node.point);
   }
 
-  return true;
+  return finished;
 }
+
+
 
 bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
 
@@ -215,7 +267,7 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     waypoints_wayback.clear();
     arp::Autopilot::Waypoint temp;
     //Hinweg
-    temp.x=Start[0];
+    /*temp.x=Start[0];
     temp.y=Start[1];
     temp.z=Start[2];
     temp.yaw=0;
@@ -226,10 +278,32 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     temp.z=Goal[2];
     temp.yaw=0;
     temp.posTolerance=POS_TOLERANCE_TIGHT;
-    waypoints_.push_back(temp);
-
+    waypoints_.push_back(temp);*/
+    int start_x = std::round(Start[0]/0.1)+(wrappedMapData_.size[0]-1)/2;
+    int start_y = std::round(Start[1]/0.1)+(wrappedMapData_.size[1]-1)/2;
+    int start_z = std::round(Start[2]/0.1)+(wrappedMapData_.size[2]-1)/2;
+    int goal_x = std::round(Goal[0]/0.1)+(wrappedMapData_.size[0]-1)/2;
+    int goal_y = std::round(Goal[1]/0.1)+(wrappedMapData_.size[1]-1)/2;
+    int goal_z = std::round(Goal[2]/0.1)+(wrappedMapData_.size[2]-1)/2;
+    Eigen::Vector3i start_p;
+    if(start_z<85)
+    {
+      start_z=85;
+    }
+    start_p<<start_x, start_y, start_z;
+    std::cout << "Start Point "<<start_p[0]<<", "<<start_p[1]<<", "<<start_p[2]<< std::endl;
+    
+    if(goal_z<85)
+    {
+      goal_z=85;
+    }
+    Eigen::Vector3i goal_p(goal_x, goal_y, goal_z);
+    std::cout << "Goal Point "<<goal_p[0]<<", "<<goal_p[1]<<", "<<goal_p[2]<< std::endl;
+    found_=A_Star(start_p, goal_p);
+    createWaypoints(exploredSet.back());
+    
     //Rueckweg
-    temp.x=Goal[0];
+    /*temp.x=Goal[0];
     temp.y=Goal[1];
     temp.z=Goal[2];
     temp.yaw=0;
@@ -240,7 +314,7 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     temp.z=Start[2];
     temp.yaw=0;
     temp.posTolerance=POS_TOLERANCE_TIGHT;
-    waypoints_wayback.push_back(temp);
+    waypoints_wayback.push_back(temp);*/
 
     // check if extra landing pos is needed
     checkLandingPos(Goal, waypoints_);
@@ -294,6 +368,7 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal)
       start_p<<start_x, start_y, flight_height;
       Eigen::Vector3i goal_p(goal_x, goal_y, flight_height);
       found_=A_Star(start_p, goal_p);
+      createWaypoints(exploredSet.back());
   }
   
     //add to heuristic if neighborhood is occupied
@@ -314,9 +389,61 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal)
 
 }
 
+void Planner::calcWorldPoint(Eigen::Vector3i point, Eigen::Vector3d& retPoint)
+{
+  
+  for (int i=0; i<3;i++)
+  {
+    retPoint[i]=((double)point[i]-((double)(wrappedMapData_.size[i]-1)/2))*0.1;
+  }
+  
+}
 ///\brief create Waypoints
 void Planner::createWaypoints(Planner::Node StartNode)
 {
+  arp::Autopilot::Waypoint tempWaypoint;
+  Eigen::Vector3d tempPoint;
+  Node nextNode=StartNode;
+  Node curNode=StartNode;
+  Eigen::Vector3i curDirection(0,0,0);
+  Eigen::Vector3i prevDirection(0,0,0);
+  std::cout << "Total Distance"<<StartNode.dist << std::endl;
+  //Add first Node for wayback
+  
+
+  while(nextNode.dist>0)
+  {
+    int index=NodeExplored(curNode.prev_point);
+    nextNode=exploredSet.at(index);
+    curDirection=nextNode.point-curNode.point;
+    if((curDirection-prevDirection).norm()>1e-3)//check if direction changed
+    {
+      calcWorldPoint(curNode.point, tempPoint);
+      tempWaypoint.x=tempPoint[0];
+      tempWaypoint.y=tempPoint[1];
+      tempWaypoint.z=tempPoint[2];
+      tempWaypoint.yaw=calcYawRate_area(tempPoint);
+      tempWaypoint.posTolerance=POS_TOLERANCE_LAX;
+      waypoints_.push_front(tempWaypoint);
+      waypoints_wayback.push_back(tempWaypoint);
+      std::cout << "Add Waypoint"<< tempPoint<< std::endl;
+    }
+
+    curNode=nextNode;
+    prevDirection=curDirection;
+    
+
+  }
+  calcWorldPoint(curNode.point, tempPoint);
+      tempWaypoint.x=tempPoint[0];
+      tempWaypoint.y=tempPoint[1];
+      tempWaypoint.z=tempPoint[2];
+      tempWaypoint.yaw=0.0;
+      tempWaypoint.posTolerance=POS_TOLERANCE_LAX;
+      waypoints_.push_front(tempWaypoint);
+      waypoints_wayback.push_back(tempWaypoint);
+      std::cout << "Add Waypoint"<< tempPoint<< std::endl;
+
 
 }
 
@@ -471,6 +598,32 @@ bool Planner::lineCheck(const Eigen::Vector3d start, const Eigen::Vector3d goal)
 
 }
 
+
+///\brief Check if a obstacle is on estraight line between start and goal position
+bool Planner::lineCheck(const Eigen::Vector3i start, const Eigen::Vector3i goal)
+{
+
+    int i, j, k;
+    Eigen::Vector3d Start2;
+    Eigen::Vector3d Goal2;
+    calcWorldPoint(start, Start2);
+    calcWorldPoint(goal, Goal2);
+
+    return lineCheck(Start2, Goal2);
+
+}
+
+double Planner::calcYawRate_area(Eigen::Vector3d point)
+{
+  //Room: -4 -3.5
+  //Room: 5 14
+  //Table: 2  6
+  //Table: 0.6 4
+  
+
+
+
+}
 
 } // namespace arp
 

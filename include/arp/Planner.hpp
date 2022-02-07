@@ -98,6 +98,7 @@ class Planner {
 
   ///\brief Check if a obstacle is on a straight line between start and goal position
   bool lineCheck(const Eigen::Vector3d start, const Eigen::Vector3d goal);
+  bool lineCheck(const Eigen::Vector3i start, const Eigen::Vector3i goal);
 
   ///\brief Calculate Landing Position
   bool calcLandingPosition(const Eigen::Vector3d start, Eigen::Vector3d& goal);
@@ -114,8 +115,11 @@ class Planner {
  double calcDist(Eigen::Vector3i Point1, Eigen::Vector3i Point2);
  int getSmallestTotDist(void);
  int NodeinQueue(Eigen::Vector3i Point);
- void addNeighbour(Eigen::Vector3i curPoint, double dist,  Eigen::Vector3i GoalPoint);
+ int NodeExplored(Eigen::Vector3i Point);
+ void addNeighbour(Eigen::Vector3i curPoint, double dist,int stepsize, Eigen::Vector3i direction,  Eigen::Vector3i GoalPoint);
  bool A_Star(Eigen::Vector3i start, Eigen::Vector3i goal);
+ void calcWorldPoint(Eigen::Vector3i point, Eigen::Vector3d& retPoint);
+ double calcYawRate_area(Eigen::Vector3d point);
   struct Landmark {
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
       Eigen::Vector3d point; ///< The 3d point in World coordinates.
