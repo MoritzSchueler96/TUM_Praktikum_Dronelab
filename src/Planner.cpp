@@ -691,8 +691,10 @@ double Planner::calcYawRate_area(Eigen::Vector3d point, Eigen::Vector3d prev_poi
   /// \return true if free
  bool Planner::freetoground(Eigen::Vector3i point)
  {
-   Eigen::Vector3i temp=point;
-   temp[3]=LANDING_HEIGHT;
+   Eigen::Vector3i temp;
+   //since ground allways occupied add small puffer
+   temp<<point[0],point[1],82;
+   //std::cout<<"freetognd check"<<temp;
    return lineCheck(point, temp);
  }
 } // namespace arp
