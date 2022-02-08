@@ -216,7 +216,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   int i,j,k;
   bool not_occupied=true;
   
-  if (!isAutomatic_ ) {
+  if (!isAutomatic_) {
       ref_x_ = x;
       ref_y_ = y;
       ref_z_ = z;
@@ -245,7 +245,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
   dir << (goal - start).normalized();
   ROS_DEBUG_STREAM("dir: " << dir);
 
-  while((cur - start).norm() <= (goal-start).norm())
+  while((cur - start).norm() < (goal-start).norm())
   {
       cur += 0.1*dir;
       i = std::round(cur[0]/0.1)+(wrappedMapData_.size[0]-1)/2;
@@ -312,7 +312,6 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
   DroneStatus status = droneStatus();
   if(status>2&&status<8)
   {
-    Eigen::Vector3d referencePose(ref_x_,ref_y_, ref_z_);
     Eigen::Vector3d error_(0,0,0);
     // Get waypoint list, if available
     std::lock_guard<std::mutex> l(waypointMutex_);
@@ -323,20 +322,16 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
         ROS_WARN_STREAM_THROTTLE(2, "Current waypointY: " << w.y);
         ROS_WARN_STREAM_THROTTLE(2, "Current waypointZ: " << w.z);
         setPoseReference(w.x, w.y, w.z, w.yaw);
-        // getPoseReference(positionReference[0], positionReference[1], \
-        positionReference[2], yaw_ref);
 
         // TODO: remove the current waypoint, if the position error is below \
         the tolerance.
-        Eigen::Vector3d referencePose_waypoint(w.x,w.y, w.z);
+        Eigen::Vector3d referencePose_waypoint(w.x, w.y, w.z);
         error_<< referencePose_waypoint-x.t_WS;
         if(abs(error_.norm()) < w.posTolerance) waypoints_.pop_front();
     } else {
-        // This is the original line of code:
-        //getPoseReference(positionReference[0], positionReference[1], \
-        positionReference[2], yaw_ref);
     
         //TODO:calculate error
+        Eigen::Vector3d referencePose(ref_x_,ref_y_, ref_z_);
         error_<< referencePose-x.t_WS;
     }
     //x.q_WS.toRotationMatrix().transpose() = R_SW

@@ -11,10 +11,10 @@
 #include <sstream>
 
 #define LANDING_HEIGHT 0.2
-#define FLIGHT_HEIGHT 1.7
+#define FLIGHT_HEIGHT 1.75
 #define STEP_SIZE 0.25
-#define POS_TOLERANCE_LAX 0.3
-#define POS_TOLERANCE_TIGHT 0.1
+#define POS_TOLERANCE_LAX 0.2
+#define POS_TOLERANCE_TIGHT 0.05
 #define MAX_TRIES 20
 #define ROS_PI 3.141592653589793238462643383279502884L
 namespace arp {
@@ -274,33 +274,35 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     //Hinweg
     temp.x=Start[0];
     temp.y=Start[1];
-    temp.z=Start[2]+FLIGHT_HEIGHT;
-    temp.yaw=0;
-    temp.posTolerance=POS_TOLERANCE_LAX;
-    waypoints_.push_back(temp);
-    temp.x=Goal[0];
-    temp.y=Goal[1];
-    temp.z=Goal[2]+FLIGHT_HEIGHT;
+    temp.z=FLIGHT_HEIGHT;
     temp.yaw=0;
     temp.posTolerance=POS_TOLERANCE_TIGHT;
     waypoints_.push_back(temp);
+    temp.x=Goal[0];
+    temp.y=Goal[1];
+    temp.z=FLIGHT_HEIGHT;
+    temp.yaw=0;
+    temp.posTolerance=POS_TOLERANCE_TIGHT;
+    waypoints_.push_back(temp);
+
+    // check if extra landing pos is needed
     checkLandingPos(temp, waypoints_);
+
     //Rueckweg
     temp.x=Goal[0];
     temp.y=Goal[1];
-    temp.z=Goal[2]+FLIGHT_HEIGHT;
+    temp.z=FLIGHT_HEIGHT;
     temp.yaw=0;
-    temp.posTolerance=POS_TOLERANCE_LAX;
+    temp.posTolerance=POS_TOLERANCE_TIGHT;
     waypoints_wayback.push_back(temp);
     temp.x=Start[0];
     temp.y=Start[1];
-    temp.z=Start[2]+FLIGHT_HEIGHT;
+    temp.z=FLIGHT_HEIGHT;
     temp.yaw=0;
     temp.posTolerance=POS_TOLERANCE_TIGHT;
     waypoints_wayback.push_back(temp);
 
     // check if extra landing pos is needed
-    
     checkLandingPos(temp, waypoints_wayback);
 
     found_ = true;
@@ -536,7 +538,7 @@ bool Planner::lineCheck(const Eigen::Vector3d start, const Eigen::Vector3d goal)
     Eigen::Vector3d cur;
     cur << start;
 
-    while((cur - start).norm() <= (goal-start).norm())
+    while((cur - start).norm() < (goal-start).norm())
     {
       cur += 0.1*dir;
       i = std::round(cur[0]/0.1)+(wrappedMapData_.size[0]-1)/2;
