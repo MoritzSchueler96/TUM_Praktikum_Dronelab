@@ -192,6 +192,11 @@ void Planner::addNeighbour(Eigen::Vector3i curPoint,   double dist,int stepsize,
             continue;
           }
         }
+        //do not allow to fly over chairs
+        if(freetoground(neighbor)==false)
+        {
+          continue;
+        }
         //calculate the covered distance for neighbor
         double alt=dist+(neighbor-curPoint).norm();
         //second value to add preferences, like stay at same direction
@@ -682,6 +687,14 @@ double Planner::calcYawRate_area(Eigen::Vector3d point, Eigen::Vector3d prev_poi
 
 }
 
+ /// \brief check if area below is free
+  /// \return true if free
+ bool Planner::freetoground(Eigen::Vector3i point)
+ {
+   Eigen::Vector3i temp=point;
+   temp[3]=LANDING_HEIGHT;
+   return lineCheck(point, temp);
+ }
 } // namespace arp
 
 

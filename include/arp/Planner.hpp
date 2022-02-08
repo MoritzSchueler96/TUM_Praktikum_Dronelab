@@ -103,6 +103,7 @@ class Planner {
   ///\brief Calculate Landing Position
   bool calcLandingPosition(const Eigen::Vector3d start, Eigen::Vector3d& goal);
 
+  ///\brief check if height is height of pos is low enough to land
   void checkLandingPos(const arp::Autopilot::Waypoint w, std::deque<arp::Autopilot::Waypoint>& waypoints);
 
   void checkLandingPos(const Eigen::Vector3d pos, std::deque<arp::Autopilot::Waypoint>& waypoints);
@@ -112,13 +113,45 @@ class Planner {
  /// \brief check if given index is occupied
   /// \return true if occupied
  bool is_occupied(int i, int j, int k);
+ 
+ /// \brief check if area below is free
+  /// \return true if free
+ bool freetoground(Eigen::Vector3i point);
+/// \brief calculate the distance between Point1 and Point2
+/// \return calculated distance
  double calcDist(Eigen::Vector3i Point1, Eigen::Vector3i Point2);
+
+ /// \brief search the OpenSet for the Node with smallest total Distance
+  /// \return index of Node in openSet
  int getSmallestTotDist(void);
+
+ /// \brief check if for given Point a Node already created
+/// \return index of Node, openSet.size() if not found
  int NodeinQueue(Eigen::Vector3i Point);
+
+/// \brief check if for given Point a Node is already explored
+/// \return index of Node, exploredSet.size() if not found
  int NodeExplored(Eigen::Vector3i Point);
+
+  /// \brief adds the neighbours of given Point
+  /// @param[in] curPoint coordinates of current position
+  /// @param[in] dist already covered distance
+  /// @param[in] stepsize stepsize until next node to speedup algorithm
+  /// @param[in] direction direction vector of previos pPosition to current Position to prefer this direction
+  /// @param[in] GoalPoint Goal Positon
  void addNeighbour(Eigen::Vector3i curPoint, double dist,int stepsize, Eigen::Vector3i direction,  Eigen::Vector3i GoalPoint);
+ 
+ /// \brief coordination of A Star steps to get way from start to goal
+ /// \return true if way found
  bool A_Star(Eigen::Vector3i start, Eigen::Vector3i goal);
+
+ /// \brief calculate world coordinates from Occupancy Grid Index
+  /// @param[in] point index of occupancy Map
+  /// @param[out] retPoint 3D Coordinates of given Point
  void calcWorldPoint(Eigen::Vector3i point, Eigen::Vector3d& retPoint);
+
+  /// \brief calculate Yaw Rate to prevent Pose Lost
+  /// \return calculated YawRate
  double calcYawRate_area(Eigen::Vector3d point,Eigen::Vector3d prev_point);
   struct Landmark {
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -132,11 +165,11 @@ class Planner {
   std::deque<arp::Autopilot::Waypoint> waypoints_wayback;  ///< A list of waypoints that will be approached, if not empty.
   std::deque<arp::Autopilot::Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.
   std::mutex waypointMutex_;  ///< We need to lock the waypoint access due to asynchronous arrival.
-  cv::Mat wrappedMapData_;
+  cv::Mat wrappedMapData_;    ///< Occupancy Map
   std::map<uint64_t, Landmark, std::less<uint64_t>, 
       Eigen::aligned_allocator<std::pair<const uint64_t, Landmark> > > landmarks_; ///< Landmarks by ID.
-  std::deque<Planner::Node> openSet;
-  std::deque<Planner::Node> exploredSet;
+  std::deque<Planner::Node> openSet;  ///< List of Nodes which are added in A Star Algorithm
+  std::deque<Planner::Node> exploredSet; ///< List of Nodes which are already explored during A Star Algorithm
 };
 
 } // namespace arp
