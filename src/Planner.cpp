@@ -12,9 +12,10 @@
 
 #define LANDING_HEIGHT 0.3
 #define FLIGHT_HEIGHT 1.75
+#define FLIGHT_HEIGHT_INDEX 89
 #define STEP_SIZE 0.25
-#define POS_TOLERANCE_LAX 0.4
-#define POS_TOLERANCE_TIGHT 0.1
+#define POS_TOLERANCE_LAX 0.3
+#define POS_TOLERANCE_TIGHT 0.15
 #define MAX_TRIES 20
 #define ROS_PI 3.141592653589793238462643383279502884L
 namespace arp {
@@ -345,16 +346,16 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal)
     int goal_y = std::round(Goal.y/0.1)+(wrappedMapData_.size[1]-1)/2;
     int goal_z = std::round(Goal.z/0.1)+(wrappedMapData_.size[2]-1)/2;
     Eigen::Vector3i start_p;
-    if(start_z<90)
+    if(start_z<FLIGHT_HEIGHT_INDEX)
     {
-      start_z=90;
+      start_z=FLIGHT_HEIGHT_INDEX;
     }
     start_p<<start_x, start_y, start_z;
     std::cout << "Start Point "<<start_p[0]<<", "<<start_p[1]<<", "<<start_p[2]<< std::endl;
     
-    if(goal_z<90)
+    if(goal_z<FLIGHT_HEIGHT_INDEX)
     {
-      goal_z=90;
+      goal_z=FLIGHT_HEIGHT_INDEX;
     }
     Eigen::Vector3i goal_p(goal_x, goal_y, goal_z);
     std::cout << "Goal Point "<<goal_p[0]<<", "<<goal_p[1]<<", "<<goal_p[2]<< std::endl;
@@ -363,9 +364,23 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal)
     
     Goal.z=0.6;
     Start.z=0.6;
-    checkLandingPos(Goal, waypoints_);
-    checkLandingPos(Start, waypoints_wayback);
-
+    checkLandingPos(waypoints_.back(), waypoints_);
+    checkLandingPos(waypoints_wayback.back(), waypoints_wayback);
+    for(int i=0; i<waypoints_.size();i++)
+    {
+      std::cout<<"Waypoint"<<i<<": ("<<waypoints_.at(i).x<<", "\
+      <<waypoints_.at(i).y<<", "\
+      <<waypoints_.at(i).z<<") Yaw: "\
+      <<waypoints_.at(i).yaw<<std::endl;
+    }
+    std::cout<<"Rueckweg:"<<std::endl;
+    for(int i=0; i<waypoints_wayback.size();i++)
+    {
+      std::cout<<"Waypoint Wayback"<<i<<": ("<<waypoints_wayback.at(i).x<<", "\
+      <<waypoints_wayback.at(i).y<<", "\
+      <<waypoints_wayback.at(i).z<<") Yaw: "\
+      <<waypoints_wayback.at(i).yaw<<std::endl;
+    }
     found_ = true;
     isReady_ = true;
 
@@ -416,7 +431,7 @@ void Planner::createWaypoints(Planner::Node StartNode)
       tempWaypoint.yaw=curYawRate;
       tempWaypoint.posTolerance=POS_TOLERANCE_LAX;
       waypoints_.push_front(tempWaypoint);
-      tempWaypoint.yaw=-tempWaypoint.yaw;
+      tempWaypoint.yaw=0;//yaw rate calculation done later
       waypoints_wayback.push_back(tempWaypoint);
       std::cout << "Add Waypoint"<< tempPoint<< std::endl;
       std::cout << "YawRate"<< curYawRate<< std::endl;
@@ -436,7 +451,18 @@ void Planner::createWaypoints(Planner::Node StartNode)
   tempWaypoint.posTolerance=POS_TOLERANCE_LAX;
   //waypoints_.push_front(tempWaypoint);
   waypoints_wayback.push_back(tempWaypoint);
-  std::cout << "Add Waypoint"<< tempPoint<< std::endl;
+
+  //correction of yawrates
+  prevPoint<<waypoints_wayback.front().x,waypoints_wayback.front().y,waypoints_wayback.front().z;
+  for(int i=0;i<waypoints_wayback.size(); i++)
+  {
+    std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
+    tempPoint<<waypoints_wayback.at(i).x,waypoints_wayback.at(i).y,waypoints_wayback.at(i).z;
+    waypoints_wayback.at(i).yaw=calcYawRate_area(tempPoint,prevPoint);
+    std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
+    prevPoint=tempPoint;
+  
+  }
 
 
 }
@@ -479,7 +505,7 @@ void Planner::checkLandingPos(const arp::Autopilot::Waypoint w, std::deque<arp::
           landingWaypoint.x=landingPos[0];
           landingWaypoint.y=landingPos[1];
           landingWaypoint.z=landingPos[2];
-          landingWaypoint.yaw=0.0;
+          landingWaypoint.yaw=w.yaw;
           landingWaypoint.posTolerance=POS_TOLERANCE_TIGHT;
           waypoints.push_back(landingWaypoint);
         }
@@ -616,6 +642,8 @@ double Planner::calcYawRate_area(Eigen::Vector3d point, Eigen::Vector3d prev_poi
   
   static double prevYawrate=0;
   
+
+  
   if((point[1]<7.5&&point[1]>2.5)&&((point[0]>2)||(point[0]<0.6)))
   {
     if(prev_point[1]>7.5)
@@ -628,8 +656,25 @@ double Planner::calcYawRate_area(Eigen::Vector3d point, Eigen::Vector3d prev_poi
       prevYawrate=-ROS_PI/2;
       return -ROS_PI/2;
     }
+    std::cout<<"warum"<<std::endl;
     return prevYawrate;
     
+  }
+  if((point[1]>12)&&(point[0]<4))
+  {
+    return -ROS_PI/2;
+  }
+  if((point[1]<-2.5)&&(point[0]<4))
+  {
+    return -ROS_PI/2;
+  }
+  if(point[0]>4)
+  {
+    if(point[1]>5)
+    {
+      return -ROS_PI*3/4;
+    }
+    return ROS_PI*3/4;
   }
   return 0;
 
