@@ -696,7 +696,7 @@ int main(int argc, char **argv)
       }
 
       // abort Challenge if waited too long or hit the space a second time
-      if(challengePaused && !autopilot.isAutomatic() && (ros::Time::now() - challengePauseTime > ros::Duration(20) or (ros::Time::now() - challengePauseTime > ros::Duration(1) && state[SDL_SCANCODE_SPACE]))){
+      if(challengePaused && !autopilot.isAutomatic() && (ros::Time::now() - challengePauseTime > ros::Duration(20) or (ros::Time::now() - challengePauseTime > ros::Duration(0.5) && state[SDL_SCANCODE_SPACE]))){
           ROS_INFO_STREAM("Challenge aborted...     status=" << droneStatus);
           challengePaused = false;
           challengeCompleted = false;
