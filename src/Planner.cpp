@@ -10,11 +10,11 @@
 #include <fstream>
 #include <sstream>
 
-#define LANDING_HEIGHT 0.2
+#define LANDING_HEIGHT 0.3
 #define FLIGHT_HEIGHT 1.75
 #define STEP_SIZE 0.25
-#define POS_TOLERANCE_LAX 0.2
-#define POS_TOLERANCE_TIGHT 0.05
+#define POS_TOLERANCE_LAX 0.4
+#define POS_TOLERANCE_TIGHT 0.1
 #define MAX_TRIES 20
 #define ROS_PI 3.141592653589793238462643383279502884L
 namespace arp {

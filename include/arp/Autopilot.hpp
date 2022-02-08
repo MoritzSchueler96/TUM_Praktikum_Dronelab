@@ -189,6 +189,7 @@ class Autopilot {
   double z_limit; ///< limit for z position.
   double yaw_limit; ///< limit for yaw rateS.
   cv::Mat wrappedMapData_; ///< Matrix containing occupancy map.
+  bool islanding;///< flag to indicate that landing is triggered
 
   std::deque<Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.
   std::mutex waypointMutex_;  ///< We need to lock the waypoint access due to asynchronous arrival.

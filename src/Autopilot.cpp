@@ -129,6 +129,7 @@ bool Autopilot::takeoff()
   if (status != DroneStatus::Landed) {
     return false;
   }
+  islanding=false;
   // ARdrone -> take off
   std_msgs::Empty takeoffMsg;
   pubTakeoff_.publish(takeoffMsg);
@@ -141,6 +142,7 @@ bool Autopilot::land()
   DroneStatus status = droneStatus();
   if (status != DroneStatus::Landed && status != DroneStatus::Landing
       && status != DroneStatus::Looping) {
+    islanding=true;
     // ARdrone -> land
     std_msgs::Empty landMsg;
     pubLand_.publish(landMsg);
@@ -315,7 +317,7 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
 
   // TODO: only enable when in flight
   DroneStatus status = droneStatus();
-  if(status>2&&status<8)
+  if(status>2&&status<8&&islanding==false)
   {
     Eigen::Vector3d error_(0,0,0);
     // Get waypoint list, if available
