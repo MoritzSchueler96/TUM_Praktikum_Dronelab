@@ -399,11 +399,14 @@ int main(int argc, char **argv)
   bool challengeCompleted = false;
   bool challengePaused = false;
   ros::Time landingTime = ros::Time::now() + ros::Duration(24*60*60);
-  ros::Time challengeTime = ros::Time::now() + ros::Duration(24*60*60);
   ros::Time challengePauseTime = ros::Time::now() + ros::Duration(24*60*60);
 
   Eigen::Vector3d challengeStartPos;
   arp::Autopilot::Waypoint challengeStartWaypoint;
+
+  double challengeTime = 999.99;
+  double bestTime = 999.99;
+  double challengeStartTime = (ros::Time::now() + ros::Duration(24*60*60)).toSec();
 
 
   // variables for frontend error messages
@@ -440,7 +443,6 @@ int main(int argc, char **argv)
       if(vit.getLastVisualisationImage(image))
       {
           // TODO: add overlays to the cv::Mat image, e.g. text
-
           // apply camera model if enabled
           if(gp.cameraModelApplied && !phcam.undistortImage(image, image)) ROS_WARN("Warning: Undistortion failed...");
 
@@ -465,15 +467,43 @@ int main(int argc, char **argv)
           
           // put error Text on image
           if(ros::Time::now() - displayTime < ros::Duration(3)) cv::putText(image, errorText, cv::Point(image_size.width/2-350*gp.fontScaling, image_size.height/2), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, cv::Scalar(0,0,255), 2, false);
-          if(ros::Time::now() - displayTimeChallengeCompleted < ros::Duration(3) && challengeCompleted) cv::putText(image, "Challenge Completed! Yay!", cv::Point(image_size.width/2-370*gp.fontScaling, image_size.height/2), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, cv::Scalar(0,0,255), 2, false);
 
           // possible commands in buttom of picture, differentiate: drone is flying or not
-          if(!autopilot.isAutomatic())
+          // show commands to command drone with rviz
+          if(!autopilot.isAutomatic() && !autopilot.isTracking())
           {
               cv::putText(image, "STRG-R: Switch to Auto Mode", cv::Point(image_size.width/2-240*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           } else {
               cv::putText(image, "Space: Switch to Man. Mode", cv::Point(image_size.width/2-240*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
+
+          // show commands to interact with challenge
+          if(ros::Time::now() - displayTimeChallengeCompleted < ros::Duration(3) && challengeCompleted) cv::putText(image, "Challenge Completed! Yay!", cv::Point(image_size.width/2-240*gp.fontScaling, image_size.height/2), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, cv::Scalar(0,0,255), 2, false);
+          if(ros::Time::now() - displayTimeChallengeCompleted < ros::Duration(3) && ros::Time::now() - displayTimeChallengeCompleted >= ros::Duration(0) && !challengeCompleted) cv::putText(image, "Challenge Aborted!", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height/2), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, cv::Scalar(0,0,255), 2, false);
+
+          if(autopilot.isTracking()){
+                challengeTime = ros::Time::now().toSec() - challengeStartTime;
+                cv::putText(image, "Challenge ongoing...", cv::Point(10*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+          } else if(!autopilot.isAutomatic()) {
+            if(challengePaused) cv::putText(image, "P: Resume Challenge", cv::Point(10*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+            else cv::putText(image, "P: Start Challenge", cv::Point(10*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+          } else {
+                cv::putText(image, "P: Need man. Mode", cv::Point(10*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+          }
+
+          // Timings for Challenge
+          if(challengeTime < bestTime && challengeCompleted) bestTime = challengeTime;
+          std::stringstream best;
+          best << std::fixed<<std::setprecision(2) << bestTime << "s";
+          cv::putText(image, "best: ", cv::Point(10*gp.fontScaling, 90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+          cv::putText(image, best.str(), cv::Point(40*gp.fontScaling, 125*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+
+          std::stringstream time;
+          time << std::fixed<<std::setprecision(2) << challengeTime << "s";
+          cv::putText(image, "time: ", cv::Point(image_size.width-200*gp.fontScaling, 90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+          cv::putText(image, time.str(), cv::Point(image_size.width-170*gp.fontScaling, 125*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
+
+          // show some more commands
           if (gp.enableFusion)
           {
               cv::putText(image, "F: Sensor Fusion is On", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
@@ -482,9 +512,7 @@ int main(int argc, char **argv)
           }
           cv::putText(image, "K: Toggle Keypoints", cv::Point(10*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           cv::putText(image, "M: Toggle Projection", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
-              
           cv::putText(image, "U: Log Position", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
-          cv::putText(image, "P: Start Challenge", cv::Point(10*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           
           if(droneStatus==3||droneStatus==4||droneStatus==7) {
 
@@ -547,7 +575,6 @@ int main(int argc, char **argv)
                 challengeCompleted = true;
                 challengePaused = false;
                 displayTimeChallengeCompleted = ros::Time::now();
-                ROS_INFO_STREAM("Challenge Time:"<<ros::Time::now()-challengeTime);
                 planner.resetReady();
                 autopilot.setManual();
             } else {
@@ -675,25 +702,27 @@ int main(int argc, char **argv)
           challengeCompleted = false;
           flyChallenge = false;
           flyBack = false;
+          displayTimeChallengeCompleted = ros::Time::now();
+          challengeTime = 999.99;
           planner.resetReady();
       }
 
       // Start Challenge with linear planner when hitting O
-      if(state[SDL_SCANCODE_O] && vit.getPoseStatus() && !autopilot.isTracking()){
-        challengeTime=ros::Time::now();
+      if(state[SDL_SCANCODE_O] && vit.getPoseStatus() && !autopilot.isTracking() && !autopilot.isAutomatic()){
         flyChallenge = true;
         challengeCompleted = false;
         autopilot.setTracking();
         autopilot.takeoff();
-        displayTimeChallengeCompleted = ros::Time::now();
         landingTime = ros::Time::now();
-        challengePauseTime = ros::Time::now();
 
         // invoke Planner if challenge not paused
         if(!challengePaused){
             ROS_INFO_STREAM("Start Challenge with linear Planner...     status=" << droneStatus);
+            challengeStartTime=ros::Time::now().toSec();
+
             double x, y, z, yaw;
             autopilot.getPoseReference(x, y, z, yaw);
+            
             challengeStartPos << x,y,z;
             Eigen::Vector3d goal;
             goal << waypointB.x, waypointB.y, waypointB.z;
@@ -701,25 +730,25 @@ int main(int argc, char **argv)
             planner.plan(challengeStartPos, goal);
         } else {
             ROS_INFO_STREAM("Resume Challenge...     status=" << droneStatus);
+            challengeStartTime += (ros::Time::now() - challengePauseTime).toSec();
             challengePaused = false;
         }
+        challengePauseTime = ros::Time::now();
 
       }
 
       // Start Challenge when hitting P
       if(state[SDL_SCANCODE_P] && vit.getPoseStatus() && !autopilot.isTracking() && !autopilot.isAutomatic()){
-        challengeTime=ros::Time::now();
         flyChallenge = true;
         challengeCompleted = false;
         autopilot.setTracking();
         autopilot.takeoff();
-        displayTimeChallengeCompleted = ros::Time::now();
         landingTime = ros::Time::now();
-        challengePauseTime = ros::Time::now();
 
         // invoke Planner if challenge not paused
         if(!challengePaused){
             ROS_INFO_STREAM("Start Challenge...     status=" << droneStatus);
+            challengeStartTime=ros::Time::now().toSec();
 
             double x, y, z, yaw;
             autopilot.getPoseReference(x, y, z, yaw);
@@ -733,9 +762,11 @@ int main(int argc, char **argv)
             planner.plan(challengeStartWaypoint, waypointB);
         } else {
             ROS_INFO_STREAM("Resume Challenge...     status=" << droneStatus);
+            challengeStartTime += (ros::Time::now() - challengePauseTime).toSec();
             challengePaused = false;
         }
 
+        challengePauseTime = ros::Time::now();
       }
 
       // TODO: process moving commands when in state 3, 4 or 7
@@ -750,8 +781,6 @@ int main(int argc, char **argv)
             autopilot.getPoseReference(x, y, z, yaw);
             markerServer.activate(x, y, z, yaw);
             autopilot.setAutomatic();
-
-
           }
 
           double forward=0;

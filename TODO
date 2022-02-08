@@ -1,17 +1,24 @@
   
-  ✔ collision check @done(22-01-25 17:46)
-  ☐ auto mode erst erlauben, wenn x Sek Pose gefunden?
-  ☐ pose von drone ausgeben, die sie denkt zu haben, wenn drift
-  ✔ Timer nutzen -> in Sekundentakt Cnt hochzählen, wenn STRG-R gedrückt Cnt=0, und dann solange Cnt<=3 anzeigen, dass Auto Mode nicht verfügbar @done(22-01-27 00:46)
-  ✔ same für switch in manual mode @done(22-01-27 00:46)
-  ☐ implement A*
-  ☐ waypoint following
-  ☐ application integration for task 5
+  ✘ auto mode erst erlauben, wenn x Sek Pose gefunden? @cancelled(22-02-08 12:42)
+  ✘ pose von drone ausgeben, die sie denkt zu haben, wenn drift @cancelled(22-02-08 12:42)
   ☐ PID controller Werte in launch file packen?
   ☐ ransac parameters in launch file packen?
   ☐ add explanation of brisk parameters in launch file
 
   ☐ weirdes Verhalten beim Landen untersuchen
+  ☐ add comments
+  
+Archive:
+  ✔ collision check @done(22-01-25 17:46)
+  ✔ Timer nutzen -> in Sekundentakt Cnt hochzählen, wenn STRG-R gedrückt Cnt=0, und dann solange Cnt<=3 anzeigen, dass Auto Mode nicht verfügbar @done(22-01-27 00:46)
+  ✔ same für switch in manual mode @done(22-01-27 00:46)
+  ✔ implement A* @done(22-02-08 12:41)
+  ✔ waypoint following @done(22-02-08 12:41)
+  ✔ application integration for task 5 @done(22-02-08 12:41)
+  ✔ text kürzen need man mode @done(22-02-08 12:41)
+  ✔ ausgabe auf Display wenn Challenge aborted @done(22-02-08 12:39)
+  ✔ Zeit bei bestandener Challenge ausgeben -> best Challenge Time oben in Ecke schreiben @done(22-02-08 11:50)
+  ✔ Challenge Completed Text mehr in die Mitte @done(22-02-08 12:26)
   ✔ arp node checken, dass mittendrin continued werden kann @done(22-02-07 22:41)
   ✔ plan -> wenn Start oder Ziel auf z=0 -> einen Punkt vorher mit z=0.2 einfügen? @done(22-02-07 08:28)
   ✔ Punkt rausuchen, wo untendrunter occupied ist und testen ob ausweichen klappt @done(22-02-07 02:48)
@@ -28,22 +35,17 @@
   ✔ auto mode erst erlauben, wenn hovering? @done(22-01-25 16:54)
   ✔ Analyse Out Of Bound (e.g. Map), Threshold for safety... @done(22-01-25 22:13)
   ✔ Realign Box of Rviz Marker @done(22-01-25 22:13)
-  
   ✔ Bei Pose Verlust auf Manual Modus/ andere Regelparameter? @done(22-01-25 17:44)
   ✔ only Garching Kitchen oder auch Castle? @done(22-01-26 12:56)
-
   ✔ num keypoints in launch file packen -> extra launch file für jedes env @done(22-01-26 13:01)
   ✔ display all keypoints in launch file packen @done(22-01-26 13:01)
   ✔ virtual focal length und absolute threshold parameter of brisk in launch file @done(22-01-26 13:01)
-
-Archive:
   ✔ Check SDL Lib for better handling of key presses @done(21-12-16 13:18)
   ✔ Add Log Levels to clear up terminal @done(21-12-16 17:04)
   ✔ Add error handling, check implemented functions for vulnerabilities @done(21-12-16 17:04)
   ✔ Reiner P Regler test um Stabilität von Regelstrecke zu testen (Rausfinden Regler oder Verlust der Pose Problem sind) -> Verlust der Pose @done(22-01-22 15:06)
   ✔ clamp function in yaw_rate and PID Controller -> erst ab cpp17, wir haben cpp11 @done(22-01-22 15:06)
   ✔ automatic/ Manual keys in picture @done(22-01-21 11:16)
-
 
 Fragen:
 - B aufm Boden?
