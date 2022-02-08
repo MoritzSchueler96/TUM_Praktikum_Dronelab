@@ -596,6 +596,7 @@ int main(int argc, char **argv)
         ROS_INFO_STREAM("Autopilot off...     status=" << droneStatus);
         autopilot.setManual();
         markerServer.deactivate();
+        challengePauseTime = ros::Time::now();
 
         if(droneStatus==2) errorText = "Deavtivate auto mode due to landing the drone.";
         else if(!state[SDL_SCANCODE_SPACE]) errorText = "Deactivate auto mode due to lost pose.";
@@ -668,7 +669,7 @@ int main(int argc, char **argv)
       }
 
       // abort Challenge if waited too long or hit the space a second time
-      if(challengePaused && (ros::Time::now() - challengePauseTime > ros::Duration(20) or (ros::Time::now() - challengePauseTime > ros::Duration(1) && state[SDL_SCANCODE_SPACE]))){
+      if(challengePaused && !autopilot.isAutomatic() && (ros::Time::now() - challengePauseTime > ros::Duration(20) or (ros::Time::now() - challengePauseTime > ros::Duration(1) && state[SDL_SCANCODE_SPACE]))){
           ROS_INFO_STREAM("Challenge aborted...     status=" << droneStatus);
           challengePaused = false;
           challengeCompleted = false;
@@ -680,7 +681,6 @@ int main(int argc, char **argv)
       // Start Challenge with linear planner when hitting O
       if(state[SDL_SCANCODE_O] && vit.getPoseStatus() && !autopilot.isTracking()){
         challengeTime=ros::Time::now();
-        ROS_INFO_STREAM("Start Challenge with linear Planner...     status=" << droneStatus);
         flyChallenge = true;
         challengeCompleted = false;
         autopilot.setTracking();
@@ -691,6 +691,7 @@ int main(int argc, char **argv)
 
         // invoke Planner if challenge not paused
         if(!challengePaused){
+            ROS_INFO_STREAM("Start Challenge with linear Planner...     status=" << droneStatus);
             double x, y, z, yaw;
             autopilot.getPoseReference(x, y, z, yaw);
             challengeStartPos << x,y,z;
@@ -699,15 +700,15 @@ int main(int argc, char **argv)
 
             planner.plan(challengeStartPos, goal);
         } else {
+            ROS_INFO_STREAM("Resume Challenge...     status=" << droneStatus);
             challengePaused = false;
         }
 
       }
 
       // Start Challenge when hitting P
-      if(state[SDL_SCANCODE_P] && vit.getPoseStatus() && !autopilot.isTracking()){
+      if(state[SDL_SCANCODE_P] && vit.getPoseStatus() && !autopilot.isTracking() && !autopilot.isAutomatic()){
         challengeTime=ros::Time::now();
-        ROS_INFO_STREAM("Start Challenge...     status=" << droneStatus);
         flyChallenge = true;
         challengeCompleted = false;
         autopilot.setTracking();
@@ -718,6 +719,8 @@ int main(int argc, char **argv)
 
         // invoke Planner if challenge not paused
         if(!challengePaused){
+            ROS_INFO_STREAM("Start Challenge...     status=" << droneStatus);
+
             double x, y, z, yaw;
             autopilot.getPoseReference(x, y, z, yaw);
 
@@ -729,6 +732,7 @@ int main(int argc, char **argv)
 
             planner.plan(challengeStartWaypoint, waypointB);
         } else {
+            ROS_INFO_STREAM("Resume Challenge...     status=" << droneStatus);
             challengePaused = false;
         }
 
@@ -746,6 +750,8 @@ int main(int argc, char **argv)
             autopilot.getPoseReference(x, y, z, yaw);
             markerServer.activate(x, y, z, yaw);
             autopilot.setAutomatic();
+
+
           }
 
           double forward=0;

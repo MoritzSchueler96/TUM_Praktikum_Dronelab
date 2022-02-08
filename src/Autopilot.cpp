@@ -196,11 +196,13 @@ void Autopilot::setManual()
 void Autopilot::setAutomatic()
 {
   isAutomatic_ = true;
+  isTracking_ = false;
 }
 
 // Set to tracking control mode.
 void Autopilot::setTracking()
 {
+  isAutomatic_ = false;
   isTracking_ = true;
 }
 
@@ -315,7 +317,7 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
     Eigen::Vector3d error_(0,0,0);
     // Get waypoint list, if available
     std::lock_guard<std::mutex> l(waypointMutex_);
-    if(!waypoints_.empty()) {
+    if(!waypoints_.empty() && isTracking_) {
         // TODO: setPoseReference() from current waypoint
         Waypoint w = waypoints_.front();
         ROS_WARN_STREAM_THROTTLE(2, "Current waypointX: " << w.x);
