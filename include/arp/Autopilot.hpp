@@ -123,10 +123,8 @@ class Autopilot {
   void controllerCallback(uint64_t timeMicroseconds,
                           const arp::kinematics::RobotState& x);
 
-  
-  /// \brief Set to automatic control mode.
+  /// \brief Set occupancy map.
   void setOccupancyMap(cv::Mat MapData);
-
 
   /// \brief A Helper struct to send lists of waypoints.
   struct Waypoint {
@@ -152,7 +150,6 @@ class Autopilot {
     std::lock_guard<std::mutex> l(waypointMutex_);
     return waypoints_.size();
   }
-
 
  protected:
   /// \brief Move the drone.
@@ -184,16 +181,14 @@ class Autopilot {
   std::mutex refMutex_; ///< We need to lock the reference access due to asynchronous arrival.
   std::atomic<bool> isAutomatic_; ///< True, if in automatic control mode.
   std::atomic<bool> isTracking_; ///< True, if in tracking control mode.
-  PidController x_pid;
-  PidController y_pid;
-  PidController z_pid;
-  PidController yaw_pid;
-  double x_y_limit;
-  double z_limit;
-  double yaw_limit;
-  cv::Mat wrappedMapData_;
-
-
+  PidController x_pid; ///< PID Controller for x position.
+  PidController y_pid; ///< PID Controller for y position.
+  PidController z_pid; ///< PID Controller for z position.
+  PidController yaw_pid; ///< PID Controller for yaw rate.
+  double x_y_limit; ///< limit for x and y position.
+  double z_limit; ///< limit for z position.
+  double yaw_limit; ///< limit for yaw rateS.
+  cv::Mat wrappedMapData_; ///< Matrix containing occupancy map.
 
   std::deque<Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.
   std::mutex waypointMutex_;  ///< We need to lock the waypoint access due to asynchronous arrival.
@@ -201,7 +196,6 @@ class Autopilot {
 };
 
 } // namespace arp
-
 
 
 #endif /* ARDRONE_PRACTICALS_INCLUDE_ARP_AUTOPILOT_HPP_ */

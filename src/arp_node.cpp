@@ -277,11 +277,11 @@ bool setupOccupancyMap(ros::NodeHandle& nh,cv::Mat& retwrappedMapData)
 bool loadWaypoint(ros::NodeHandle& nh, arp::Autopilot::Waypoint& waypoint){
   double x, y, z, yaw, tolerance;
 
-  if(!nh.getParam("/arp_node/waypointX", x)) ROS_FATAL("error loading poseLostThreshold");
-  if(!nh.getParam("/arp_node/waypointY", y)) ROS_FATAL("error loading poseLostThreshold");
-  if(!nh.getParam("/arp_node/waypointZ", z)) ROS_FATAL("error loading poseLostThreshold");
-  if(!nh.getParam("/arp_node/waypointYaw", yaw)) ROS_FATAL("error loading poseLostThreshold");
-  if(!nh.getParam("/arp_node/waypointTolerance", tolerance)) ROS_FATAL("error loading poseLostThreshold");
+  if(!nh.getParam("/arp_node/waypointX", x)) ROS_FATAL("error loading waypointX");
+  if(!nh.getParam("/arp_node/waypointY", y)) ROS_FATAL("error loading waypointY");
+  if(!nh.getParam("/arp_node/waypointZ", z)) ROS_FATAL("error loading waypointZ");
+  if(!nh.getParam("/arp_node/waypointYaw", yaw)) ROS_FATAL("error loading waypointYaw");
+  if(!nh.getParam("/arp_node/waypointTolerance", tolerance)) ROS_FATAL("error loading waypointTolerance");
 
   waypoint.x = x;
   waypoint.y = y;
@@ -394,25 +394,26 @@ int main(int argc, char **argv)
   // to get reliable button presses
   bool pressed = false;
 
+  // set challenge parameters
   bool flyChallenge = false;
   bool flyBack = false;
   bool challengeCompleted = false;
   bool challengePaused = false;
+
+  // set Timings for challenge
   ros::Time landingTime = ros::Time::now() + ros::Duration(24*60*60);
   ros::Time challengePauseTime = ros::Time::now() + ros::Duration(24*60*60);
-
-  Eigen::Vector3d challengeStartPos;
-  arp::Autopilot::Waypoint challengeStartWaypoint;
-
+  double challengeStartTime = (ros::Time::now() + ros::Duration(24*60*60)).toSec();
   double challengeTime = 999.99;
   double bestTime = 999.99;
-  double challengeStartTime = (ros::Time::now() + ros::Duration(24*60*60)).toSec();
 
+  // start position for challenge
+  Eigen::Vector3d challengeStartPos;
+  arp::Autopilot::Waypoint challengeStartWaypoint;
 
   // variables for frontend error messages
   ros::Time displayTime = ros::Time::now() + ros::Duration(24*60*60);
   ros::Time displayTimeChallengeCompleted = ros::Time::now() + ros::Duration(24*60*60);
-  
   std::string errorText = "";
 
   //create Interactive Marker
@@ -477,10 +478,11 @@ int main(int argc, char **argv)
               cv::putText(image, "Space: Switch to Man. Mode", cv::Point(image_size.width/2-240*gp.fontScaling, image_size.height-90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
 
-          // show commands to interact with challenge
+          // show Challenge Status 
           if(ros::Time::now() - displayTimeChallengeCompleted < ros::Duration(3) && challengeCompleted) cv::putText(image, "Challenge Completed! Yay!", cv::Point(image_size.width/2-240*gp.fontScaling, image_size.height/2), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, cv::Scalar(0,0,255), 2, false);
           if(ros::Time::now() - displayTimeChallengeCompleted < ros::Duration(3) && ros::Time::now() - displayTimeChallengeCompleted >= ros::Duration(0) && !challengeCompleted) cv::putText(image, "Challenge Aborted!", cv::Point(image_size.width/2-185*gp.fontScaling, image_size.height/2), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, cv::Scalar(0,0,255), 2, false);
 
+          // show commands to interact with challenge
           if(autopilot.isTracking()){
                 challengeTime = ros::Time::now().toSec() - challengeStartTime;
                 cv::putText(image, "Challenge ongoing...", cv::Point(10*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
@@ -491,7 +493,7 @@ int main(int argc, char **argv)
                 cv::putText(image, "P: Need man. Mode", cv::Point(10*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           }
 
-          // Timings for Challenge
+          // display timings for Challenge
           if(challengeTime < bestTime && challengeCompleted) bestTime = challengeTime;
           std::stringstream best;
           best << std::fixed<<std::setprecision(2) << bestTime << "s";
@@ -514,6 +516,7 @@ int main(int argc, char **argv)
           cv::putText(image, "M: Toggle Projection", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-10*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           cv::putText(image, "U: Log Position", cv::Point(image_size.width-370*gp.fontScaling, image_size.height-50*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
           
+          // show possible moving commands
           if(droneStatus==3||droneStatus==4||droneStatus==7) {
 
               cv::putText(image, "W/ S: up/ down", cv::Point(10*gp.fontScaling, image_size.height-130*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);
@@ -543,47 +546,6 @@ int main(int argc, char **argv)
           SDL_RenderPresent(renderer);
           // cleanup (only after you're done displaying. you can repeatedly call UpdateTexture without destroying it)
           SDL_DestroyTexture(texture);
-      }
-
-      // trajectory tracking
-      if(flyChallenge && autopilot.isTracking()){
-
-       // Takeoff if standing on the ground
-        if(droneStatus == 2 && ros::Time::now() - landingTime > ros::Duration(4)) autopilot.takeoff();
-
-        // load path once per challenge
-        if(planner.pathFound()){
-            ROS_INFO("Load Path");
-            autopilot.flyPath(planner.get_waypoints());
-            planner.resetPathFound();
-        }
-
-        // check progress
-        if(autopilot.waypointsLeft() == 0 && planner.isReady() && !planner.pathFound()){
-
-            // land when reached last waypoint
-            ROS_INFO("Land.");
-            autopilot.land();
-            landingTime = ros::Time::now();
-
-            // check if on the way back
-            if(flyBack) {
-                // completed challenge - reset everything
-                ROS_INFO("Challenge Completed");
-                flyChallenge = false;
-                flyBack = false;
-                challengeCompleted = true;
-                challengePaused = false;
-                displayTimeChallengeCompleted = ros::Time::now();
-                planner.resetReady();
-                autopilot.setManual();
-            } else {
-                // command way back
-                ROS_INFO("Get back");
-                flyBack = true;
-                autopilot.flyPath(planner.get_waypoints_wayback());  
-            }
-        }
       }
 
       // command
@@ -630,16 +592,7 @@ int main(int argc, char **argv)
         if(!state[SDL_SCANCODE_SPACE]) displayTime = ros::Time::now();
       }
 
-      // Pause Challenge by hitting Space
-      if(autopilot.isTracking() && state[SDL_SCANCODE_SPACE]){
-        ROS_INFO_STREAM("Challenge paused...     status=" << droneStatus);
-        flyChallenge = false;        
-        challengeCompleted = false;
-        challengePaused = true;
-        challengePauseTime = ros::Time::now();
-        autopilot.setManual();
-      }
-
+      // cnt how often pose is changed
       if(vit.getPoseStatus() != lastPoseStatus){
         // get ros time now
         last = ros::Time::now();
@@ -648,6 +601,7 @@ int main(int argc, char **argv)
         lastPoseStatus = vit.getPoseStatus();
       }
 
+      // count how often pose is lost and how long it's lost
       if(!vit.getPoseStatus() && autopilot.isAutomatic()){
         poseLostCnt++;
         ROS_DEBUG_STREAM("Lost Cnt: " << poseLostCnt);
@@ -661,6 +615,13 @@ int main(int argc, char **argv)
         ROS_DEBUG_STREAM("poseSwitchTimeUp: " << poseSwitchTimeUp);
       } else {
         poseLostCnt = 0;
+      }
+
+      // create errorText if auto mode can't be activated
+      if(state[SDL_SCANCODE_RCTRL] && !autopilot.isAutomatic() && (!vit.getPoseStatus() or droneStatus==2)){
+        if(droneStatus==2) errorText = "Can't activate auto mode while not flying.";
+        else if(!vit.getPoseStatus()) errorText = "Can't activate auto mode while pose not found.";
+        displayTime = ros::Time::now();
       }
       
       // Press M to toggle application of camera model
@@ -688,11 +649,55 @@ int main(int argc, char **argv)
           } 
       }
 
-      // create errorText if auto mode can't be activated
-      if(state[SDL_SCANCODE_RCTRL] && !autopilot.isAutomatic() && (!vit.getPoseStatus() or droneStatus==2)){
-        if(droneStatus==2) errorText = "Can't activate auto mode while not flying.";
-        else if(!vit.getPoseStatus()) errorText = "Can't activate auto mode while pose not found.";
-        displayTime = ros::Time::now();
+      // trajectory tracking
+      if(flyChallenge && autopilot.isTracking()){
+
+       // Takeoff if standing on the ground
+        if(droneStatus == 2 && ros::Time::now() - landingTime > ros::Duration(4)) autopilot.takeoff();
+
+        // load path once per challenge
+        if(planner.pathFound()){
+            ROS_INFO("Load Path");
+            autopilot.flyPath(planner.get_waypoints());
+            planner.resetPathFound();
+        }
+
+        // check progress
+        if(autopilot.waypointsLeft() == 0 && planner.isReady() && !planner.pathFound()){
+
+            // land when reached last waypoint
+            ROS_INFO("Land.");
+            autopilot.land();
+            landingTime = ros::Time::now();
+
+            // check if on the way back
+            if(flyBack) {
+                // completed challenge - reset everything
+                ROS_INFO("Challenge Completed");
+                flyChallenge = false;
+                flyBack = false;
+                challengeCompleted = true;
+                challengePaused = false;
+                displayTimeChallengeCompleted = ros::Time::now();
+                planner.resetReady();
+                autopilot.setManual();
+            } else {
+                // command way back
+                ROS_INFO("Get back");
+                flyBack = true;
+                autopilot.flyPath(planner.get_waypoints_wayback());  
+            }
+        }
+      }
+
+      // Pause Challenge by hitting Space
+      if(autopilot.isTracking() && state[SDL_SCANCODE_SPACE]){
+        ROS_INFO_STREAM("Challenge paused...     status=" << droneStatus);
+        flyChallenge = false;        
+        challengeCompleted = false;
+        challengePaused = true;
+        challengePauseTime = ros::Time::now();
+        autopilot.setManual();
       }
 
       // abort Challenge if waited too long or hit the space a second time
@@ -709,6 +714,7 @@ int main(int argc, char **argv)
 
       // Start Challenge with linear planner when hitting O
       if(state[SDL_SCANCODE_O] && vit.getPoseStatus() && !autopilot.isTracking() && !autopilot.isAutomatic()){
+        // activate tracking state and set parameters
         flyChallenge = true;
         challengeCompleted = false;
         autopilot.setTracking();
@@ -720,25 +726,31 @@ int main(int argc, char **argv)
             ROS_INFO_STREAM("Start Challenge with linear Planner...     status=" << droneStatus);
             challengeStartTime=ros::Time::now().toSec();
 
+            // get current position
             double x, y, z, yaw;
             autopilot.getPoseReference(x, y, z, yaw);
             
+            // set goal position
             challengeStartPos << x,y,z;
             Eigen::Vector3d goal;
             goal << waypointB.x, waypointB.y, waypointB.z;
 
+            // invoke planner
             planner.plan(challengeStartPos, goal);
         } else {
+            // resume planner, substract pause time for live timing
             ROS_INFO_STREAM("Resume Challenge...     status=" << droneStatus);
             challengeStartTime += (ros::Time::now() - challengePauseTime).toSec();
             challengePaused = false;
         }
+        // reset pause time
         challengePauseTime = ros::Time::now();
 
       }
 
       // Start Challenge when hitting P
       if(state[SDL_SCANCODE_P] && vit.getPoseStatus() && !autopilot.isTracking() && !autopilot.isAutomatic()){
+        // activate tracking state and set parameters
         flyChallenge = true;
         challengeCompleted = false;
         autopilot.setTracking();
@@ -750,22 +762,26 @@ int main(int argc, char **argv)
             ROS_INFO_STREAM("Start Challenge...     status=" << droneStatus);
             challengeStartTime=ros::Time::now().toSec();
 
+            // get current position
             double x, y, z, yaw;
             autopilot.getPoseReference(x, y, z, yaw);
 
+            // set goal position
             challengeStartWaypoint.x = x;
             challengeStartWaypoint.y = y;
             challengeStartWaypoint.z = z;
             challengeStartWaypoint.yaw = yaw;
             challengeStartWaypoint.posTolerance = 0.1;
-
+            
+            // invoke planner
             planner.plan(challengeStartWaypoint, waypointB);
         } else {
+            // resume planner, substract pause time for live timing
             ROS_INFO_STREAM("Resume Challenge...     status=" << droneStatus);
             challengeStartTime += (ros::Time::now() - challengePauseTime).toSec();
             challengePaused = false;
         }
-
+        // reset pause time
         challengePauseTime = ros::Time::now();
       }
 
@@ -773,12 +789,18 @@ int main(int argc, char **argv)
       if((!autopilot.isTracking())&&(!autopilot.isAutomatic())&&(droneStatus==3||droneStatus==4||droneStatus==7)) 
       {
         
+          // activate automatic mode to set goal positions with rviz
           if(state[SDL_SCANCODE_RCTRL] && vit.getPoseStatus()) {
+            // init safety parameters
             poseSwitchCnt=0;
             poseSwitchTimeUp=false;
             ROS_INFO_STREAM("Autopilot on...     status=" << droneStatus);
+
+            // get current pose
             double x, y, z, yaw;
             autopilot.getPoseReference(x, y, z, yaw);
+
+            // activate auto mode
             markerServer.activate(x, y, z, yaw);
             autopilot.setAutomatic();
           }

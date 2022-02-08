@@ -97,6 +97,7 @@ Autopilot::DroneStatus Autopilot::droneStatus()
   }
   return DroneStatus(navdata.state);
 }
+
 // Get the remaining charge of the drone's betterie.
 float Autopilot::droneBattery()
 {
@@ -211,6 +212,7 @@ void Autopilot::setOccupancyMap(cv::Mat MapData)
 {
   wrappedMapData_=MapData;
 }
+
 // Move the drone automatically.
 bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
 {
@@ -285,6 +287,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
 
 }
 
+// Get the pose reference.
 bool Autopilot::getPoseReference(double& x, double& y, double& z, double& yaw) {
   std::lock_guard<std::mutex> l(refMutex_);
   x = ref_x_;
@@ -363,10 +366,8 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
 
     // TODO: send to move
     move(x_move,y_move,z_move,yaw_move);
-
-    
-
   }
+
   return;
 }
 
