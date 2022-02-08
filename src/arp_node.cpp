@@ -399,6 +399,7 @@ int main(int argc, char **argv)
   bool challengeCompleted = false;
   bool challengePaused = false;
   ros::Time landingTime = ros::Time::now() + ros::Duration(24*60*60);
+  ros::Time challengeTime = ros::Time::now() + ros::Duration(24*60*60);
   ros::Time challengePauseTime = ros::Time::now() + ros::Duration(24*60*60);
 
   Eigen::Vector3d challengeStartPos;
@@ -408,6 +409,7 @@ int main(int argc, char **argv)
   // variables for frontend error messages
   ros::Time displayTime = ros::Time::now() + ros::Duration(24*60*60);
   ros::Time displayTimeChallengeCompleted = ros::Time::now() + ros::Duration(24*60*60);
+  
   std::string errorText = "";
 
   //create Interactive Marker
@@ -545,6 +547,7 @@ int main(int argc, char **argv)
                 challengeCompleted = true;
                 challengePaused = false;
                 displayTimeChallengeCompleted = ros::Time::now();
+                ROS_INFO_STREAM("Challenge Time:"<<ros::Time::now()-challengeTime);
                 planner.resetReady();
                 autopilot.setManual();
             } else {
@@ -676,6 +679,7 @@ int main(int argc, char **argv)
 
       // Start Challenge with linear planner when hitting O
       if(state[SDL_SCANCODE_O] && vit.getPoseStatus() && !autopilot.isTracking()){
+        challengeTime=ros::Time::now();
         ROS_INFO_STREAM("Start Challenge with linear Planner...     status=" << droneStatus);
         flyChallenge = true;
         challengeCompleted = false;
@@ -702,6 +706,7 @@ int main(int argc, char **argv)
 
       // Start Challenge when hitting P
       if(state[SDL_SCANCODE_P] && vit.getPoseStatus() && !autopilot.isTracking()){
+        challengeTime=ros::Time::now();
         ROS_INFO_STREAM("Start Challenge...     status=" << droneStatus);
         flyChallenge = true;
         challengeCompleted = false;
