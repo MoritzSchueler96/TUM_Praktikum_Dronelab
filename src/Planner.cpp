@@ -85,8 +85,10 @@ bool  Planner::loadMap(std::string path) {
 
 bool Planner::is_occupied(int i, int j, int k)
 {
+  //check if index out of given Map
   if(i<wrappedMapData_.size[0]& j<wrappedMapData_.size[1]&k<wrappedMapData_.size[2]&i>=0&j>=0&k>=0)
   {
+    //Check Log Odds of Occupancy Map
     if(wrappedMapData_.at<char>(i,j,k)>=0)
     {
         return true;
@@ -101,19 +103,21 @@ bool Planner::is_occupied(int i, int j, int k)
 
 double Planner::calcDist(Eigen::Vector3i Point1, Eigen::Vector3i Point2)
 {
+  //L2 Distance between the points
   return (Point1-Point2).norm();
 }
 
 int Planner::getSmallestTotDist(void)
 {
-  double minDist=openSet.front().totDistEst;
-  int  index=0;
-  for(int i=0;i<openSet.size(); i++)
+  double minDist=openSet.front().totDistEst; //threshold for minimal Total Distance Estiation to goal point
+  int  index=0; //return value
+
+  for(int i=0;i<openSet.size(); i++) //go through complete OpenSet
   {
-    if(minDist>openSet.at(i).totDistEst)
+    if(minDist>openSet.at(i).totDistEst) //check if Estimation is lower then Threshold
     {
-      minDist=openSet.at(i).totDistEst;
-      index=i;
+      minDist=openSet.at(i).totDistEst; //set Threshold to new Minimum
+      index=i; //save index to return at the end
     }
 
   }
@@ -122,28 +126,29 @@ int Planner::getSmallestTotDist(void)
 
 int Planner::NodeinQueue(Eigen::Vector3i Point)
 {
-  int index=openSet.size();
-  for(int i=0; i< openSet.size();i++)
+  int index=openSet.size();//set index to failure value
+  for(int i=0; i< openSet.size();i++) //go through openSet
   {
-    if(calcDist(Point,openSet.at(i).point)<1e-3)
+    if(calcDist(Point,openSet.at(i).point)<1e-3)//check if given point is saed in Node
     {
-      index=i;
-      break;
+      index=i;//save index to return
+      break; //leave for loop, since point is found
     }
 
   }
   return index;
 }
+
 int Planner::NodeExplored(Eigen::Vector3i Point)
 {
   
-  int index=exploredSet.size();
-  for(int i=0;i<exploredSet.size();i++)
+  int index=exploredSet.size();//set index to failure value
+  for(int i=0;i<exploredSet.size();i++)//go through exploredSet
   {
-    if(calcDist(Point,exploredSet.at(i).point)<1e-3)
+    if(calcDist(Point,exploredSet.at(i).point)<1e-3)//check if given point is saed in Node
     {
-      index=i;
-      break;
+      index=i;//save index to return
+      break; //leave for loop, since point is found
     }
 
   }
@@ -155,19 +160,24 @@ void Planner::addNeighbour(Eigen::Vector3i curPoint,   double dist,int stepsize,
 {
   Eigen::Vector3i neighbor;
   neighbor=curPoint;
+  //go through 26 neighbors
   for(int x=-1; x<=1; x++)
   {
     for(int y=-1; y<=1; y++)
     {
       for(int z=-1; z<=1; z++)
       {
-        neighbor<<curPoint[0]+x*stepsize,curPoint[1]+y*stepsize, curPoint[2]+z*stepsize;
+        //calculate neighbor with stepsize
+        neighbor<<curPoint[0]+x*stepsize,curPoint[1]+y*stepsize, curPoint[2]+z*stepsize; 
+        //skip currentpoint, not necessary to stay at same position
         if((neighbor-curPoint).norm()<1e-3)
         {
           continue;
         }
+        //if stepsize=1, only 1 point has to be checked
         if(stepsize>1)
         {
+          //Check that neighbor no obstacle is between neighbor and current position
           if(!lineCheck(neighbor, curPoint))
           {
             continue;
@@ -175,28 +185,31 @@ void Planner::addNeighbour(Eigen::Vector3i curPoint,   double dist,int stepsize,
         }
         else
         {
+          //Check that neighbor is not occupied
           if(is_occupied(neighbor[0],neighbor[1], neighbor[2]))
           {
             continue;
           }
         }
-        
+        //calculate the covered distance for neighbor
         double alt=dist+(neighbor-curPoint).norm();
+        //second value to add preferences, like stay at same direction
         double alttotal=alt;
+        //check if point is already explored, so that it is not explored twice, 
+        //since distance will be always higher second time
         if(NodeExplored(neighbor)>=exploredSet.size())
         {
+          //check if Point is already in OpenSet
           int index=NodeinQueue(neighbor);
-          //penelize direction changes
+          //penalize direction changes
           if(((neighbor-curPoint)-direction).norm()>1e-3)
           {
             alttotal+=2;
           }
-          if((calcDist(neighbor, GoalPoint)>10)&&(neighbor[2]<90))
-          {
-            alttotal+=(90-neighbor[2])*500;
-          }
+ 
           if(index<openSet.size())
           {
+            //Node is already in OpenSet==> check if it has to be modified
             if(alt<openSet.at(index).dist)
             {
               openSet.at(index).dist=alt;
@@ -206,6 +219,7 @@ void Planner::addNeighbour(Eigen::Vector3i curPoint,   double dist,int stepsize,
           }
           else
           {
+            //add Node to OpenSet
             Node newNode;
             newNode.point=neighbor;
             newNode.dist=alt;
@@ -226,6 +240,7 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
   Node Start_Node;
   Node Goal_Node;
   Goal_Node.point=goal;
+  //Initialise Start Node
   Start_Node.point=start;
   Start_Node.totDistEst=calcDist(Start_Node.point, Goal_Node.point);
   Start_Node.dist=0;
@@ -233,31 +248,36 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
   Goal_Node.totDistEst=0;
   Goal_Node.dist=0xFFFFFFFFFF;//max value
   
-
+  //Initialize A Star Algorithm
   exploredSet.clear();
   openSet.clear();
   openSet.push_back(Start_Node);
-  //same for goal
-  //find Path in occupancy map with A* in 1m height
+
   bool finished=false;
-  while( openSet.empty()!=true&&finished!=true)
+  while( openSet.empty()!=true&&finished!=true)//run until all Nodes are explored or goal is reached
   {
+    //get next Node to explore
     int index_next_Node= getSmallestTotDist();
     Node Next_Node=openSet.at(index_next_Node);
-    
+    //return Node from openSet and add it to exploredSet
     exploredSet.push_back(Next_Node);
     openSet.erase(openSet.begin()+index_next_Node);
+    
     //already at goal position?
     if(calcDist(Next_Node.point, Goal_Node.point)<1e-3)
     {
       finished=true;
       continue;
     }
+    //hyperparameter stepsize to speed up algorithm, since resolution of occupancy Map quite high
     int stepsize=10;
+    
+    //to reach goal, gradual planning if it is near
     if(calcDist(Next_Node.point, Goal_Node.point)<10)
     {
       stepsize=1;
     }
+    //add Neighbor Nodes to openSet
     addNeighbour(Next_Node.point, Next_Node.dist,stepsize,(Next_Node.point-Next_Node.prev_point), Goal_Node.point);
   }
 
@@ -325,16 +345,16 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal)
     int goal_y = std::round(Goal.y/0.1)+(wrappedMapData_.size[1]-1)/2;
     int goal_z = std::round(Goal.z/0.1)+(wrappedMapData_.size[2]-1)/2;
     Eigen::Vector3i start_p;
-    if(start_z<85)
+    if(start_z<90)
     {
-      start_z=85;
+      start_z=90;
     }
     start_p<<start_x, start_y, start_z;
     std::cout << "Start Point "<<start_p[0]<<", "<<start_p[1]<<", "<<start_p[2]<< std::endl;
     
-    if(goal_z<85)
+    if(goal_z<90)
     {
-      goal_z=85;
+      goal_z=90;
     }
     Eigen::Vector3i goal_p(goal_x, goal_y, goal_z);
     std::cout << "Goal Point "<<goal_p[0]<<", "<<goal_p[1]<<", "<<goal_p[2]<< std::endl;
@@ -356,7 +376,7 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal)
 
 void Planner::calcWorldPoint(Eigen::Vector3i point, Eigen::Vector3d& retPoint)
 {
-  
+  //calculate each coordinate individually
   for (int i=0; i<3;i++)
   {
     retPoint[i]=((double)point[i]-((double)(wrappedMapData_.size[i]-1)/2))*0.1;
@@ -368,12 +388,14 @@ void Planner::createWaypoints(Planner::Node StartNode)
 {
   arp::Autopilot::Waypoint tempWaypoint;
   Eigen::Vector3d tempPoint;
+  Eigen::Vector3d prevPoint;
   Node nextNode=StartNode;
   Node curNode=StartNode;
   Eigen::Vector3i curDirection(0,0,0);
   Eigen::Vector3i prevDirection(0,0,0);
   std::cout << "Total Distance"<<StartNode.dist << std::endl;
-  //Add first Node for wayback
+  double curYawRate;
+  double prevYawRate;
   
 
   while(nextNode.dist>0)
@@ -381,36 +403,40 @@ void Planner::createWaypoints(Planner::Node StartNode)
     int index=NodeExplored(curNode.prev_point);
     nextNode=exploredSet.at(index);
     curDirection=nextNode.point-curNode.point;
-    if((curDirection-prevDirection).norm()>1e-3)//check if direction changed
+    calcWorldPoint(curNode.prev_point, tempPoint);
+    calcWorldPoint(curNode.point, tempPoint);
+    curYawRate=calcYawRate_area(tempPoint,prevPoint );
+    if(((curDirection-prevDirection).norm()>1e-3)||(curYawRate!=prevYawRate))//check if direction changed
     {
-      Eigen::Vector3d prevPoint;
-      calcWorldPoint(curNode.prev_point, tempPoint);
-      calcWorldPoint(curNode.point, tempPoint);
+
+      
       tempWaypoint.x=tempPoint[0];
       tempWaypoint.y=tempPoint[1];
       tempWaypoint.z=tempPoint[2];
-      tempWaypoint.yaw=calcYawRate_area(tempPoint,prevPoint );
+      tempWaypoint.yaw=curYawRate;
       tempWaypoint.posTolerance=POS_TOLERANCE_LAX;
       waypoints_.push_front(tempWaypoint);
       tempWaypoint.yaw=-tempWaypoint.yaw;
       waypoints_wayback.push_back(tempWaypoint);
       std::cout << "Add Waypoint"<< tempPoint<< std::endl;
+      std::cout << "YawRate"<< curYawRate<< std::endl;
     }
 
     curNode=nextNode;
     prevDirection=curDirection;
+    prevYawRate=curYawRate;
     
 
   }
   calcWorldPoint(curNode.point, tempPoint);
-      tempWaypoint.x=tempPoint[0];
-      tempWaypoint.y=tempPoint[1];
-      tempWaypoint.z=tempPoint[2];
-      tempWaypoint.yaw=0.0;
-      tempWaypoint.posTolerance=POS_TOLERANCE_LAX;
-      waypoints_.push_front(tempWaypoint);
-      waypoints_wayback.push_back(tempWaypoint);
-      std::cout << "Add Waypoint"<< tempPoint<< std::endl;
+  tempWaypoint.x=tempPoint[0];
+  tempWaypoint.y=tempPoint[1];
+  tempWaypoint.z=tempPoint[2];
+  tempWaypoint.yaw=calcYawRate_area(tempPoint,prevPoint);
+  tempWaypoint.posTolerance=POS_TOLERANCE_LAX;
+  //waypoints_.push_front(tempWaypoint);
+  waypoints_wayback.push_back(tempWaypoint);
+  std::cout << "Add Waypoint"<< tempPoint<< std::endl;
 
 
 }
@@ -587,23 +613,12 @@ double Planner::calcYawRate_area(Eigen::Vector3d point, Eigen::Vector3d prev_poi
   //Room: 5 14
   //Table: 2  6
   //Table: 0.6 4
-  /*if((point[0]>0.6&&point[0]<2)&&(point[1]>7&&point[1]<3)
-  {
-    return 0;
-  }
-  if(point[0]<4&&(point[1]<2&&point[1]>0.6)
-  {
-    return 0;
-  }
-  if(point[0]>4&&point[1]<13)
-  {
-    return ROS_PI;
-  }*/
+  
   static double prevYawrate=0;
-
-  if((point[1]<7&&point[1]>2.5)&&((point[0]>2)||(point[0]<0.6)))
+  
+  if((point[1]<7.5&&point[1]>2.5)&&((point[0]>2)||(point[0]<0.6)))
   {
-    if(prev_point[1]>7)
+    if(prev_point[1]>7.5)
     {
       prevYawrate=ROS_PI/2;
         return ROS_PI/2;
