@@ -280,7 +280,7 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
     int stepsize=gridSize_;
     
     //to reach goal, gradual planning if it is near
-    if(calcDist(Next_Node.point, Goal_Node.point)<5)
+    if(calcDist(Next_Node.point, Goal_Node.point)<10)
     {
       stepsize=1;
     }
