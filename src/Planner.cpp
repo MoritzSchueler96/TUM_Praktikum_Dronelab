@@ -276,7 +276,7 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
       continue;
     }
     //hyperparameter stepsize to speed up algorithm, since resolution of occupancy Map quite high
-    int stepsize=15;
+    int stepsize=gridSize_;
     
     //to reach goal, gradual planning if it is near
     if(calcDist(Next_Node.point, Goal_Node.point)<5)
@@ -432,7 +432,7 @@ void Planner::createWaypoints(Planner::Node StartNode)
 
     if(calcYawRate_) curYawRate=calcYawRate_area(tempPoint,prevPoint);
     else curYawRate=0.0;
-    if(((curDirection-prevDirection).norm()>1e-3)||(curYawRate!=prevYawRate))//check if direction changed
+    if(((curDirection-prevDirection).norm()>1e-3))//||(curYawRate!=prevYawRate))//check if direction changed
     {
 
       
@@ -467,22 +467,9 @@ void Planner::createWaypoints(Planner::Node StartNode)
 
   if(calcYawRate_){
       double yawrate;
-      //correction of yawrates
-      prevPoint<<waypoints_wayback.front().x,waypoints_wayback.front().y,waypoints_wayback.front().z;
-      tempPoint<<waypoints_wayback.back().x,waypoints_wayback.back().y,waypoints_wayback.back().z;
-      yawrate=calcYawRate_area(tempPoint,prevPoint);
-      for(int i=0;i<waypoints_wayback.size(); i++)
-      {
-        std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
-        //tempPoint<<waypoints_wayback.at(i).x,waypoints_wayback.at(i).y,waypoints_wayback.at(i).z;
-        waypoints_wayback.at(i).yaw=yawrate;//calcYawRate_area(tempPoint,prevPoint);
-        std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
-        prevPoint=tempPoint;
-      }
-  
     prevPoint<<waypoints_.front().x,waypoints_.front().y,waypoints_.front().z;
     tempPoint<<waypoints_.back().x,waypoints_.back().y,waypoints_.back().z;
-    yawrate=calcYawRate_area(tempPoint,prevPoint);;
+    yawrate=calcYawRate_area(tempPoint,prevPoint);
     for(int i=0;i<waypoints_.size(); i++)
     {
       std::cout<<"yaw rates"<<waypoints_.at(i).yaw;
@@ -492,6 +479,20 @@ void Planner::createWaypoints(Planner::Node StartNode)
       prevPoint=tempPoint;
     
     }
+      //correction of yawrates
+      prevPoint<<waypoints_wayback.front().x,waypoints_wayback.front().y,waypoints_wayback.front().z;
+      tempPoint<<waypoints_wayback.back().x,waypoints_wayback.back().y,waypoints_wayback.back().z;
+      //yawrate=calcYawRate_area(tempPoint,prevPoint);
+      for(int i=0;i<waypoints_wayback.size(); i++)
+      {
+        std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
+        //tempPoint<<waypoints_wayback.at(i).x,waypoints_wayback.at(i).y,waypoints_wayback.at(i).z;
+        waypoints_wayback.at(i).yaw=yawrate;//calcYawRate_area(tempPoint,prevPoint);
+        std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
+        prevPoint=tempPoint;
+      }
+  
+    
   }
 
 }
@@ -675,7 +676,7 @@ double Planner::calcYawRate_area(Eigen::Vector3d point, Eigen::Vector3d prev_poi
     Eigen::Vector3d  direction=(prev_point-point).normalized();
     Eigen::Vector3d defaultdir(1,0,0);
     double yawrate=acos(direction.transpose()*defaultdir);
-    if(direction[0]<0)
+    if(direction[1]<0)
     {
 
       return yawrate;
