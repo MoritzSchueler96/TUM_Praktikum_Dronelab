@@ -5,8 +5,9 @@
   ☐ ransac parameters in launch file packen?
   ☐ add explanation of brisk parameters in launch file
 
-  ☐ weirdes Verhalten beim Landen untersuchen
+  ☐ Debugging aufräumen
   ☐ add comments
+  ✔ weirdes Verhalten beim Landen untersuchen @done(22-02-09 10:09)
   
 Archive:
   ✔ collision check @done(22-01-25 17:46)
