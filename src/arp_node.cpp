@@ -105,6 +105,7 @@ struct globalParams{
   int skipThresLimit;
   bool calcYawRate;
   bool flyForward;
+  uint8_t gridSize;
 };
 
  /// \brief Load global variables
@@ -133,6 +134,7 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
 
   if(!nh.getParam("/arp_node/calcYawRate", gp.calcYawRate)) ROS_FATAL("error loading calcYawRate");
   if(!nh.getParam("/arp_node/flyForward", gp.flyForward)) ROS_FATAL("error loading flyForward");
+  if(!nh.getParam("/arp_node/gridSize", gp.gridSize)) ROS_FATAL("error loading gridSize");
 
   return true;
 }
@@ -355,6 +357,7 @@ int main(int argc, char **argv)
   planner.setOccupancyMap(wrappedMapData);
   planner.setCalcYawRate(gp.calcYawRate);
   planner.setFlyForward(gp.flyForward);
+  planner.setGridSize(gp.gridSize);
   
   // setup visual inertial tracker
   arp::ViEkf viEkf;

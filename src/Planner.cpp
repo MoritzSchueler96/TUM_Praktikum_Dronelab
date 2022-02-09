@@ -29,6 +29,7 @@ Planner::Planner(ros::NodeHandle& nh): nh_(&nh)
   isReady_ = false; // always set Planner to not ready
   calcYawRate_ = true; // calc yaw rate, s.t. camera faces in to the room
   flyForward_ = false; // calc yaw rate, s.t. camera faces forward
+  gridSize_=5; // default gridsize
 }
 //Set Occupancy Map
 void Planner::setOccupancyMap(cv::Mat MapData)
@@ -329,7 +330,7 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     waypoints_wayback.push_back(temp);
 
     // check if extra landing pos is needed
-    checkLandingPos(temp, waypoints_wayback);
+    //checkLandingPos(temp, waypoints_wayback);
 
     found_ = true;
     isReady_ = true;
@@ -356,14 +357,14 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal)
       start_z=FLIGHT_HEIGHT_INDEX;
     }
     start_p<<start_x, start_y, start_z;
-    std::cout << "Start Point "<<start_p[0]<<", "<<start_p[1]<<", "<<start_p[2]<< std::endl;
+    // std::cout << "Start Point "<<start_p[0]<<", "<<start_p[1]<<", "<<start_p[2]<< std::endl;
     
     if(goal_z<FLIGHT_HEIGHT_INDEX)
     {
       goal_z=FLIGHT_HEIGHT_INDEX;
     }
     Eigen::Vector3i goal_p(goal_x, goal_y, goal_z);
-    std::cout << "Goal Point "<<goal_p[0]<<", "<<goal_p[1]<<", "<<goal_p[2]<< std::endl;
+    // std::cout << "Goal Point "<<goal_p[0]<<", "<<goal_p[1]<<", "<<goal_p[2]<< std::endl;
     found_=A_Star(start_p, goal_p);
     createWaypoints(exploredSet.back());
     
@@ -373,15 +374,15 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal)
     checkLandingPos(waypoints_wayback.back(), waypoints_wayback);
     for(int i=0; i<waypoints_.size();i++)
     {
-      std::cout<<"Waypoint"<<i<<": ("<<waypoints_.at(i).x<<", "\
+      // std::cout<<"Waypoint"<<i<<": ("<<waypoints_.at(i).x<<", "\
       <<waypoints_.at(i).y<<", "\
       <<waypoints_.at(i).z<<") Yaw: "\
       <<waypoints_.at(i).yaw<<std::endl;
     }
-    std::cout<<"Rueckweg:"<<std::endl;
+    // std::cout<<"Rueckweg:"<<std::endl;
     for(int i=0; i<waypoints_wayback.size();i++)
     {
-      std::cout<<"Waypoint Wayback"<<i<<": ("<<waypoints_wayback.at(i).x<<", "\
+      // std::cout<<"Waypoint Wayback"<<i<<": ("<<waypoints_wayback.at(i).x<<", "\
       <<waypoints_wayback.at(i).y<<", "\
       <<waypoints_wayback.at(i).z<<") Yaw: "\
       <<waypoints_wayback.at(i).yaw<<std::endl;
@@ -413,7 +414,7 @@ void Planner::createWaypoints(Planner::Node StartNode)
   Node curNode=StartNode;
   Eigen::Vector3i curDirection(0,0,0);
   Eigen::Vector3i prevDirection(0,0,0);
-  std::cout << "Total Distance"<<StartNode.dist << std::endl;
+  ROS_INFO_STREAM("Total Distance"<<StartNode.dist);
   double curYawRate;
   double prevYawRate;
   
@@ -429,8 +430,6 @@ void Planner::createWaypoints(Planner::Node StartNode)
     else curYawRate=0.0;
     if(((curDirection-prevDirection).norm()>1e-3)||(curYawRate!=prevYawRate))//check if direction changed
     {
-
-      
       tempWaypoint.x=tempPoint[0];
       tempWaypoint.y=tempPoint[1];
       tempWaypoint.z=tempPoint[2];
@@ -439,8 +438,6 @@ void Planner::createWaypoints(Planner::Node StartNode)
       waypoints_.push_front(tempWaypoint);
       tempWaypoint.yaw=0;//yaw rate calculation done later
       waypoints_wayback.push_back(tempWaypoint);
-      std::cout << "Add Waypoint"<< tempPoint<< std::endl;
-      std::cout << "YawRate"<< curYawRate<< std::endl;
     }
 
     curNode=nextNode;
@@ -464,10 +461,10 @@ void Planner::createWaypoints(Planner::Node StartNode)
       prevPoint<<waypoints_wayback.front().x,waypoints_wayback.front().y,waypoints_wayback.front().z;
       for(int i=0;i<waypoints_wayback.size(); i++)
       {
-        std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
+        // std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
         tempPoint<<waypoints_wayback.at(i).x,waypoints_wayback.at(i).y,waypoints_wayback.at(i).z;
         waypoints_wayback.at(i).yaw=calcYawRate_area(tempPoint,prevPoint);
-        std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
+        // std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
         prevPoint=tempPoint;
       }
   }
@@ -530,7 +527,7 @@ void Planner::checkLandingPos(const arp::Autopilot::Waypoint w, std::deque<arp::
 
 bool Planner::calcLandingPosition(const Eigen::Vector3d start, Eigen::Vector3d& goal)
 {
-    ROS_WARN("Calculating Landing Position.");
+    ROS_DEBUG("Calculating Landing Position.");
     int mode = 1;
     double step = STEP_SIZE;
     int cnt = 0;
@@ -580,7 +577,7 @@ bool Planner::calcLandingPosition(const Eigen::Vector3d start, Eigen::Vector3d& 
         }
         mode++;
     }
-    ROS_WARN_STREAM("Landing Position: " << goal);
+    ROS_DEBUG_STREAM("Landing Position: " << goal);
     if(cnt >= MAX_TRIES) return false;
 
     return true;
@@ -663,7 +660,6 @@ double Planner::calcYawRate_area(Eigen::Vector3d point, Eigen::Vector3d prev_poi
       prevYawrate=-ROS_PI/2;
       return -ROS_PI/2;
     }
-    std::cout<<"warum"<<std::endl;
     return prevYawrate;
     
   }
