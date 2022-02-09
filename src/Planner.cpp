@@ -27,8 +27,8 @@ Planner::Planner(ros::NodeHandle& nh): nh_(&nh)
   //camera_=camMod;
   found_ = false; // always assume no found path  
   isReady_ = false; // always set Planner to not ready
-
-  
+  calcYawRate_ = true; // calc yaw rate, s.t. camera faces in to the room
+  flyForward_ = false; // calc yaw rate, s.t. camera faces forward
 }
 //Set Occupancy Map
 void Planner::setOccupancyMap(cv::Mat MapData)
@@ -425,7 +425,8 @@ void Planner::createWaypoints(Planner::Node StartNode)
     curDirection=nextNode.point-curNode.point;
     calcWorldPoint(curNode.prev_point, tempPoint);
     calcWorldPoint(curNode.point, tempPoint);
-    curYawRate=calcYawRate_area(tempPoint,prevPoint );
+    if(calcYawRate_) curYawRate=calcYawRate_area(tempPoint,prevPoint);
+    else curYawRate=0.0;
     if(((curDirection-prevDirection).norm()>1e-3)||(curYawRate!=prevYawRate))//check if direction changed
     {
 
@@ -452,23 +453,24 @@ void Planner::createWaypoints(Planner::Node StartNode)
   tempWaypoint.x=tempPoint[0];
   tempWaypoint.y=tempPoint[1];
   tempWaypoint.z=tempPoint[2];
-  tempWaypoint.yaw=calcYawRate_area(tempPoint,prevPoint);
+
+  if(calcYawRate_) tempWaypoint.yaw=calcYawRate_area(tempPoint,prevPoint);
+  else tempWaypoint.yaw=0.0;
   tempWaypoint.posTolerance=POS_TOLERANCE_LAX;
-  //waypoints_.push_front(tempWaypoint);
   waypoints_wayback.push_back(tempWaypoint);
 
-  //correction of yawrates
-  prevPoint<<waypoints_wayback.front().x,waypoints_wayback.front().y,waypoints_wayback.front().z;
-  for(int i=0;i<waypoints_wayback.size(); i++)
-  {
-    std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
-    tempPoint<<waypoints_wayback.at(i).x,waypoints_wayback.at(i).y,waypoints_wayback.at(i).z;
-    waypoints_wayback.at(i).yaw=calcYawRate_area(tempPoint,prevPoint);
-    std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
-    prevPoint=tempPoint;
-  
+  if(calcYawRate_){
+      //correction of yawrates
+      prevPoint<<waypoints_wayback.front().x,waypoints_wayback.front().y,waypoints_wayback.front().z;
+      for(int i=0;i<waypoints_wayback.size(); i++)
+      {
+        std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
+        tempPoint<<waypoints_wayback.at(i).x,waypoints_wayback.at(i).y,waypoints_wayback.at(i).z;
+        waypoints_wayback.at(i).yaw=calcYawRate_area(tempPoint,prevPoint);
+        std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
+        prevPoint=tempPoint;
+      }
   }
-
 
 }
 

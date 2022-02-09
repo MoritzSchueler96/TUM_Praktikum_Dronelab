@@ -103,6 +103,8 @@ struct globalParams{
   ros::Duration poseLostTimeThreshold;
   int skipThresInit;
   int skipThresLimit;
+  bool calcYawRate;
+  bool flyForward;
 };
 
  /// \brief Load global variables
@@ -128,6 +130,9 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
   double threshold;
   if(!nh.getParam("/arp_node/poseLostTimeThreshold", threshold)) ROS_FATAL("error loading poseLostTimeThreshold");
   gp.poseLostTimeThreshold = ros::Duration(threshold);
+
+  if(!nh.getParam("/arp_node/calcYawRate", gp.calcYawRate)) ROS_FATAL("error loading calcYawRate");
+  if(!nh.getParam("/arp_node/flyForward", gp.flyForward)) ROS_FATAL("error loading flyForward");
 
   return true;
 }
@@ -348,6 +353,8 @@ int main(int argc, char **argv)
   // set up Planner
   arp::Planner planner(nh);
   planner.setOccupancyMap(wrappedMapData);
+  planner.setCalcYawRate(gp.calcYawRate);
+  planner.setFlyForward(gp.flyForward);
   
   // setup visual inertial tracker
   arp::ViEkf viEkf;
@@ -653,7 +660,7 @@ int main(int argc, char **argv)
       if(flyChallenge && autopilot.isTracking()){
 
        // Takeoff if standing on the ground
-        if(droneStatus == 2 && ros::Time::now() - landingTime > ros::Duration(4)) autopilot.takeoff();
+        if(droneStatus == 2 && ros::Time::now() - landingTime > ros::Duration(2)) autopilot.takeoff();
 
         // load path once per challenge
         if(planner.pathFound()){
