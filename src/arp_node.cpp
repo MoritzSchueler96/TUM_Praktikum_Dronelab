@@ -105,7 +105,7 @@ struct globalParams{
   int skipThresLimit;
   bool calcYawRate;
   bool flyForward;
-  uint8_t gridSize;
+  int gridSize;
 };
 
  /// \brief Load global variables
