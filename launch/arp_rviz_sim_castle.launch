@@ -51,6 +51,9 @@
     <param name="fontScaling" value="1.5" />
     <param name="skipThresInit" value="3" /> <!-- default 1 -->
     <param name="skipThresLimit" value="3" /> <!-- default 4 -->
+    <param name="calcYawRate" type="bool" value="false" />
+    <param name="flyForward" type="bool" value="true" />
+
 
     <!-- WaypointB -->
     <param name="waypointX" value="1.45" /> <!-- 1.3--><!--  0.7 --><!--  5.5 -->

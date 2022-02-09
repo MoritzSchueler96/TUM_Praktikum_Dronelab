@@ -27,8 +27,8 @@ Planner::Planner(ros::NodeHandle& nh): nh_(&nh)
   //camera_=camMod;
   found_ = false; // always assume no found path  
   isReady_ = false; // always set Planner to not ready
-
-  
+  calcYawRate_ = true; // calc yaw rate, s.t. camera faces in to the room
+  flyForward_ = false; // calc yaw rate, s.t. camera faces forward
 }
 //Set Occupancy Map
 void Planner::setOccupancyMap(cv::Mat MapData)
@@ -276,10 +276,10 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
       continue;
     }
     //hyperparameter stepsize to speed up algorithm, since resolution of occupancy Map quite high
-    int stepsize=10;
+    int stepsize=15;
     
     //to reach goal, gradual planning if it is near
-    if(calcDist(Next_Node.point, Goal_Node.point)<10)
+    if(calcDist(Next_Node.point, Goal_Node.point)<5)
     {
       stepsize=1;
     }
@@ -429,7 +429,9 @@ void Planner::createWaypoints(Planner::Node StartNode)
     curDirection=nextNode.point-curNode.point;
     calcWorldPoint(curNode.prev_point, tempPoint);
     calcWorldPoint(curNode.point, tempPoint);
-    curYawRate=0;//calcYawRate_area(tempPoint,prevPoint );
+
+    if(calcYawRate_) curYawRate=calcYawRate_area(tempPoint,prevPoint);
+    else curYawRate=0.0;
     if(((curDirection-prevDirection).norm()>1e-3)||(curYawRate!=prevYawRate))//check if direction changed
     {
 
@@ -456,33 +458,41 @@ void Planner::createWaypoints(Planner::Node StartNode)
   tempWaypoint.x=tempPoint[0];
   tempWaypoint.y=tempPoint[1];
   tempWaypoint.z=tempPoint[2];
-  tempWaypoint.yaw=calcYawRate_area(tempPoint,prevPoint);
+
+  if(calcYawRate_) tempWaypoint.yaw=calcYawRate_area(tempPoint,prevPoint);
+  else tempWaypoint.yaw=0.0;
   tempWaypoint.posTolerance=POS_TOLERANCE_LAX;
-  //waypoints_.push_front(tempWaypoint);
   waypoints_wayback.push_back(tempWaypoint);
 
-  //correction of yawrates
-  prevPoint<<waypoints_wayback.front().x,waypoints_wayback.front().y,waypoints_wayback.front().z;
-  for(int i=0;i<waypoints_wayback.size(); i++)
-  {
-    std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
-    tempPoint<<waypoints_wayback.at(i).x,waypoints_wayback.at(i).y,waypoints_wayback.at(i).z;
-    waypoints_wayback.at(i).yaw=calcYawRate_area(tempPoint,prevPoint);
-    std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
-    prevPoint=tempPoint;
-  
-  }
-   prevPoint<<waypoints_.front().x,waypoints_.front().y,waypoints_.front().z;
-  for(int i=0;i<waypoints_.size(); i++)
-  {
-    std::cout<<"yaw rates"<<waypoints_.at(i).yaw;
-    tempPoint<<waypoints_.at(i).x,waypoints_.at(i).y,waypoints_.at(i).z;
-    waypoints_.at(i).yaw=calcYawRate_area(tempPoint,prevPoint);
-    std::cout<<"yaw rates"<<waypoints_.at(i).yaw;
-    prevPoint=tempPoint;
-  
-  }
 
+  if(calcYawRate_){
+      double yawrate;
+      //correction of yawrates
+      prevPoint<<waypoints_wayback.front().x,waypoints_wayback.front().y,waypoints_wayback.front().z;
+      tempPoint<<waypoints_wayback.back().x,waypoints_wayback.back().y,waypoints_wayback.back().z;
+      yawrate=calcYawRate_area(tempPoint,prevPoint);
+      for(int i=0;i<waypoints_wayback.size(); i++)
+      {
+        std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
+        //tempPoint<<waypoints_wayback.at(i).x,waypoints_wayback.at(i).y,waypoints_wayback.at(i).z;
+        waypoints_wayback.at(i).yaw=yawrate;//calcYawRate_area(tempPoint,prevPoint);
+        std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
+        prevPoint=tempPoint;
+      }
+  
+    prevPoint<<waypoints_.front().x,waypoints_.front().y,waypoints_.front().z;
+    tempPoint<<waypoints_.back().x,waypoints_.back().y,waypoints_.back().z;
+    yawrate=calcYawRate_area(tempPoint,prevPoint);;
+    for(int i=0;i<waypoints_.size(); i++)
+    {
+      std::cout<<"yaw rates"<<waypoints_.at(i).yaw;
+      //tempPoint<<waypoints_.at(i).x,waypoints_.at(i).y,waypoints_.at(i).z;
+      waypoints_.at(i).yaw=yawrate;//calcYawRate_area(tempPoint,prevPoint);
+      std::cout<<"yaw rates"<<waypoints_.at(i).yaw;
+      prevPoint=tempPoint;
+    
+    }
+  }
 
 }
 
@@ -660,54 +670,59 @@ double Planner::calcYawRate_area(Eigen::Vector3d point, Eigen::Vector3d prev_poi
   //Table: 0.6 4
   
   static double prevYawrate=0;
-  #if 1//flyForward_
-  Eigen::Vector3d  direction=(prev_point-point).normalized();
-  Eigen::Vector3d defaultdir(1,0,0);
-  double yawrate=acos(direction.transpose()*defaultdir);
-  if(direction[0]<0)
+  if (flyForward_)
   {
+    Eigen::Vector3d  direction=(prev_point-point).normalized();
+    Eigen::Vector3d defaultdir(1,0,0);
+    double yawrate=acos(direction.transpose()*defaultdir);
+    if(direction[0]<0)
+    {
 
-    return yawrate;
+      return yawrate;
+    }
+    else
+    {
+      return -yawrate;
+    }
   }
   else
   {
-    return -yawrate;
-  }
-  #else
-  if((point[1]<7.5&&point[1]>2.5)&&((point[0]>2)||(point[0]<0.6)))
-  {
-    if(prev_point[1]>7.5)
+    
+    if((point[1]<7.5&&point[1]>2.5)&&((point[0]>2)||(point[0]<0.6)))
     {
-      prevYawrate=ROS_PI/2;
-        return ROS_PI/2;
+      if(prev_point[1]>7.5)
+      {
+        prevYawrate=ROS_PI/2;
+          return ROS_PI/2;
+      }
+      if(prev_point[1]<2.5)
+      {
+        prevYawrate=-ROS_PI/2;
+        return -ROS_PI/2;
+      }
+      std::cout<<"warum"<<std::endl;
+      return prevYawrate;
+      
     }
-    if(prev_point[1]<2.5)
+    if((point[1]>12)&&(point[0]<4))
     {
-      prevYawrate=-ROS_PI/2;
       return -ROS_PI/2;
     }
-    std::cout<<"warum"<<std::endl;
-    return prevYawrate;
-    
-  }
-  if((point[1]>12)&&(point[0]<4))
-  {
-    return -ROS_PI/2;
-  }
-  if((point[1]<-2.5)&&(point[0]<4))
-  {
-    return -ROS_PI/2;
-  }
-  if(point[0]>4)
-  {
-    if(point[1]>5)
+    if((point[1]<-2.5)&&(point[0]<4))
     {
-      return -ROS_PI*3/4;
+      return -ROS_PI/2;
     }
-    return ROS_PI*3/4;
+    if(point[0]>4)
+    {
+      if(point[1]>5)
+      {
+        return -ROS_PI*3/4;
+      }
+      return ROS_PI*3/4;
+    }
+    return 0;
   }
-  return 0;
-#endif
+
 
 
 }

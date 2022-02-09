@@ -81,6 +81,12 @@ class Planner {
      return waypoints_wayback;
    }
 
+  /// \brief calc Yaw Rate
+  void setCalcYawRate(bool value) {calcYawRate_=value;}
+
+  /// \brief calc Yaw Rate
+  void setFlyForward(bool value) {flyForward_=value;}
+
   /// \brief Is Planner ready?;
   bool isReady() { return isReady_; }
 
@@ -161,6 +167,8 @@ class Planner {
   ros::NodeHandle * nh_;  ///< ROS node handle.
   std::atomic<bool> found_; ///< True, if in path found.
   std::atomic<bool> isReady_; ///< True, if in planner ready.
+  std::atomic<bool> calcYawRate_; ///< True, if yaw Rate should be calculated.
+  std::atomic<bool> flyForward_; ///< True, if yaw Rate should be calculated, s.t. camera faces forward.
 
   std::deque<arp::Autopilot::Waypoint> waypoints_wayback;  ///< A list of waypoints that will be approached, if not empty.
   std::deque<arp::Autopilot::Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.
