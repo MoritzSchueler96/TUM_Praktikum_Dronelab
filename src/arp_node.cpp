@@ -504,7 +504,10 @@ int main(int argc, char **argv)
           }
 
           // display timings for Challenge
-          if(challengeTime < bestTime && challengeCompleted) bestTime = challengeTime;
+          if(challengeTime < bestTime && challengeCompleted){
+              bestTime = challengeTime;
+              ROS_WARN_STREAM("New BestTime: " << bestTime);
+          } 
           std::stringstream best;
           best << std::fixed<<std::setprecision(2) << bestTime << "s";
           cv::putText(image, "best: ", cv::Point(10*gp.fontScaling, 90*gp.fontScaling), cv::FONT_HERSHEY_SIMPLEX,gp.fontScaling, FONT_COLOR, 2, false);

@@ -277,10 +277,10 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
       continue;
     }
     //hyperparameter stepsize to speed up algorithm, since resolution of occupancy Map quite high
-    int stepsize=10;
+    int stepsize=gridSize_;
     
     //to reach goal, gradual planning if it is near
-    if(calcDist(Next_Node.point, Goal_Node.point)<10)
+    if(calcDist(Next_Node.point, Goal_Node.point)<5)
     {
       stepsize=1;
     }
@@ -302,14 +302,18 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     temp.x=Start[0];
     temp.y=Start[1];
     temp.z=FLIGHT_HEIGHT;
-    temp.yaw=0;
-    temp.posTolerance=POS_TOLERANCE_TIGHT;
+
+    Eigen::Vector3d  direction=(Goal-Start).normalized();
+    Eigen::Vector3d defaultdir(1,0,0);
+
+    temp.yaw=acos(direction.transpose()*defaultdir);
+    temp.posTolerance=POS_TOLERANCE_LAX;
     waypoints_.push_back(temp);
     temp.x=Goal[0];
     temp.y=Goal[1];
     temp.z=FLIGHT_HEIGHT;
-    temp.yaw=0;
-    temp.posTolerance=POS_TOLERANCE_TIGHT;
+
+    temp.posTolerance=POS_TOLERANCE_LAX;
     waypoints_.push_back(temp);
 
     // check if extra landing pos is needed
@@ -319,14 +323,14 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     temp.x=Goal[0];
     temp.y=Goal[1];
     temp.z=FLIGHT_HEIGHT;
-    temp.yaw=0;
-    temp.posTolerance=POS_TOLERANCE_TIGHT;
+    //temp.yaw=0;
+    temp.posTolerance=POS_TOLERANCE_LAX;
     waypoints_wayback.push_back(temp);
     temp.x=Start[0];
     temp.y=Start[1];
     temp.z=FLIGHT_HEIGHT;
-    temp.yaw=0;
-    temp.posTolerance=POS_TOLERANCE_TIGHT;
+    //temp.yaw=acos(-direction.transpose()*defaultdir);
+    temp.posTolerance=POS_TOLERANCE_LAX;
     waypoints_wayback.push_back(temp);
 
     // check if extra landing pos is needed
@@ -426,9 +430,10 @@ void Planner::createWaypoints(Planner::Node StartNode)
     curDirection=nextNode.point-curNode.point;
     calcWorldPoint(curNode.prev_point, tempPoint);
     calcWorldPoint(curNode.point, tempPoint);
+
     if(calcYawRate_) curYawRate=calcYawRate_area(tempPoint,prevPoint);
     else curYawRate=0.0;
-    if(((curDirection-prevDirection).norm()>1e-3)||(curYawRate!=prevYawRate))//check if direction changed
+    if(((curDirection-prevDirection).norm()>1e-3))//||(curYawRate!=prevYawRate))//check if direction changed
     {
       tempWaypoint.x=tempPoint[0];
       tempWaypoint.y=tempPoint[1];
@@ -456,17 +461,35 @@ void Planner::createWaypoints(Planner::Node StartNode)
   tempWaypoint.posTolerance=POS_TOLERANCE_LAX;
   waypoints_wayback.push_back(tempWaypoint);
 
+
   if(calcYawRate_){
+      double yawrate;
+    prevPoint<<waypoints_.front().x,waypoints_.front().y,waypoints_.front().z;
+    tempPoint<<waypoints_.back().x,waypoints_.back().y,waypoints_.back().z;
+    yawrate=calcYawRate_area(tempPoint,prevPoint);
+    for(int i=0;i<waypoints_.size(); i++)
+    {
+      std::cout<<"yaw rates"<<waypoints_.at(i).yaw;
+      //tempPoint<<waypoints_.at(i).x,waypoints_.at(i).y,waypoints_.at(i).z;
+      waypoints_.at(i).yaw=yawrate;//calcYawRate_area(tempPoint,prevPoint);
+      std::cout<<"yaw rates"<<waypoints_.at(i).yaw;
+      prevPoint=tempPoint;
+    
+    }
       //correction of yawrates
       prevPoint<<waypoints_wayback.front().x,waypoints_wayback.front().y,waypoints_wayback.front().z;
+      tempPoint<<waypoints_wayback.back().x,waypoints_wayback.back().y,waypoints_wayback.back().z;
+      //yawrate=calcYawRate_area(tempPoint,prevPoint);
       for(int i=0;i<waypoints_wayback.size(); i++)
       {
         // std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
-        tempPoint<<waypoints_wayback.at(i).x,waypoints_wayback.at(i).y,waypoints_wayback.at(i).z;
-        waypoints_wayback.at(i).yaw=calcYawRate_area(tempPoint,prevPoint);
+        //tempPoint<<waypoints_wayback.at(i).x,waypoints_wayback.at(i).y,waypoints_wayback.at(i).z;
+        waypoints_wayback.at(i).yaw=yawrate;//calcYawRate_area(tempPoint,prevPoint);
         // std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
         prevPoint=tempPoint;
       }
+  
+    
   }
 
 }
@@ -645,41 +668,57 @@ double Planner::calcYawRate_area(Eigen::Vector3d point, Eigen::Vector3d prev_poi
   //Table: 0.6 4
   
   static double prevYawrate=0;
-  
-
-  
-  if((point[1]<7.5&&point[1]>2.5)&&((point[0]>2)||(point[0]<0.6)))
+  if (flyForward_)
   {
-    if(prev_point[1]>7.5)
+    Eigen::Vector3d  direction=(prev_point-point).normalized();
+    Eigen::Vector3d defaultdir(1,0,0);
+    double yawrate=acos(direction.transpose()*defaultdir);
+    if(direction[1]<0)
     {
-      prevYawrate=ROS_PI/2;
-        return ROS_PI/2;
+
+      return yawrate;
     }
-    if(prev_point[1]<2.5)
+    else
     {
-      prevYawrate=-ROS_PI/2;
+      return -yawrate;
+    }
+  }
+  else
+  {
+    
+    if((point[1]<7.5&&point[1]>2.5)&&((point[0]>2)||(point[0]<0.6)))
+    {
+      if(prev_point[1]>7.5)
+      {
+        prevYawrate=ROS_PI/2;
+          return ROS_PI/2;
+      }
+      if(prev_point[1]<2.5)
+      {
+        prevYawrate=-ROS_PI/2;
+        return -ROS_PI/2;
+      }
+      return prevYawrate;
+      
+    }
+    if((point[1]>12)&&(point[0]<4))
+    {
       return -ROS_PI/2;
     }
-    return prevYawrate;
-    
-  }
-  if((point[1]>12)&&(point[0]<4))
-  {
-    return -ROS_PI/2;
-  }
-  if((point[1]<-2.5)&&(point[0]<4))
-  {
-    return -ROS_PI/2;
-  }
-  if(point[0]>4)
-  {
-    if(point[1]>5)
+    if((point[1]<-2.5)&&(point[0]<4))
     {
-      return -ROS_PI*3/4;
+      return -ROS_PI/2;
     }
-    return ROS_PI*3/4;
+    if(point[0]>4)
+    {
+      if(point[1]>5)
+      {
+        return -ROS_PI*3/4;
+      }
+      return ROS_PI*3/4;
+    }
+    return 0;
   }
-  return 0;
 
 
 
