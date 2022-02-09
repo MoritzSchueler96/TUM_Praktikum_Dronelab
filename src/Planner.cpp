@@ -301,14 +301,18 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     temp.x=Start[0];
     temp.y=Start[1];
     temp.z=FLIGHT_HEIGHT;
-    temp.yaw=0;
-    temp.posTolerance=POS_TOLERANCE_TIGHT;
+
+    Eigen::Vector3d  direction=(Goal-Start).normalized();
+    Eigen::Vector3d defaultdir(1,0,0);
+
+    temp.yaw=acos(direction.transpose()*defaultdir);
+    temp.posTolerance=POS_TOLERANCE_LAX;
     waypoints_.push_back(temp);
     temp.x=Goal[0];
     temp.y=Goal[1];
     temp.z=FLIGHT_HEIGHT;
-    temp.yaw=0;
-    temp.posTolerance=POS_TOLERANCE_TIGHT;
+
+    temp.posTolerance=POS_TOLERANCE_LAX;
     waypoints_.push_back(temp);
 
     // check if extra landing pos is needed
@@ -318,14 +322,14 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     temp.x=Goal[0];
     temp.y=Goal[1];
     temp.z=FLIGHT_HEIGHT;
-    temp.yaw=0;
-    temp.posTolerance=POS_TOLERANCE_TIGHT;
+    //temp.yaw=0;
+    temp.posTolerance=POS_TOLERANCE_LAX;
     waypoints_wayback.push_back(temp);
     temp.x=Start[0];
     temp.y=Start[1];
     temp.z=FLIGHT_HEIGHT;
-    temp.yaw=0;
-    temp.posTolerance=POS_TOLERANCE_TIGHT;
+    //temp.yaw=acos(-direction.transpose()*defaultdir);
+    temp.posTolerance=POS_TOLERANCE_LAX;
     waypoints_wayback.push_back(temp);
 
     // check if extra landing pos is needed
@@ -425,7 +429,7 @@ void Planner::createWaypoints(Planner::Node StartNode)
     curDirection=nextNode.point-curNode.point;
     calcWorldPoint(curNode.prev_point, tempPoint);
     calcWorldPoint(curNode.point, tempPoint);
-    curYawRate=calcYawRate_area(tempPoint,prevPoint );
+    curYawRate=0;//calcYawRate_area(tempPoint,prevPoint );
     if(((curDirection-prevDirection).norm()>1e-3)||(curYawRate!=prevYawRate))//check if direction changed
     {
 
@@ -465,6 +469,16 @@ void Planner::createWaypoints(Planner::Node StartNode)
     tempPoint<<waypoints_wayback.at(i).x,waypoints_wayback.at(i).y,waypoints_wayback.at(i).z;
     waypoints_wayback.at(i).yaw=calcYawRate_area(tempPoint,prevPoint);
     std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
+    prevPoint=tempPoint;
+  
+  }
+   prevPoint<<waypoints_.front().x,waypoints_.front().y,waypoints_.front().z;
+  for(int i=0;i<waypoints_.size(); i++)
+  {
+    std::cout<<"yaw rates"<<waypoints_.at(i).yaw;
+    tempPoint<<waypoints_.at(i).x,waypoints_.at(i).y,waypoints_.at(i).z;
+    waypoints_.at(i).yaw=calcYawRate_area(tempPoint,prevPoint);
+    std::cout<<"yaw rates"<<waypoints_.at(i).yaw;
     prevPoint=tempPoint;
   
   }
@@ -646,9 +660,20 @@ double Planner::calcYawRate_area(Eigen::Vector3d point, Eigen::Vector3d prev_poi
   //Table: 0.6 4
   
   static double prevYawrate=0;
-  
+  #if 1//flyForward_
+  Eigen::Vector3d  direction=(prev_point-point).normalized();
+  Eigen::Vector3d defaultdir(1,0,0);
+  double yawrate=acos(direction.transpose()*defaultdir);
+  if(direction[0]<0)
+  {
 
-  
+    return yawrate;
+  }
+  else
+  {
+    return -yawrate;
+  }
+  #else
   if((point[1]<7.5&&point[1]>2.5)&&((point[0]>2)||(point[0]<0.6)))
   {
     if(prev_point[1]>7.5)
@@ -682,7 +707,7 @@ double Planner::calcYawRate_area(Eigen::Vector3d point, Eigen::Vector3d prev_poi
     return ROS_PI*3/4;
   }
   return 0;
-
+#endif
 
 
 }
