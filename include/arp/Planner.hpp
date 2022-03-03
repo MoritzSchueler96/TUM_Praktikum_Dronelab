@@ -86,6 +86,11 @@ class Planner {
 
   /// \brief set calc Yaw Rate
   void setFlyForward(bool value) {flyForward_=value;}
+  
+  /// \brief activate orientation based yawrate calculation
+  void setFixedPointOrientation(bool value) {lookFixedPointOrientation_=value;}
+  /// \brief set orientation point of planner
+  void setFixedPointOrientation(Eigen::Vector3d point) { fixedOrientationPoint_=point;}
 
   /// \brief set grid size
   void setGridSize(uint8_t value) {gridSize_=value;}
@@ -162,6 +167,10 @@ class Planner {
   /// \brief calculate Yaw Rate to prevent Pose Lost
   /// \return calculated YawRate
  double calcYawRate_area(Eigen::Vector3d point,Eigen::Vector3d prev_point);
+
+  /// \brief calculate Yaw Rate such that drone always look to targetPoint
+  /// \return calculated YawRate
+ double calcYawRate_targetpoint(Eigen::Vector3d point, Eigen::Vector3d targetpoint);
   struct Landmark {
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
       Eigen::Vector3d point; ///< The 3d point in World coordinates.
@@ -172,6 +181,9 @@ class Planner {
   std::atomic<bool> isReady_; ///< True, if in planner ready.
   std::atomic<bool> calcYawRate_; ///< True, if yaw Rate should be calculated.
   std::atomic<bool> flyForward_; ///< True, if yaw Rate should be calculated, s.t. camera faces forward.
+
+  std::atomic<bool> lookFixedPointOrientation_; ///< True, if yaw Rate should be calculated, s.t. camera faces to specified point.
+  Eigen::Vector3d fixedOrientationPoint_;
   uint8_t gridSize_; ///< gridSize for the planner.
 
   std::deque<arp::Autopilot::Waypoint> waypoints_wayback;  ///< A list of waypoints that will be approached, if not empty.
