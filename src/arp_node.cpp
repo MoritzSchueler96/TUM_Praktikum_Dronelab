@@ -115,9 +115,9 @@ struct globalParams{
   /// @param[in] gp Struct with global parameters to store values.
   /// @param[out] success Whether Parameters were read successfully.
 bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
-  if(!nh.getParam("/arp_node/enableFusion", gp.enableFusion)) ROS_FATAL("error loading parameter");
-  if(!nh.getParam("/arp_node/camModel", gp.cameraModelApplied)) ROS_FATAL("error loading parameter");
-  if(!nh.getParam("/arp_node/displayKeypoints", gp.displayKeypoints)) ROS_FATAL("error loading parameter");
+  if(!nh.getParam("/arp_node/enableFusion", gp.enableFusion)) ROS_FATAL("error loading enableFusion");
+  if(!nh.getParam("/arp_node/camModel", gp.cameraModelApplied)) ROS_FATAL("error loading camModel");
+  if(!nh.getParam("/arp_node/displayKeypoints", gp.displayKeypoints)) ROS_FATAL("error loading displayKeypoints");
   if(!nh.getParam("/arp_node/mapFocalLength", gp.mapFocalLength)) ROS_FATAL("error loading map focal length");
   if(!nh.getParam("/arp_node/Brisk_uniformityRadius", gp.Brisk_uniformityRadius)) ROS_FATAL("error loading Brisk_uniformityRadius");
   if(!nh.getParam("/arp_node/Brisk_absoluteThreshold", gp.Brisk_absoluteThreshold)) ROS_FATAL("error loading Brisk_absoluteThreshold");
@@ -142,11 +142,39 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
   std::vector<double> temp;
   if(!nh.getParam("/arp_node/lookFixedOrientationPoint", temp)) ROS_FATAL("error loading lookFixedOrientationPoint");
   gp.lookFixedOrientationPoint << temp[0], temp[1], temp[2];
-  ROS_FATAL_STREAM("v2:" << gp.lookFixedOrientationPoint);
 
   return true;
 }
  
+ /// \brief Load PID parameters
+  /// @param[in] nh NodeHandle to read parameters from launch file.
+  /// @param[in] gp Struct with PID parameters to store values.
+  /// @param[out] success Whether Parameters were read successfully.
+bool loadPIDParams(ros::NodeHandle& nh, arp::Autopilot::pidParams& pp){
+  std::vector<double> temp;
+  if(!nh.getParam("/arp_node/xControlParams", temp)) ROS_FATAL("error loading xControlParams");
+  pp.xControlParams.k_p = temp[0];
+  pp.xControlParams.k_i = temp[1];
+  pp.xControlParams.k_d = temp[2];
+
+  if(!nh.getParam("/arp_node/yControlParams", temp)) ROS_FATAL("error loading yControlParams");
+  pp.yControlParams.k_p = temp[0];
+  pp.yControlParams.k_i = temp[1];
+  pp.yControlParams.k_d = temp[2];
+
+  if(!nh.getParam("/arp_node/zControlParams", temp)) ROS_FATAL("error loading zControlParams");
+  pp.zControlParams.k_p = temp[0];
+  pp.zControlParams.k_i = temp[1];
+  pp.zControlParams.k_d = temp[2];
+
+  if(!nh.getParam("/arp_node/yawControlParams", temp)) ROS_FATAL("error loading yawControlParams");
+  pp.yawControlParams.k_p = temp[0];
+  pp.yawControlParams.k_i = temp[1];
+  pp.yawControlParams.k_d = temp[2];
+
+  return true;
+}
+
  /// \brief Read Cam Parameters from launch file
   /// @param[in] nh NodeHandle to read parameters from launch file.
   /// @param[in] cp Class Object to store camera parameters.
@@ -327,6 +355,11 @@ int main(int argc, char **argv)
   globalParams gp;
   ROS_INFO("Read global parameters...");
   if(!loadGlobalVars(nh, gp)) ROS_FATAL("error loading global variables");
+
+  // load PID parameters
+  arp::Autopilot::pidParams pp;
+  ROS_INFO("Read PID parameters...");
+  if(!loadPIDParams(nh, pp)) ROS_FATAL("error loading PID variables");
  
   // load waypoint
   arp::Autopilot::Waypoint waypointB;
@@ -335,7 +368,7 @@ int main(int argc, char **argv)
   // read camera parameters
   arp::cameras::CamParams cp;
   ROS_INFO("Read camera parameters...");
-  if(!readCameraParameters(nh, cp)) ROS_FATAL("error loading parameters");
+  if(!readCameraParameters(nh, cp)) ROS_FATAL("error loading cam parameters");
 
   // setup camera model
   ROS_INFO("Setup Camera...");
@@ -356,7 +389,7 @@ int main(int argc, char **argv)
  
   // set up autopilot
   ROS_INFO("Setup Autopilot...");
-  arp::Autopilot autopilot(nh);
+  arp::Autopilot autopilot(nh, pp);
   autopilot.setOccupancyMap(wrappedMapData);
   int poseLostCnt = 0;
 

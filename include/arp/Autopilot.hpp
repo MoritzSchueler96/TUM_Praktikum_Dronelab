@@ -32,8 +32,17 @@ namespace arp {
 /// \brief The autopilot highlevel interface for commanding the drone manually or automatically.
 class Autopilot {
  public:
+
+   /// \brief Struct holding PID parameters
+  struct pidParams{
+    arp::PidController::Parameters xControlParams;
+    arp::PidController::Parameters yControlParams;
+    arp::PidController::Parameters zControlParams;
+    arp::PidController::Parameters yawControlParams;
+  };
+
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  Autopilot(ros::NodeHandle& nh);
+  Autopilot(ros::NodeHandle& nh, pidParams pp);
 
   /// \brief These are reverse engineered AR Drone states.
   enum DroneStatus {

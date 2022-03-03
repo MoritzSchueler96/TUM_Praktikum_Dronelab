@@ -12,7 +12,7 @@
 #define ROS_PI 3.141592653589793238462643383279502884L
 namespace arp {
 
-Autopilot::Autopilot(ros::NodeHandle& nh)
+Autopilot::Autopilot(ros::NodeHandle& nh,  Autopilot::pidParams pp)
     : nh_(&nh)
 {
   isAutomatic_ = false; // always start in manual mode  
@@ -44,39 +44,23 @@ Autopilot::Autopilot(ros::NodeHandle& nh)
   
   z_limit=z_limit/1000;//convert from mm/s to m/s
 
-  arp::PidController::Parameters controllerParameters;
-  // PID values: K_P=0.05-0.3 
-  controllerParameters.k_p=0.15;
-  controllerParameters.k_i=0.005;//0.05;
-  controllerParameters.k_d=0.01;//0.05;
-
   //x
-  x_pid.setParameters(controllerParameters);
+  x_pid.setParameters(pp.xControlParams);
   x_pid.setOutputLimits(-x_y_limit,x_y_limit);
   x_pid.resetIntegrator();
 
   //y
-  y_pid.setParameters(controllerParameters);
+  y_pid.setParameters(pp.yControlParams);
   y_pid.setOutputLimits(-x_y_limit,x_y_limit);
   y_pid.resetIntegrator();
-  
-  //PID values: K_P < 2
-  controllerParameters.k_p=0.95;
-  controllerParameters.k_i=0.01;//0.1;
-  controllerParameters.k_d=0.05;//0;
 
   //z
-  z_pid.setParameters(controllerParameters);
+  z_pid.setParameters(pp.zControlParams);
   z_pid.setOutputLimits(-z_limit,z_limit);
   z_pid.resetIntegrator();
-  
-  // PID values: K_P < 3
-  controllerParameters.k_p=1.75;
-  controllerParameters.k_i=0.01;//0.1;
-  controllerParameters.k_d=0;
 
   // yaw
-  yaw_pid.setParameters(controllerParameters);
+  yaw_pid.setParameters(pp.yawControlParams);
   yaw_pid.setOutputLimits(-yaw_limit,yaw_limit);
   yaw_pid.resetIntegrator();
 }
