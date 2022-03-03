@@ -26,7 +26,7 @@
 
 namespace arp {
 
-Frontend::Frontend(arp::cameras::CamParams cp, int numKeypoints=2000, double mapFocalLength=185.6909, double Brisk_uniformityRadius=35, double Brisk_absoluteThreshold=100, int skipThresInit=1, int skipThresLimit=3) :
+Frontend::Frontend(arp::cameras::CamParams cp, Frontend::frontendParams fp): // numKeypoints=2000, double mapFocalLength=185.6909, double Brisk_uniformityRadius=35, double Brisk_absoluteThreshold=100, int skipThresInit=1, int skipThresLimit=3) :
   camera_(cp, arp::cameras::RadialTangentialDistortion(cp))
 {
   camera_.initialiseUndistortMaps();
@@ -43,10 +43,10 @@ Frontend::Frontend(arp::cameras::CamParams cp, int numKeypoints=2000, double map
   distCoeffs_.at<double>(1) = cp.k2();
   distCoeffs_.at<double>(2) = cp.p1();
   distCoeffs_.at<double>(3) = cp.p2();
-  skipThresInit_=skipThresInit;
-  skipThresLimit_=skipThresLimit;
+  skipThresInit_=fp.skipThresInit;
+  skipThresLimit_=fp.skipThresLimit;
   // BRISK detector and descriptor
-  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(Brisk_uniformityRadius, 0, Brisk_absoluteThreshold, numKeypoints));//10,0,100,2000 Sim: 35, 0, 100, x, Real: 35, 0, 2, 200
+  detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(fp.Brisk_uniformityRadius, 0, fp.Brisk_absoluteThreshold, fp.numKeypoints));//10,0,100,2000 Sim: 35, 0, 100, x, Real: 35, 0, 2, 200
   //working limit 25-35 for castle, kitchen 
   extractor_.reset(new brisk::BriskDescriptorExtractor(true, false));
   
@@ -79,7 +79,7 @@ Frontend::Frontend(arp::cameras::CamParams cp, int numKeypoints=2000, double map
     }
   }
 
-  std::static_pointer_cast<cv::BriskDescriptorExtractor>(extractor_)->setCameraProperties(rays, imageJacobians, mapFocalLength);
+  std::static_pointer_cast<cv::BriskDescriptorExtractor>(extractor_)->setCameraProperties(rays, imageJacobians, fp.mapFocalLength);
 #endif   
 }
 

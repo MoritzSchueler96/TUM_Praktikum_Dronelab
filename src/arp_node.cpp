@@ -89,11 +89,7 @@ class Subscriber
 struct globalParams{
   bool enableFusion;
   bool cameraModelApplied;
-  bool displayKeypoints;  
-  int numKeypoints;
-  double mapFocalLength;
-  double Brisk_uniformityRadius;
-  double Brisk_absoluteThreshold;
+  bool displayKeypoints;   
   int ImageWidth;
   int ImageHeight;
   double fontScaling;
@@ -101,8 +97,6 @@ struct globalParams{
   int poseLostThreshold;
   int poseSwitchThreshold;
   ros::Duration poseLostTimeThreshold;
-  int skipThresInit;
-  int skipThresLimit;
   bool calcYawRate;
   bool flyForward;
   bool lookFixedPointOrientation;
@@ -118,16 +112,10 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
   if(!nh.getParam("/arp_node/enableFusion", gp.enableFusion)) ROS_FATAL("error loading enableFusion");
   if(!nh.getParam("/arp_node/camModel", gp.cameraModelApplied)) ROS_FATAL("error loading camModel");
   if(!nh.getParam("/arp_node/displayKeypoints", gp.displayKeypoints)) ROS_FATAL("error loading displayKeypoints");
-  if(!nh.getParam("/arp_node/mapFocalLength", gp.mapFocalLength)) ROS_FATAL("error loading map focal length");
-  if(!nh.getParam("/arp_node/Brisk_uniformityRadius", gp.Brisk_uniformityRadius)) ROS_FATAL("error loading Brisk_uniformityRadius");
-  if(!nh.getParam("/arp_node/Brisk_absoluteThreshold", gp.Brisk_absoluteThreshold)) ROS_FATAL("error loading Brisk_absoluteThreshold");
-  if(!nh.getParam("/arp_node/numKeypoints", gp.numKeypoints)) ROS_FATAL("error loading numKeypoints");
   if(!nh.getParam("/arp_node/ImageWidth", gp.ImageWidth)) ROS_FATAL("error loading ImageWidth");
   if(!nh.getParam("/arp_node/ImageHeight", gp.ImageHeight)) ROS_FATAL("error loading ImageHeight");
   if(!nh.getParam("/arp_node/fontScaling", gp.fontScaling)) ROS_FATAL("error loading fontScaling");
   if(!nh.getParam("/arp_node/displayAllKeypoints", gp.displayAllKeypoints)) ROS_FATAL("error loading displayAllKeypoints");
-  if(!nh.getParam("/arp_node/skipThresInit", gp.skipThresInit)) ROS_FATAL("error loading skipThresInit");
-  if(!nh.getParam("/arp_node/skipThresLimit", gp.skipThresLimit)) ROS_FATAL("error loading skipThresLimit");
   if(!nh.getParam("/arp_node/poseLostThreshold", gp.poseLostThreshold)) ROS_FATAL("error loading poseLostThreshold");
   if(!nh.getParam("/arp_node/poseSwitchThreshold", gp.poseSwitchThreshold)) ROS_FATAL("error loading poseSwitchThreshold");
   double threshold;
@@ -145,10 +133,24 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
 
   return true;
 }
- 
+
  /// \brief Load PID parameters
   /// @param[in] nh NodeHandle to read parameters from launch file.
-  /// @param[in] gp Struct with PID parameters to store values.
+  /// @param[in] fp Struct with Frontend parameters to store values.
+  /// @param[out] success Whether Parameters were read successfully.
+bool loadFrontendParams(ros::NodeHandle& nh, arp::Frontend::frontendParams& fp){
+  if(!nh.getParam("/arp_node/skipThresInit", fp.skipThresInit)) ROS_FATAL("error loading skipThresInit");
+  if(!nh.getParam("/arp_node/skipThresLimit", fp.skipThresLimit)) ROS_FATAL("error loading skipThresLimit");
+  if(!nh.getParam("/arp_node/mapFocalLength", fp.mapFocalLength)) ROS_FATAL("error loading map focal length");
+  if(!nh.getParam("/arp_node/Brisk_uniformityRadius", fp.Brisk_uniformityRadius)) ROS_FATAL("error loading Brisk_uniformityRadius");
+  if(!nh.getParam("/arp_node/Brisk_absoluteThreshold", fp.Brisk_absoluteThreshold)) ROS_FATAL("error loading Brisk_absoluteThreshold");
+  if(!nh.getParam("/arp_node/numKeypoints", fp.numKeypoints)) ROS_FATAL("error loading numKeypoints");
+  return true;
+}
+
+ /// \brief Load PID parameters
+  /// @param[in] nh NodeHandle to read parameters from launch file.
+  /// @param[in] pp Struct with PID parameters to store values.
   /// @param[out] success Whether Parameters were read successfully.
 bool loadPIDParams(ros::NodeHandle& nh, arp::Autopilot::pidParams& pp){
   std::vector<double> temp;
@@ -376,11 +378,16 @@ int main(int argc, char **argv)
   // activate camera model
   ROS_INFO_STREAM("Camera Model Applied set to: " << gp.cameraModelApplied);
 
+  // read frontend parameters
+  arp::Frontend::frontendParams fp;
+  ROS_INFO("Read frontend parameters...");
+  if(!loadFrontendParams(nh, fp)) ROS_FATAL("error loading frontend parameters");
+
   // setup frontend
   ROS_INFO("Setup Frontend...");
   std::string map;
   if(!nh.getParam("/arp_node/map", map)) ROS_FATAL("error loading world");
-  arp::Frontend frontend(cp, gp.numKeypoints, gp.mapFocalLength, gp.Brisk_uniformityRadius, gp.Brisk_absoluteThreshold, gp.skipThresInit, gp.skipThresLimit);
+  arp::Frontend frontend(cp, fp);
   
   //setup OccupancyMap
   ROS_INFO("Setup OccupancyMap...");
