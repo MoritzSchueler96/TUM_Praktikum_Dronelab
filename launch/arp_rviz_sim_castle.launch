@@ -57,7 +57,7 @@
     <param name="calcYawRate" type="bool" value="true" />
     <param name="flyForward" type="bool" value="true" />
     <param name="lookFixedPointOrientation" type="bool" value="true" />
-    <rosparam param="lookFixedOrientationPoint">[0.0, 0.0, 0.0]</rosparam>
+    <rosparam param="lookFixedOrientationPoint">[-1, -1.5, 0.0]</rosparam>
 
     <!-- WaypointB -->
     <param name="waypointX" value="4.25" /> <!-- 1.3--><!--  0.7 --><!--  5.5 -->

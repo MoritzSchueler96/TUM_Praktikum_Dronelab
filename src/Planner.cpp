@@ -494,7 +494,13 @@ void Planner::createWaypoints(Planner::Node StartNode)
     for(int i=0;i<waypoints_.size(); i++)
     {
       std::cout<<"yaw rates"<<waypoints_.at(i).yaw;
-      //tempPoint<<waypoints_.at(i).x,waypoints_.at(i).y,waypoints_.at(i).z;
+      tempPoint<<waypoints_.at(i).x,waypoints_.at(i).y,waypoints_.at(i).z;
+      if(lookFixedPointOrientation_)
+      {
+        yawrate=calcYawRate_targetpoint(tempPoint, fixedOrientationPoint_);
+      }else{
+        yawrate=calcYawRate_area(tempPoint,prevPoint);
+      }
       waypoints_.at(i).yaw=yawrate;//calcYawRate_area(tempPoint,prevPoint);
       std::cout<<"yaw rates"<<waypoints_.at(i).yaw;
       prevPoint=tempPoint;
@@ -507,7 +513,13 @@ void Planner::createWaypoints(Planner::Node StartNode)
       for(int i=0;i<waypoints_wayback.size(); i++)
       {
         // std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
-        //tempPoint<<waypoints_wayback.at(i).x,waypoints_wayback.at(i).y,waypoints_wayback.at(i).z;
+        tempPoint<<waypoints_wayback.at(i).x,waypoints_wayback.at(i).y,waypoints_wayback.at(i).z;
+        if(lookFixedPointOrientation_)
+        {
+          yawrate=calcYawRate_targetpoint(tempPoint, fixedOrientationPoint_);
+        }else{
+          yawrate=calcYawRate_area(tempPoint,prevPoint);
+        }
         waypoints_wayback.at(i).yaw=yawrate;//calcYawRate_area(tempPoint,prevPoint);
         // std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
         prevPoint=tempPoint;
@@ -754,7 +766,7 @@ double Planner::calcYawRate_targetpoint(Eigen::Vector3d point, Eigen::Vector3d t
   Eigen::Vector3d  direction=(targetpoint-point).normalized();
     Eigen::Vector3d defaultdir(1,0,0);
     double yawrate=acos(direction.transpose()*defaultdir);
-    if(direction[1]<0)
+    if(direction[0]>0)
     {
 
       return yawrate;
