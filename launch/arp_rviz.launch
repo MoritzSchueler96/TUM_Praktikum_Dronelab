@@ -64,6 +64,7 @@
     <param name="skipThresLimit" value="3" /> <!-- default 4 -->
     <param name="calcYawRate" type="bool" value="true" />
     <param name="flyForward" type="bool" value="false" />
+    <param name="gridSize" type="int" value="5" />
 
     <!-- WaypointB -->
     <param name="waypointX" value="100" />

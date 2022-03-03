@@ -81,16 +81,19 @@ class Planner {
      return waypoints_wayback;
    }
 
-  /// \brief calc Yaw Rate
+  /// \brief set calc Yaw Rate
   void setCalcYawRate(bool value) {calcYawRate_=value;}
 
-  /// \brief calc Yaw Rate
+  /// \brief set calc Yaw Rate
   void setFlyForward(bool value) {flyForward_=value;}
   
   /// \brief activate orientation based yawrate calculation
   void setFixedPointOrientation(bool value) {lookFixedPointOrientation_=value;}
   /// \brief set orientation point of planner
   void setFixedPointOrientation(Eigen::Vector3d point) { fixedOrientationPoint_=point;}
+
+  /// \brief set grid size
+  void setGridSize(uint8_t value) {gridSize_=value;}
 
   /// \brief Is Planner ready?;
   bool isReady() { return isReady_; }
@@ -178,8 +181,11 @@ class Planner {
   std::atomic<bool> isReady_; ///< True, if in planner ready.
   std::atomic<bool> calcYawRate_; ///< True, if yaw Rate should be calculated.
   std::atomic<bool> flyForward_; ///< True, if yaw Rate should be calculated, s.t. camera faces forward.
+
   std::atomic<bool> lookFixedPointOrientation_; ///< True, if yaw Rate should be calculated, s.t. camera faces to specified point.
   Eigen::Vector3d fixedOrientationPoint_;
+  uint8_t gridSize_; ///< gridSize for the planner.
+
   std::deque<arp::Autopilot::Waypoint> waypoints_wayback;  ///< A list of waypoints that will be approached, if not empty.
   std::deque<arp::Autopilot::Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.
   std::mutex waypointMutex_;  ///< We need to lock the waypoint access due to asynchronous arrival.
