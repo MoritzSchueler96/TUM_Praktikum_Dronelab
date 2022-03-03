@@ -90,7 +90,7 @@ class Planner {
   /// \brief activate orientation based yawrate calculation
   void setFixedPointOrientation(bool value) {lookFixedPointOrientation_=value;}
   /// \brief set orientation point of planner
-  void setFixedPointOrientation(Eigen::Vector3d point) { fixedOrientationPoint_=point;}
+  void setFixedOrientationPoint(Eigen::Vector3d point) { fixedOrientationPoint_=point;}
 
   /// \brief set grid size
   void setGridSize(uint8_t value) {gridSize_=value;}

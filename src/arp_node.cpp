@@ -138,7 +138,11 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
   if(!nh.getParam("/arp_node/flyForward", gp.flyForward)) ROS_FATAL("error loading flyForward");
   if(!nh.getParam("/arp_node/gridSize", gp.gridSize)) ROS_FATAL("error loading gridSize");
   if(!nh.getParam("/arp_node/lookFixedPointOrientation", gp.lookFixedPointOrientation)) ROS_FATAL("error loading lookFixedPointOrientation");
-  if(!nh.getParam("/arp_node/lookFixedOrientationPoint", gp.lookFixedOrientationPoint)) ROS_FATAL("error loading lookFixedOrientationPoint");
+
+  std::vector<double> temp;
+  if(!nh.getParam("/arp_node/lookFixedOrientationPoint", temp)) ROS_FATAL("error loading lookFixedOrientationPoint");
+  gp.lookFixedOrientationPoint << temp[0], temp[1], temp[2];
+  ROS_FATAL_STREAM("v2:" << gp.lookFixedOrientationPoint);
 
   return true;
 }
@@ -362,6 +366,8 @@ int main(int argc, char **argv)
   planner.setCalcYawRate(gp.calcYawRate);
   planner.setFlyForward(gp.flyForward);
   planner.setGridSize(gp.gridSize);
+  planner.setFixedPointOrientation(gp.lookFixedPointOrientation);
+  planner.setFixedOrientationPoint(gp.lookFixedOrientationPoint);
   
   // setup visual inertial tracker
   arp::ViEkf viEkf;
