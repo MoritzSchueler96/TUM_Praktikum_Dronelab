@@ -276,10 +276,10 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
       continue;
     }
     //hyperparameter stepsize to speed up algorithm, since resolution of occupancy Map quite high
-    int stepsize=gridSize_;
+    int stepsize=10;//gridSize_;
     
     //to reach goal, gradual planning if it is near
-    if(calcDist(Next_Node.point, Goal_Node.point)<5)
+    if(calcDist(Next_Node.point, Goal_Node.point)<10)
     {
       stepsize=1;
     }
@@ -430,7 +430,16 @@ void Planner::createWaypoints(Planner::Node StartNode)
     calcWorldPoint(curNode.prev_point, tempPoint);
     calcWorldPoint(curNode.point, tempPoint);
 
-    if(calcYawRate_) curYawRate=calcYawRate_area(tempPoint,prevPoint);
+    if(calcYawRate_){
+      if(lookFixedPointOrientation_)
+      {
+        curYawRate=calcYawRate_targetpoint(tempPoint, fixedOrientationPoint_);
+
+      }else{
+        curYawRate=calcYawRate_area(tempPoint,prevPoint);
+      }
+
+    }
     else curYawRate=0.0;
     if(((curDirection-prevDirection).norm()>1e-3))//||(curYawRate!=prevYawRate))//check if direction changed
     {
@@ -459,7 +468,16 @@ void Planner::createWaypoints(Planner::Node StartNode)
   tempWaypoint.y=tempPoint[1];
   tempWaypoint.z=tempPoint[2];
 
-  if(calcYawRate_) tempWaypoint.yaw=calcYawRate_area(tempPoint,prevPoint);
+  if(calcYawRate_) 
+  {
+    if(lookFixedPointOrientation_)
+    {
+      tempWaypoint.yaw=calcYawRate_targetpoint(tempPoint, fixedOrientationPoint_);
+
+    }else{
+      tempWaypoint.yaw=calcYawRate_area(tempPoint,prevPoint);
+    }
+  }
   else tempWaypoint.yaw=0.0;
   tempWaypoint.posTolerance=POS_TOLERANCE_LAX;
   waypoints_wayback.push_back(tempWaypoint);
@@ -469,7 +487,13 @@ void Planner::createWaypoints(Planner::Node StartNode)
       double yawrate;
     prevPoint<<waypoints_.front().x,waypoints_.front().y,waypoints_.front().z;
     tempPoint<<waypoints_.back().x,waypoints_.back().y,waypoints_.back().z;
-    yawrate=calcYawRate_area(tempPoint,prevPoint);
+    if(lookFixedPointOrientation_)
+    {
+      yawrate=calcYawRate_targetpoint(tempPoint, fixedOrientationPoint_);
+    }else{
+      yawrate=calcYawRate_area(tempPoint,prevPoint);
+    }
+    
     for(int i=0;i<waypoints_.size(); i++)
     {
       std::cout<<"yaw rates"<<waypoints_.at(i).yaw;
@@ -728,6 +752,23 @@ double Planner::calcYawRate_area(Eigen::Vector3d point, Eigen::Vector3d prev_poi
 
 }
 
+
+double Planner::calcYawRate_targetpoint(Eigen::Vector3d point, Eigen::Vector3d targetpoint)
+{
+  Eigen::Vector3d  direction=(targetpoint-point).normalized();
+    Eigen::Vector3d defaultdir(1,0,0);
+    double yawrate=acos(direction.transpose()*defaultdir);
+    if(direction[1]<0)
+    {
+
+      return yawrate;
+    }
+    else
+    {
+      return -yawrate;
+    }
+
+}
  /// \brief check if area below is free
   /// \return true if free
  bool Planner::freetoground(Eigen::Vector3i point)
