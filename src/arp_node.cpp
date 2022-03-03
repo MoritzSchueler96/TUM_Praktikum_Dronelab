@@ -105,6 +105,8 @@ struct globalParams{
   int skipThresLimit;
   bool calcYawRate;
   bool flyForward;
+  bool lookFixedPointOrientation;
+  Eigen::Vector3d lookFixedOrientationPoint;
   int gridSize;
 };
 
@@ -135,6 +137,8 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
   if(!nh.getParam("/arp_node/calcYawRate", gp.calcYawRate)) ROS_FATAL("error loading calcYawRate");
   if(!nh.getParam("/arp_node/flyForward", gp.flyForward)) ROS_FATAL("error loading flyForward");
   if(!nh.getParam("/arp_node/gridSize", gp.gridSize)) ROS_FATAL("error loading gridSize");
+  if(!nh.getParam("/arp_node/lookFixedPointOrientation", gp.lookFixedPointOrientation)) ROS_FATAL("error loading lookFixedPointOrientation");
+  if(!nh.getParam("/arp_node/lookFixedOrientationPoint", gp.lookFixedOrientationPoint)) ROS_FATAL("error loading lookFixedOrientationPoint");
 
   return true;
 }
