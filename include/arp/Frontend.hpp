@@ -37,6 +37,13 @@ class Frontend
     int skipThresLimit;
   };
 
+  struct ransacParams{
+    bool useExtrinsicGuess;
+    int iterationsCount;
+    float reprojectionError;
+    double confidence;
+  };
+
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   /// \brief Sets the underlying camera and BRISK parameters (RadialTangentialDistortion)
@@ -76,6 +83,9 @@ class Frontend
   void showKeypoints(bool enable) {displayKeypoints_ = enable;}
   void showAllKeypoints(bool enable){displayAllKeypoints_=enable;}
 
+  /// Set Ransac Parameters
+  void setRansacParams(ransacParams rp) {rp_ = rp;}
+
  protected:
   /// \brief Detects BRISK (HARRIS) keypoints and extracts descriptors along the extraction direction.
   int detectAndDescribe(
@@ -103,12 +113,14 @@ class Frontend
   std::shared_ptr<cv::FeatureDetector> detector_;  ///< the BRISK detector
   std::shared_ptr<cv::DescriptorExtractor> extractor_;  ///< the BRISK extractor
 
-  std::atomic_bool displayKeypoints_{true};
-  std::atomic_bool displayAllKeypoints_{false};
+  std::atomic_bool displayKeypoints_{true}; ///< whether to overlay matched keypoints
+  std::atomic_bool displayAllKeypoints_{false}; ///< whether to overlay all keypoints
+  int skipThresInit_; ///< Reduction Factor to skip landmarks for speed increase
+  int skipThresLimit_; ///< Reduction Limit
+  ransacParams rp_; ///< Ransac Parameters
+
  private:
   Frontend() = delete;
-  int skipThresInit_;
-  int skipThresLimit_;
 };
 
 }  // namespace arp

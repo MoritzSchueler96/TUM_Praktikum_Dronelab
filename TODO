@@ -2,7 +2,7 @@
   ✘ auto mode erst erlauben, wenn x Sek Pose gefunden? @cancelled(22-02-08 12:42)
   ✘ pose von drone ausgeben, die sie denkt zu haben, wenn drift @cancelled(22-02-08 12:42)
   ✔ PID controller Werte in launch file packen? @done(22-03-03 15:04)
-  ☐ ransac parameters in launch file packen?
+  ✔ ransac parameters in launch file packen? @done(22-03-03 19:46)
   ☐ add explanation of brisk parameters in launch file
 
   ☐ Debugging aufräumen

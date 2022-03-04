@@ -177,6 +177,19 @@ bool loadPIDParams(ros::NodeHandle& nh, arp::Autopilot::pidParams& pp){
   return true;
 }
 
+ /// \brief Read Ransac Parameters from launch file
+  /// @param[in] nh NodeHandle to read parameters from launch file.
+  /// @param[in] rp Struct to store ransac parameters.
+  /// @param[out] success Whether Parameters were read successfully.
+bool loadRansacParams(ros::NodeHandle& nh, arp::Frontend::ransacParams& rp){
+  if(!nh.getParam("/arp_node/useExtrinsicGuess", rp.useExtrinsicGuess)) ROS_FATAL("error loading useExtrinsicGuess");
+  if(!nh.getParam("/arp_node/iterationsCount", rp.iterationsCount)) ROS_FATAL("error loading iterationsCount");
+  if(!nh.getParam("/arp_node/reprojectionError", rp.reprojectionError)) ROS_FATAL("error loading reprojectionError");
+  if(!nh.getParam("/arp_node/confidence", rp.confidence)) ROS_FATAL("error loading confidence");
+
+  return true;
+}
+
  /// \brief Read Cam Parameters from launch file
   /// @param[in] nh NodeHandle to read parameters from launch file.
   /// @param[in] cp Class Object to store camera parameters.
@@ -383,11 +396,17 @@ int main(int argc, char **argv)
   ROS_INFO("Read frontend parameters...");
   if(!loadFrontendParams(nh, fp)) ROS_FATAL("error loading frontend parameters");
 
+  // read ransac parameters
+  arp::Frontend::ransacParams rp;
+  ROS_INFO("Read ransac parameters...");
+  if(!loadRansacParams(nh, rp)) ROS_FATAL("error loading ransac parameters");  
+
   // setup frontend
   ROS_INFO("Setup Frontend...");
   std::string map;
   if(!nh.getParam("/arp_node/map", map)) ROS_FATAL("error loading world");
   arp::Frontend frontend(cp, fp);
+  frontend.setRansacParams(rp);
   
   //setup OccupancyMap
   ROS_INFO("Setup OccupancyMap...");

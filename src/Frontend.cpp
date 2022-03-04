@@ -173,7 +173,7 @@ bool Frontend::ransac(const std::vector<cv::Point3d>& worldPoints,
   cv::Mat rvec, tvec;
   bool ransacSuccess = cv::solvePnPRansac(
       worldPoints, imagePoints, cameraMatrix_, distCoeffs_,
-      rvec, tvec, false, 300, 5.0, 0.9, inliers, cv::SOLVEPNP_EPNP);	//error 5.0
+      rvec, tvec, rp_.useExtrinsicGuess, rp_.iterationsCount, rp_.reprojectionError, rp_.confidence, inliers, cv::SOLVEPNP_EPNP);	//false, 300, 5.0, 0.9
 
   // set pose
   cv::Mat R = cv::Mat::zeros(3, 3, CV_64FC1);

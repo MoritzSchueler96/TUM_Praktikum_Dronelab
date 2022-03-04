@@ -39,18 +39,12 @@
     <param name="camModel" type="bool" value="false" />
     <param name="displayKeypoints" type="bool" value="true" />
     <param name="displayAllKeypoints" type="bool" value="false" />
-    <param name="numKeypoints" type="int" value="200" />
     <param name="poseLostThreshold" value="100" />
     <param name="poseSwitchThreshold" value="5" />
     <param name="poseLostTimeThreshold" value="2" />
-    <param name="mapFocalLength" value="185.6909" />
-    <param name="Brisk_uniformityRadius" value="35" />
-    <param name="Brisk_absoluteThreshold" value="100" />
     <param name="ImageWidth" value="1920" />
     <param name="ImageHeight" value="960" />
     <param name="fontScaling" value="1.5" />
-    <param name="skipThresInit" value="3" /> <!-- default 1 -->
-    <param name="skipThresLimit" value="3" /> <!-- default 4 -->
     <param name="gridSize" type="int" value="10" />
 
     <!-- Yaw Rate Control -->
@@ -65,6 +59,19 @@
     <rosparam param="zControlParams">[0.95, 0.01, 0.05]</rosparam>
     <rosparam param="yawControlParams">[1.75, 0.01, 0.0]</rosparam>
 
+    <!-- Frontend Parameters -->
+    <param name="numKeypoints" type="int" value="200" />
+    <param name="mapFocalLength" value="185.6909" />
+    <param name="Brisk_uniformityRadius" value="35" />
+    <param name="Brisk_absoluteThreshold" value="100" />
+    <param name="skipThresInit" value="3" /> <!-- default 1 -->
+    <param name="skipThresLimit" value="3" /> <!-- default 4 -->
+
+    <!-- Ransac Parameters -->
+    <param name="useExtrinsicGuess" type="bool" value="false" /> <!-- default false -->
+    <param name="iterationsCount" type="int" value="300" /> <!-- default 300 -->
+    <param name="reprojectionError" value="5.0" /> <!-- default 5.0 -->
+    <param name="confidence" value="0.9" /> <!-- default 0.9 -->
 
     <!-- WaypointB -->
     <param name="waypointX" value="4.25" /> <!-- 1.3--><!--  0.7 --><!--  5.5 -->
