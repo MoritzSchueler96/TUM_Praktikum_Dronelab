@@ -334,7 +334,7 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
     waypoints_wayback.push_back(temp);
 
     // check if extra landing pos is needed
-    //checkLandingPos(temp, waypoints_wayback);
+    checkLandingPos(temp, waypoints_wayback);
 
     found_ = true;
     isReady_ = true;

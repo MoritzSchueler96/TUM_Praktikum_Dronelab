@@ -87,16 +87,21 @@ class Subscriber
 
   /// \brief Struct holding global variables
 struct globalParams{
+  // cam parameters
   bool enableFusion;
   bool cameraModelApplied;
+  // image overlays
   bool displayKeypoints;   
+  bool displayAllKeypoints;
+  // image scaling
   int ImageWidth;
   int ImageHeight;
   double fontScaling;
-  bool displayAllKeypoints;
+  // pose
   int poseLostThreshold;
   int poseSwitchThreshold;
   ros::Duration poseLostTimeThreshold;
+  // planner
   bool calcYawRate;
   bool flyForward;
   bool lookFixedPointOrientation;
@@ -118,6 +123,7 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
   if(!nh.getParam("/arp_node/displayAllKeypoints", gp.displayAllKeypoints)) ROS_FATAL("error loading displayAllKeypoints");
   if(!nh.getParam("/arp_node/poseLostThreshold", gp.poseLostThreshold)) ROS_FATAL("error loading poseLostThreshold");
   if(!nh.getParam("/arp_node/poseSwitchThreshold", gp.poseSwitchThreshold)) ROS_FATAL("error loading poseSwitchThreshold");
+
   double threshold;
   if(!nh.getParam("/arp_node/poseLostTimeThreshold", threshold)) ROS_FATAL("error loading poseLostTimeThreshold");
   gp.poseLostTimeThreshold = ros::Duration(threshold);

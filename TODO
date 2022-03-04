@@ -3,9 +3,9 @@
   ✘ pose von drone ausgeben, die sie denkt zu haben, wenn drift @cancelled(22-02-08 12:42)
   ✔ PID controller Werte in launch file packen? @done(22-03-03 15:04)
   ✔ ransac parameters in launch file packen? @done(22-03-03 19:46)
-  ☐ add explanation of brisk parameters in launch file
+  ✔ add explanation of brisk parameters in launch file @done(22-03-04 09:02)
 
-  ☐ Debugging aufräumen
+  ✔ Debugging aufräumen @done(22-03-04 09:25)
   ☐ add comments
   ✔ weirdes Verhalten beim Landen untersuchen @done(22-02-09 10:09)
   
