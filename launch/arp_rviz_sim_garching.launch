@@ -45,55 +45,55 @@
     <param name="ImageWidth" value="1920" /> <!-- width for scaling of camera image -->
     <param name="ImageHeight" value="960" /> <!-- height for scaling of camera image -->
     <param name="fontScaling" value="1.5" /> <!-- font scaling for text on camera image -->
-    <param name="gridSize" type="int" value="5" />
+    <param name="gridSize" type="int" value="5" /> <!-- granularity of path planner, unit = 10cm -->
 
     <!-- Yaw Rate Control -->
-    <param name="calcYawRate" type="bool" value="true" />
-    <param name="flyForward" type="bool" value="true" />
-    <param name="lookFixedPointOrientation" type="bool" value="true" \>
-    <rosparam param="lookFixedOrientationPoint">[-1, -1.5, 0.0]</rosparam>
+    <param name="calcYawRate" type="bool" value="true" /> <!-- orient drone to look into the room -->
+    <param name="flyForward" type="bool" value="true" /> <!-- orient drone to next waypoint -->
+    <param name="lookFixedPointOrientation" type="bool" value="true" \> <!-- orient drone to fix point -->
+    <rosparam param="lookFixedOrientationPoint">[-1, -1.5, 0.0]</rosparam> <!-- point to orient the drone to -->
 
     <!-- PID Parameters -->
-    <rosparam param="xControlParams">[0.15, 0.005, 0.01]</rosparam>
-    <rosparam param="yControlParams">[0.15, 0.005, 0.01]</rosparam>
-    <rosparam param="zControlParams">[0.95, 0.01, 0.05]</rosparam>
-    <rosparam param="yawControlParams">[1.75, 0.01, 0.0]</rosparam>
+    <rosparam param="xControlParams">[0.15, 0.005, 0.01]</rosparam> <!-- Kp, Ki, Kd for the pid controller -->
+    <rosparam param="yControlParams">[0.15, 0.005, 0.01]</rosparam> <!-- Kp, Ki, Kd for the pid controller -->
+    <rosparam param="zControlParams">[0.95, 0.01, 0.05]</rosparam> <!-- Kp, Ki, Kd for the pid controller -->
+    <rosparam param="yawControlParams">[1.75, 0.01, 0.0]</rosparam> <!-- Kp, Ki, Kd for the pid controller -->
 
     <!-- Frontend Parameters -->
-    <param name="numKeypoints" type="int" value="2000" />
-    <param name="mapFocalLength" value="185.6909" />
-    <param name="Brisk_uniformityRadius" value="35" />
-    <param name="Brisk_absoluteThreshold" value="100" />
-    <param name="skipThresInit" value="3" /> <!-- default 1 -->
-    <param name="skipThresLimit" value="3" /> <!-- default 4 -->
+    <param name="numKeypoints" type="int" value="2000" /> <!-- number of keypoints to generate by brisk detector -->
+    <param name="mapFocalLength" value="185.6909" /> <!-- focal length with which the map was created -->
+    <param name="Brisk_uniformityRadius" value="35" /> <!-- distance between two detectable keypoints -->
+    <param name="Brisk_absoluteThreshold" value="100" /> <!-- threshold to consider point as a keypoint -->
+    <param name="skipThresInit" value="3" /> <!-- default 1, value to skip every nth landmark for faster matching -->
+    <param name="skipThresLimit" value="3" /> <!-- default 4, max value to skip landmarks for faster matching -->
 
     <!-- Ransac Parameters -->
-    <param name="useExtrinsicGuess" type="bool" value="false" /> <!-- default false -->
-    <param name="iterationsCount" type="int" value="300" /> <!-- default 300 -->
-    <param name="reprojectionError" value="5.0" /> <!-- default 5.0 -->
-    <param name="confidence" value="0.9" /> <!-- default 0.9 -->
+    <param name="useExtrinsicGuess" type="bool" value="false" /> <!-- default false, uses provided rvec and tvec as initial guesses -->
+    <param name="iterationsCount" type="int" value="300" /> <!-- default 300, how often ransac projects points and matches them -->
+    <param name="reprojectionError" value="5.0" /> <!-- default 5.0, max. error to consider points as matched -->
+    <param name="confidence" value="0.9" /> <!-- default 0.9, wanted confidence of the calculated result -->
 
     <!-- WaypointB -->
-    <param name="waypointX" value="100" />
-    <param name="waypointY" value="100" />
-    <param name="waypointZ" value="100" />
-    <param name="waypointYaw" value="0" />
-    <param name="waypointTolerance" value="10" />
+    <param name="waypointX" value="100" /> <!-- target waypoint X position -->
+    <param name="waypointY" value="100" /> <!-- target waypoint Y position -->
+    <param name="waypointZ" value="100" /> <!-- target waypoint Z position -->
+    <param name="waypointYaw" value="0" /> <!-- target waypoint yaw rate -->
+    <param name="waypointTolerance" value="10" /> <!-- target waypoint tolerance -->
 
     <!-- Camera parameters -->
-    <param name="fu" value="185.6909" />
-    <param name="fv" value="185.6909" />
-    <param name="cu" value="319.5" />
-    <param name="cv" value="179." />
-    <param name="k1" value="0" />
-    <param name="k2" value="0" />
-    <param name="p1" value="0" />
-    <param name="p2" value="0" />
+    <param name="fu" value="185.6909" /> <!-- camera focal length horizontal -->
+    <param name="fv" value="185.6909" /> <!-- camera focal length vertical -->
+    <param name="cu" value="319.5" /> <!-- camera center pixel horizontal -->
+    <param name="cv" value="179." /> <!-- camera center pixel vertical -->
+    <param name="k1" value="0" /> <!-- camera distortion parameter -->
+    <param name="k2" value="0" /> <!-- camera distortion parameter -->
+    <param name="p1" value="0" /> <!-- camera distortion parameter -->
+    <param name="p2" value="0" /> <!-- camera distortion parameter -->
     <rosparam param="T_SC">[0.0, 0.0, 1.0, 0.2, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]</rosparam>
     <!-- Make sure to match the map to the world loaded above! -->
 
-    <param name="map" value="okvis2-slam-final_map_garching_new2.csv" />
-    <param name="occupancymap" value="occupancy-map_garching.dat" />
+    <param name="map" value="okvis2-slam-final_map_garching_new2.csv" /> <!-- map of the simulated world -->
+    <param name="occupancymap" value="occupancy-map_garching.dat" /> <!-- map of obstacles in the world -->
 
   </node>
 
