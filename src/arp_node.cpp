@@ -526,7 +526,7 @@ int main(int argc, char **argv)
       auto droneBattery=autopilot.droneBattery();
 
       // render image, if there is a new one available
-      if(vit.getLastVisualisationImage(image))
+      if(subscriber.getLastImage(image))//vit.getLastVisualisationImage(image))
       {
           // TODO: add overlays to the cv::Mat image, e.g. text
           // apply camera model if enabled
