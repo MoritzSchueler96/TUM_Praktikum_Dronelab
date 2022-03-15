@@ -50,7 +50,7 @@
     <!-- Yaw Rate Control -->
     <param name="calcYawRate" type="bool" value="true" /> <!-- orient drone to look into the room -->
     <param name="flyForward" type="bool" value="true" /> <!-- orient drone to next waypoint -->
-    <param name="lookFixedPointOrientation" type="bool" value="true" \> <!-- orient drone to fix point -->
+    <param name="lookFixedPointOrientation" type="bool" value="true" /> <!-- orient drone to fix point -->
     <rosparam param="lookFixedOrientationPoint">[-1, -1.5, 0.0]</rosparam> <!-- point to orient the drone to -->
 
     <!-- PID Parameters -->
