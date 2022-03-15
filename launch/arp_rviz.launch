@@ -111,7 +111,6 @@
     <!-- Make sure to load the right map! -->
     <param name="map" value="okvis2-slam-final_map.csv" />
     <param name="occupancymap" value="occupancy-map_garching.dat" />
-    <!-- <param name="occupancymap" value="occupancy-map.dat" /> -->
 
   </node>
 

@@ -254,6 +254,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
     // save best matched Points
     bool matched = false;
     float bestDist=distanceThres_; // 60 is given threshold
+
     Eigen::Vector3d bestLandmarkPt;
     cv::Point2d bestKeyPt;
     int bestLmID;

@@ -58,7 +58,11 @@
     <param name="calcYawRate" type="bool" value="true" />
     <param name="flyForward" type="bool" value="true" />
     <param name="lookFixedPointOrientation" type="bool" value="true" />
+<<<<<<< Updated upstream
     <rosparam param="lookFixedOrientationPoint">[4.25, 6.56, 1.8]</rosparam>
+=======
+    <rosparam param="LookFixedOrientationPoint">[4.25, 6.56, 1.8]</rosparam>
+>>>>>>> Stashed changes
 
     <!-- PID Parameters -->
     <rosparam param="xControlParams">[0.15, 0.005, 0.01]</rosparam>
