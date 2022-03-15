@@ -62,7 +62,7 @@
     <param name="calcYawRate" type="bool" value="true" />
     <param name="flyForward" type="bool" value="true" />
     <param name="lookFixedPointOrientation" type="bool" value="true" />
-    <rosparam param="LookFixedOrientationPoint">[4.25, 6.56, 1.8]</rosparam>
+    <rosparam param="lookFixedOrientationPoint">[4.25, 6.56, 1.8]</rosparam>
 
     <!-- PID Parameters -->
     <rosparam param="xControlParams">[0.15, 0.005, 0.01]</rosparam>
@@ -103,7 +103,8 @@
     <rosparam param="T_SC">[-0.00195087, -0.03257782,  0.99946730, 0.17409445, -0.99962338, -0.02729525, -0.00284087, 0.02255834, 0.02737326, -0.99909642, -0.03251230, 0.00174723, 0.00000000,  0.00000000,  0.00000000, 1.00000000]</rosparam>
     <!-- Make sure to load the right map! -->
     <param name="map" value="okvis2-slam-final_map.csv" />
-    <param name="occupancymap" value="occupancy-map.dat" />
+    <param name="occupancymap" value="occupancy-map_garching.dat" />
+    <!-- <param name="occupancymap" value="occupancy-map.dat" /> -->
 
   </node>
 
