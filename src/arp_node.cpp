@@ -151,6 +151,7 @@ bool loadFrontendParams(ros::NodeHandle& nh, arp::Frontend::frontendParams& fp){
   if(!nh.getParam("/arp_node/Brisk_uniformityRadius", fp.Brisk_uniformityRadius)) ROS_FATAL("error loading Brisk_uniformityRadius");
   if(!nh.getParam("/arp_node/Brisk_absoluteThreshold", fp.Brisk_absoluteThreshold)) ROS_FATAL("error loading Brisk_absoluteThreshold");
   if(!nh.getParam("/arp_node/numKeypoints", fp.numKeypoints)) ROS_FATAL("error loading numKeypoints");
+  if(!nh.getParam("/arp_node/distanceThres", fp.distanceThres)) ROS_FATAL("error loading distanceThres");
   return true;
 }
 

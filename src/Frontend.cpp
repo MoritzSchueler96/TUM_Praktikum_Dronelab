@@ -45,6 +45,7 @@ Frontend::Frontend(arp::cameras::CamParams cp, Frontend::frontendParams fp): // 
   distCoeffs_.at<double>(3) = cp.p2();
   skipThresInit_=fp.skipThresInit;
   skipThresLimit_=fp.skipThresLimit;
+  distanceThres_=fp.distanceThres;
   // BRISK detector and descriptor
   detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(fp.Brisk_uniformityRadius, 0, fp.Brisk_absoluteThreshold, fp.numKeypoints));//10,0,100,2000 Sim: 35, 0, 100, x, Real: 35, 0, 2, 200
   //working limit 25-35 for castle, kitchen 
@@ -252,7 +253,7 @@ bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extr
     
     // save best matched Points
     bool matched = false;
-    float bestDist=60.0; // 60 is given threshold
+    float bestDist=distanceThres_; // 60 is given threshold
     Eigen::Vector3d bestLandmarkPt;
     cv::Point2d bestKeyPt;
     int bestLmID;
