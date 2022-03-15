@@ -152,6 +152,7 @@ bool loadFrontendParams(ros::NodeHandle& nh, arp::Frontend::frontendParams& fp){
   if(!nh.getParam("/arp_node/Brisk_absoluteThreshold", fp.Brisk_absoluteThreshold)) ROS_FATAL("error loading Brisk_absoluteThreshold");
   if(!nh.getParam("/arp_node/numKeypoints", fp.numKeypoints)) ROS_FATAL("error loading numKeypoints");
   if(!nh.getParam("/arp_node/distanceThres", fp.distanceThres)) ROS_FATAL("error loading distanceThres");
+  if(!nh.getParam("/arp_node/inlierThres", fp.inlierThres)) ROS_FATAL("error loading inlierThres");
   return true;
 }
 
@@ -527,7 +528,7 @@ int main(int argc, char **argv)
       auto droneBattery=autopilot.droneBattery();
 
       // render image, if there is a new one available
-      if(subscriber.getLastImage(image))//vit.getLastVisualisationImage(image))
+      if(vit.getLastVisualisationImage(image)) // subscriber.getLastImage(image)
       {
           // TODO: add overlays to the cv::Mat image, e.g. text
           // apply camera model if enabled

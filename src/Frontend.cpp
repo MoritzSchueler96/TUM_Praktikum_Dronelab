@@ -46,6 +46,7 @@ Frontend::Frontend(arp::cameras::CamParams cp, Frontend::frontendParams fp): // 
   skipThresInit_=fp.skipThresInit;
   skipThresLimit_=fp.skipThresLimit;
   distanceThres_=fp.distanceThres;
+  inlierThres_=fp.inlierThres;
   // BRISK detector and descriptor
   detector_.reset(new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(fp.Brisk_uniformityRadius, 0, fp.Brisk_absoluteThreshold, fp.numKeypoints));//10,0,100,2000 Sim: 35, 0, 100, x, Real: 35, 0, 2, 200
   //working limit 25-35 for castle, kitchen 
@@ -188,7 +189,7 @@ bool Frontend::ransac(const std::vector<cv::Point3d>& worldPoints,
   }
   T_CW = kinematics::Transformation(T_CW_mat);
 
-  return ransacSuccess && (double(inliers.size())/double(imagePoints.size()) > 0.5);//0.7
+  return ransacSuccess && (double(inliers.size())/double(imagePoints.size()) > inlierThres_); // 0.5);//0.7
 }
 
 bool Frontend::detectAndMatch(const cv::Mat& image, const Eigen::Vector3d & extractionDirection, 

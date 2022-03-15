@@ -65,6 +65,7 @@
     <param name="Brisk_uniformityRadius" value="35" /> <!-- distance between two detectable keypoints -->
     <param name="Brisk_absoluteThreshold" value="100" /> <!-- threshold to consider point as a keypoint -->
     <param name="distanceThres" value="60.0" /> <!-- default 60.0, threshold for hamming distance in landmark matching -->
+    <param name="inlierThres" value="0.5" /> <!-- default 0.7, inlier outlier ratio threshold -->
     <param name="skipThresInit" value="3" /> <!-- default 1, value to skip every nth landmark for faster matching -->
     <param name="skipThresLimit" value="3" /> <!-- default 4, max value to skip landmarks for faster matching -->
 
