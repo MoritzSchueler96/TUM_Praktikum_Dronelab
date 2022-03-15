@@ -36,6 +36,7 @@ class Frontend
     int skipThresInit;
     int skipThresLimit;
     double distanceThres;
+    double inlierThres;
   };
 
   struct ransacParams{
@@ -119,6 +120,7 @@ class Frontend
   int skipThresInit_; ///< Reduction Factor to skip landmarks for speed increase
   int skipThresLimit_; ///< Reduction Limit
   double distanceThres_; ///< distance Threshold
+  double inlierThres_; ///< inlier outlier ration Threshold
   ransacParams rp_; ///< Ransac Parameters
 
  private:
