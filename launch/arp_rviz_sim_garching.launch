@@ -50,7 +50,7 @@
     <!-- Yaw Rate Control -->
     <param name="calcYawRate" type="bool" value="true" /> <!-- orient drone to look into the room -->
     <param name="flyForward" type="bool" value="true" /> <!-- orient drone to next waypoint -->
-    <param name="lookFixedPointOrientation" type="bool" value="true" \> <!-- orient drone to fix point -->
+    <param name="lookFixedPointOrientation" type="bool" value="true" /> <!-- orient drone to fix point -->
     <rosparam param="lookFixedOrientationPoint">[-1, -1.5, 0.0]</rosparam> <!-- point to orient the drone to -->
 
     <!-- PID Parameters -->
@@ -64,6 +64,7 @@
     <param name="mapFocalLength" value="185.6909" /> <!-- focal length with which the map was created -->
     <param name="Brisk_uniformityRadius" value="35" /> <!-- distance between two detectable keypoints -->
     <param name="Brisk_absoluteThreshold" value="100" /> <!-- threshold to consider point as a keypoint -->
+    <param name="distanceThres" value="60.0" /> <!-- default 60.0, threshold for hamming distance in landmark matching -->
     <param name="skipThresInit" value="3" /> <!-- default 1, value to skip every nth landmark for faster matching -->
     <param name="skipThresLimit" value="3" /> <!-- default 4, max value to skip landmarks for faster matching -->
 

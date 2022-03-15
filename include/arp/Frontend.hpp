@@ -35,6 +35,7 @@ class Frontend
     double Brisk_absoluteThreshold;
     int skipThresInit;
     int skipThresLimit;
+    double distanceThres;
   };
 
   struct ransacParams{
@@ -117,6 +118,7 @@ class Frontend
   std::atomic_bool displayAllKeypoints_{false}; ///< whether to overlay all keypoints
   int skipThresInit_; ///< Reduction Factor to skip landmarks for speed increase
   int skipThresLimit_; ///< Reduction Limit
+  double distanceThres_; ///< distance Threshold
   ransacParams rp_; ///< Ransac Parameters
 
  private:
