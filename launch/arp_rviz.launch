@@ -73,18 +73,18 @@
     <!-- Frontend Parameters -->
     <param name="numKeypoints" type="int" value="200" />
     <param name="mapFocalLength" value="390.59" />
-    <param name="Brisk_uniformityRadius" value="35" />
-    <param name="Brisk_absoluteThreshold" value="20" />
+    <param name="Brisk_uniformityRadius" value="30" />
+    <param name="Brisk_absoluteThreshold" value="5" />
     <param name="distanceThres" value="60.0" /> <!-- default 60.0 -->
-    <param name="inlierThres" value="0.5" /> <!-- default 0.7 -->
-    <param name="skipThresInit" value="3" /> <!-- default 1 -->
-    <param name="skipThresLimit" value="3" /> <!-- default 4 -->
+    <param name="skipThresInit" value="1" /> <!-- default 1 -->
+    <param name="skipThresLimit" value="1" /> <!-- default 4 -->
 
     <!-- Ransac Parameters -->
     <param name="useExtrinsicGuess" type="bool" value="false" /> <!-- default false -->
     <param name="iterationsCount" type="int" value="300" /> <!-- default 300 -->
     <param name="reprojectionError" value="5.0" /> <!-- default 5.0 -->
     <param name="confidence" value="0.9" /> <!-- default 0.9 -->
+    <param name="inlierThres" value="0.45" /> <!-- default 0.7 -->
 
     <!-- WaypointB -->
     <param name="waypointX" value="100" />
@@ -104,8 +104,8 @@
     <param name="p2" value="-0.001345" />
     <rosparam param="T_SC">[-0.00195087, -0.03257782,  0.99946730, 0.17409445, -0.99962338, -0.02729525, -0.00284087, 0.02255834, 0.02737326, -0.99909642, -0.03251230, 0.00174723, 0.00000000,  0.00000000,  0.00000000, 1.00000000]</rosparam>
     <!-- Make sure to load the right map! -->
-    <param name="map" value="okvis2-slam-final_map.csv" />
-    <param name="occupancymap" value="occupancy-map_garching.dat" />
+    <param name="map" value="okvis2-slam-final_map_challenge.csv" />
+    <param name="occupancymap" value="occupancy-map_challenge.dat" />
 
   </node>
 
