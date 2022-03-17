@@ -78,22 +78,22 @@ OccMap::~OccMap() {
     delete[] mapData_;
 }
 
-bool OccMap::isOccupiedGrid(const Eigen::Vector3i& gridPos) const {
+char OccMap::isOccupiedGrid(const Eigen::Vector3i& gridPos) const {
     if (gridPos[0] < 0 || gridPos[1] < 0 || gridPos[2] < 0) {
         std::cout << "OccMap: out of bounds A!" << std::endl;
-        return true;
+        return 127; // true;
     }
     if (gridPos[0] >= sizes_[0] || gridPos[1] >= sizes_[1] || gridPos[2] >= sizes_[2]) {
         std::cout << "OccMap: out of bounds B!" << std::endl;
-        return true;
+        return 127; // true;
     }
 
     char data = map_.at<char>(gridPos[0], gridPos[1], gridPos[2]);
-    return data >= 0;
+    return data; //  >= 0;
 }
 
 bool OccMap::isOccupiedWorld(const Eigen::Vector3d& worldPos) const {
-    return isOccupiedGrid(toGridPos(worldPos));
+    return isOccupiedGrid(toGridPos(worldPos)) >= 0;
 }
 
 bool OccMap::isOccupiedGridRegion(const Eigen::Vector3i& gridPosA, const Eigen::Vector3i& gridPosB) const {
@@ -103,7 +103,7 @@ bool OccMap::isOccupiedGridRegion(const Eigen::Vector3i& gridPosA, const Eigen::
     for (int x = gridPosA[0]; x < gridPosB[0]; x++) {
         for (int y = gridPosA[1]; y < gridPosB[1]; y++) {
             for (int z = gridPosA[2]; z < gridPosB[2]; z++) {
-                if (isOccupiedGrid({x, y, z})) {
+                if (isOccupiedGrid({x, y, z})>=0) {
                     return true;
                 }
             }

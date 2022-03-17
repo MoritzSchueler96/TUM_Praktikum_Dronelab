@@ -24,7 +24,7 @@ public:
 
     ~OccMap();
 
-    bool isOccupiedGrid(const Eigen::Vector3i& gridPos) const;
+    char isOccupiedGrid(const Eigen::Vector3i& gridPos) const;
 
     bool isOccupiedWorld(const Eigen::Vector3d& worldPos) const;
 

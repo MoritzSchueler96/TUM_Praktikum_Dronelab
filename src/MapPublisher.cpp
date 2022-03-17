@@ -38,7 +38,11 @@ void MapPublisher::publish(OccMap& map) {
     {
         for (int x = 0; x < sx; x++)    
         {
-            grid.data.push_back(map.isOccupiedGrid({x, y, z}) ? 100 : 0);
+            char data = map.isOccupiedGrid({x, y, z});
+            int d = data - '0';
+            std::cout << data << std::endl;
+            grid.data.push_back((data >= 1) ? 100 : ((data >= 0) ? 50 : 0));
+            // grid.data.push_back(map.isOccupiedGrid({x, y, z}) ? 100 : 0);
         }
         
     }
