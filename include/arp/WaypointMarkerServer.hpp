@@ -1,29 +1,28 @@
 /*
- * InteractiveMarkerServer.hpp
+ * WaypointMarkerServer.hpp
  *
  *  Created on: 23 Feb 2017
  *      Author: sleutene
  */
 
-#ifndef ARDRONE_PRACTICALS_INCLUDE_ARP_INTERACTIVEMARKERSERVER_HPP_
-#define ARDRONE_PRACTICALS_INCLUDE_ARP_INTERACTIVEMARKERSERVER_HPP_
+#ifndef ARDRONE_PRACTICALS_INCLUDE_ARP_WAYPOINTMARKERSERVER_HPP_
+#define ARDRONE_PRACTICALS_INCLUDE_ARP_WAYPOINTMARKERSERVER_HPP_
 
 #include <std_srvs/Empty.h>
 #include <interactive_markers/interactive_marker_server.h>
-#include <arp/Autopilot.hpp>
+
 
 namespace arp {
 
-class InteractiveMarkerServer
+class WaypointMarkerServer
 {
 public:
-  InteractiveMarkerServer(arp::Autopilot & autopilot) : autopilot_(&autopilot)
+  WaypointMarkerServer() 
   {
     // create an interactive marker server on the topic namespace simple_marker
     server_.reset(
-      new interactive_markers::InteractiveMarkerServer("reference"));
+      new interactive_markers::InteractiveMarkerServer("waypoint"));
   }
-
   void activate(double x, double y, double z, double yaw) {
     deactivate(); // make sure not called more than once...
     // create an interactive marker for our server
@@ -93,7 +92,7 @@ public:
     // tell the server to call processFeedback() when feedback arrives for it
     server_->insert(
       int_marker,
-      std::bind(&InteractiveMarkerServer::processFeedback, this,
+      std::bind(&WaypointMarkerServer::processFeedback, this,
                 std::placeholders::_1));
 
     // 'commit' changes and send to all clients
@@ -127,18 +126,14 @@ public:
       if (feedback->pose.orientation.z < 0.0) {
         yaw = -angle;
       }
-      if(!autopilot_->setPoseReference(feedback->pose.position.x, feedback->pose.position.y,
-                                  feedback->pose.position.z, yaw))
       {
         double x, y, z, yaw;
-        autopilot_->getPoseReference(x, y, z, yaw);
         activate(x, y, z, yaw);
       }
     }
   }
 protected:
   std::unique_ptr<interactive_markers::InteractiveMarkerServer> server_;
-  arp::Autopilot* autopilot_;
   bool deactivateFeedback_;
 };
 

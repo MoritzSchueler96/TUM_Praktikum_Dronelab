@@ -807,6 +807,7 @@ int main(int argc, char **argv)
         // activate tracking state and set parameters
         flyChallenge = true;
         challengeCompleted = false;
+        markerServer.deactivateFeedback();
         autopilot.setTracking();
         autopilot.takeoff();
         landingTime = ros::Time::now();
@@ -843,6 +844,7 @@ int main(int argc, char **argv)
         // activate tracking state and set parameters
         flyChallenge = true;
         challengeCompleted = false;
+        markerServer.deactivateFeedback();
         autopilot.setTracking();
         autopilot.takeoff();
         landingTime = ros::Time::now();
@@ -892,6 +894,7 @@ int main(int argc, char **argv)
 
             // activate auto mode
             markerServer.activate(x, y, z, yaw);
+            markerServer.activateFeedback();
             autopilot.setAutomatic();
           }
 

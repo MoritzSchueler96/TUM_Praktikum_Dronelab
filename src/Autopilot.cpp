@@ -17,7 +17,6 @@ Autopilot::Autopilot(ros::NodeHandle& nh,  Autopilot::pidParams pp)
 {
   isAutomatic_ = false; // always start in manual mode  
   isTracking_ = false; // always start in manual mode
-
   // receive navdata
   subNavdata_ = nh.subscribe("ardrone/navdata", 50, &Autopilot::navdataCallback,
                              this);
@@ -312,6 +311,7 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
         ROS_DEBUG_STREAM_THROTTLE(2, "Current waypointX: " << w.x);
         ROS_DEBUG_STREAM_THROTTLE(2, "Current waypointY: " << w.y);
         ROS_DEBUG_STREAM_THROTTLE(2, "Current waypointZ: " << w.z);
+        markerServer_.activate(w.x, w.y, w.z, w.yaw);
         setPoseReference(w.x, w.y, w.z, w.yaw);
 
         // TODO: remove the current waypoint, if the position error is below \

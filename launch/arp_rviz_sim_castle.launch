@@ -95,8 +95,10 @@
 
     <!-- Make sure to match the map to the world loaded above! -->
     <param name="map" value="okvis2-slam-final_map_skokloster_new2.csv" />
-    <param name="occupancymap" value="occupancy-map_skokloster.dat" />
+    <param name="occupancymap" value="occupancy-map_challenge.dat" />
 
   </node>
+  
+  <node name="map_node" pkg="ardrone_practicals" type="map_node"/>
 
 </launch>

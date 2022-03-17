@@ -24,9 +24,11 @@
 #include <std_srvs/Empty.h>
 #include <ros/console.h>
 
+#include <arp/WaypointMarkerServer.hpp>
 #include <arp/kinematics/Imu.hpp>
 #include <arp/PidController.hpp>
 #include <opencv2/highgui/highgui.hpp>
+
 namespace arp {
 
 /// \brief The autopilot highlevel interface for commanding the drone manually or automatically.
@@ -159,6 +161,7 @@ class Autopilot {
     std::lock_guard<std::mutex> l(waypointMutex_);
     return waypoints_.size();
   }
+  
 
  protected:
   /// \brief Move the drone.
@@ -202,6 +205,7 @@ class Autopilot {
 
   std::deque<Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.
   std::mutex waypointMutex_;  ///< We need to lock the waypoint access due to asynchronous arrival.
+  WaypointMarkerServer markerServer_;
 
 };
 

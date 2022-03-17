@@ -108,5 +108,6 @@
     <param name="occupancymap" value="occupancy-map_challenge.dat" />
 
   </node>
+  <node name="map_node" pkg="ardrone_practicals" type="map_node"/>
 
 </launch>
