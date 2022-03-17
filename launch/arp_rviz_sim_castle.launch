@@ -45,7 +45,7 @@
     <param name="ImageWidth" value="1920" />
     <param name="ImageHeight" value="960" />
     <param name="fontScaling" value="1.5" />
-    <param name="gridSize" type="int" value="10" />
+    <param name="gridSize" type="int" value="5" />
 
     <!-- Yaw Rate Control -->
     <param name="calcYawRate" type="bool" value="true" />
@@ -76,9 +76,9 @@
     <param name="confidence" value="0.9" /> <!-- default 0.9 -->
 
     <!-- WaypointB -->
-    <param name="waypointX" value="4.25" /> <!-- 1.3--><!--  0.7 --><!--  5.5 -->
-    <param name="waypointY" value="6.56" /> <!-- 4   --><!--  10  --><!--  11  -->
-    <param name="waypointZ" value="1.8" /> <!-- 2.5  --><!--  0   --><!--  0   -->
+    <param name="waypointX" value="2.9" /> <!-- 1.3--><!--  0.7 --><!--  5.5 -->
+    <param name="waypointY" value="2.4" /> <!-- 4   --><!--  10  --><!--  11  -->
+    <param name="waypointZ" value="1.0" /> <!-- 2.5  --><!--  0   --><!--  0   -->
     <param name="waypointYaw" value="0" />
     <param name="waypointTolerance" value="0.2" />
     

@@ -32,7 +32,7 @@
     <rosparam param="cov/imu_or">[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 100000.0]</rosparam>
   </node>
   <!-- Launch visualisation. -->
-  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find ardrone_practicals)/config/rviz_vi_ekf.rviz"/>
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find ardrone_practicals)/config/rviz_control.rviz"/>
 
     <!-- Set Log Level, possible levels: debug, info, warn, error, fatal -->
   <node pkg="rosservice" type="rosservice" name="set_node_log_level" 
@@ -65,10 +65,10 @@
 
 
     <!-- PID Parameters -->
-    <rosparam param="xControlParams">[0.15, 0.005, 0.01]</rosparam>
-    <rosparam param="yControlParams">[0.15, 0.005, 0.01]</rosparam>
-    <rosparam param="zControlParams">[0.95, 0.01, 0.05]</rosparam>
-    <rosparam param="yawControlParams">[1.75, 0.01, 0.0]</rosparam>
+    <rosparam param="xControlParams">[0.05, 0.000, 0.05]</rosparam>
+    <rosparam param="yControlParams">[0.05, 0.000, 0.05]</rosparam>
+    <rosparam param="zControlParams">[1.0, 0.00, 0.00]</rosparam>
+    <rosparam param="yawControlParams">[1.5, 0.00, 0.0]</rosparam>
 
     <!-- Frontend Parameters -->
     <param name="numKeypoints" type="int" value="200" />
@@ -87,11 +87,11 @@
     <param name="inlierThres" value="0.45" /> <!-- default 0.7 -->
 
     <!-- WaypointB -->
-    <param name="waypointX" value="100" />
-    <param name="waypointY" value="100" />
-    <param name="waypointZ" value="100" />
+    <param name="waypointX" value="2.9" />
+    <param name="waypointY" value="2.4" />
+    <param name="waypointZ" value="0.7" />
     <param name="waypointYaw" value="0" />
-    <param name="waypointTolerance" value="10" />
+    <param name="waypointTolerance" value="5" />
 
     <!-- Camera parameters-->
     <param name="fu" value="582.047949" />

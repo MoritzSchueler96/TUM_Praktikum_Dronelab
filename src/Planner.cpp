@@ -11,13 +11,14 @@
 #include <sstream>
 
 #define LANDING_HEIGHT 0.3
-#define FLIGHT_HEIGHT 1.75
-#define FLIGHT_HEIGHT_INDEX 89
+#define FLIGHT_HEIGHT 0.7
+#define FLIGHT_HEIGHT_INDEX 70
 #define STEP_SIZE 0.25
 #define POS_TOLERANCE_LAX 0.3
 #define POS_TOLERANCE_TIGHT 0.15
 #define MAX_TRIES 20
 #define ROS_PI 3.141592653589793238462643383279502884L
+#define occupancy_treshold 127
 namespace arp {
 
 Planner::Planner(ros::NodeHandle& nh): nh_(&nh)
@@ -663,7 +664,7 @@ bool Planner::lineCheck(const Eigen::Vector3d start, const Eigen::Vector3d goal)
       if(i<wrappedMapData_.size[0]& j<wrappedMapData_.size[1]&k<wrappedMapData_.size[2]&i>=0&j>=0&k>=0)
       {
         // check if occupied
-        if(wrappedMapData_.at<char>(i,j,k)>=0)
+        if(wrappedMapData_.at<char>(i,j,k)>=occupancy_treshold)
         {
             ROS_WARN_THROTTLE(10, "Occupied");
             return false;

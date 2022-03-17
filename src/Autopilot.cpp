@@ -244,7 +244,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
       if(i<wrappedMapData_.size[0]& j<wrappedMapData_.size[1]&k<wrappedMapData_.size[2]&i>=0&j>=0&k>=0)
       {
         
-        if(wrappedMapData_.at<char>(i,j,k)>=0)
+        if(wrappedMapData_.at<char>(i,j,k)>=127)
         {
             goal = last;
             ROS_WARN_THROTTLE(10, "Wall in front.");
