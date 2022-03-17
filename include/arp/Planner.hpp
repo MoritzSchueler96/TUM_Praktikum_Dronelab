@@ -99,7 +99,7 @@ class Planner {
   void setOccupancyThreshold(uint8_t value) {occupancyThres_=value;}
 
   /// \brief set max Nodes A Star
-  void setMaxAStarNodes(uint32_t value) {maxNodesAStar_=value;}
+  void setMaxAStarNodes(uint16_t value) {maxNodesAStar_=value;}
 
   /// \brief Is Planner ready?;
   bool isReady() { return isReady_; }
@@ -194,7 +194,7 @@ class Planner {
   Eigen::Vector3d fixedOrientationPoint_;
   uint8_t gridSize_; ///< gridSize for the planner.
   uint8_t occupancyThres_; ///< Threshold to decide if sth is occupied
-  uint32_t maxNodesAStar_; ///< max Nodes before planning fails
+  uint16_t maxNodesAStar_; ///< max Nodes before planning fails
 
   std::deque<arp::Autopilot::Waypoint> waypoints_wayback;  ///< A list of waypoints that will be approached, if not empty.
   std::deque<arp::Autopilot::Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.

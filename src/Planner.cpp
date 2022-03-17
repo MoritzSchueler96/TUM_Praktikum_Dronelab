@@ -12,13 +12,12 @@
 
 #define LANDING_HEIGHT 0.3
 #define FLIGHT_HEIGHT 0.7
-#define FLIGHT_HEIGHT_INDEX 70
+#define FLIGHT_HEIGHT_INDEX 81
 #define STEP_SIZE 0.25
 #define POS_TOLERANCE_LAX 0.3
 #define POS_TOLERANCE_TIGHT 0.15
 #define MAX_TRIES 20
 #define ROS_PI 3.141592653589793238462643383279502884L
-
 namespace arp {
 
 Planner::Planner(ros::NodeHandle& nh): nh_(&nh)
@@ -33,7 +32,7 @@ Planner::Planner(ros::NodeHandle& nh): nh_(&nh)
   flyForward_ = false; // calc yaw rate, s.t. camera faces forward
   gridSize_ = 5; // default gridsize
   occupancyThres_ = 0; // default threshold
-  maxNodesAStar_ = 10000; // default max nodes
+  maxNodesAStar_ = 5000; // default max nodes
 }
 //Set Occupancy Map
 void Planner::setOccupancyMap(cv::Mat MapData)
@@ -162,7 +161,7 @@ int Planner::NodeExplored(Eigen::Vector3i Point)
   return index;
 }
 
-void Planner::addNeighbour(Eigen::Vector3i curPoint, double dist,int stepsize, Eigen::Vector3i direction, Eigen::Vector3i GoalPoint)
+void Planner::addNeighbour(Eigen::Vector3i curPoint, double dist, int stepsize, Eigen::Vector3i direction, Eigen::Vector3i GoalPoint)
 {
   Eigen::Vector3i neighbor;
   neighbor=curPoint;
@@ -250,8 +249,11 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
   //Start point is on floor==> add 1m height
   Node Start_Node;
   Node Goal_Node;
-  uint32_t count_tries=0;
   Goal_Node.point=goal;
+
+  // cnt number nodes in graph
+  uint16_t cntNodes = 0;
+
   //Initialise Start Node
   Start_Node.point=start;
   Start_Node.totDistEst=calcDist(Start_Node.point, Goal_Node.point);
@@ -266,10 +268,12 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
   openSet.push_back(Start_Node);
 
   bool finished=false;
-  while( openSet.empty()!=true&&finished!=true) //&&count_tries<maxNodesAStar_) //run until all Nodes are explored or goal is reached
+  while(!openSet.empty() && !finished && cntNodes < maxNodesAStar_) //run until all Nodes are explored or goal is reached
   {
-    count_tries++;
-    ROS_WARN_STREAM("Cnt: " << count_tries);
+
+    // increase number of nodes in graph
+    cntNodes++;
+
     //get next Node to explore
     int index_next_Node= getSmallestTotDist();
     Node Next_Node=openSet.at(index_next_Node);
@@ -284,7 +288,7 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
       continue;
     }
     //hyperparameter stepsize to speed up algorithm, since resolution of occupancy Map quite high
-    int stepsize=10;//gridSize_;
+    int stepsize=gridSize_;
     
     //to reach goal, gradual planning if it is near
     if(calcDist(Next_Node.point, Goal_Node.point)<10)
@@ -378,7 +382,6 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal)
     Eigen::Vector3i goal_p(goal_x, goal_y, goal_z);
     // std::cout << "Goal Point "<<goal_p[0]<<", "<<goal_p[1]<<", "<<goal_p[2]<< std::endl;
     found_=A_Star(start_p, goal_p);
-    
     createWaypoints(exploredSet.back());
     
     Goal.z=0.6;
@@ -387,9 +390,11 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal)
     checkLandingPos(waypoints_wayback.back(), waypoints_wayback);
 
     if(found_){
-      isReady_ = true;
+        isReady_ = true;
+        planningFailed_ = false;
     } else {
-      planningFailed_=true;
+        planningFailed_ = true;
+        isReady_ = false;
     }
 
     return true;
@@ -416,7 +421,7 @@ void Planner::createWaypoints(Planner::Node StartNode)
   Node curNode=StartNode;
   Eigen::Vector3i curDirection(0,0,0);
   Eigen::Vector3i prevDirection(0,0,0);
-  ROS_INFO_STREAM("Total Distance: "<< StartNode.dist);
+  ROS_INFO_STREAM("Total Distance: " << StartNode.dist);
   double curYawRate;
   double prevYawRate;
   
@@ -482,16 +487,18 @@ void Planner::createWaypoints(Planner::Node StartNode)
       double yawrate;
     prevPoint<<waypoints_.front().x,waypoints_.front().y,waypoints_.front().z;
     tempPoint<<waypoints_.back().x,waypoints_.back().y,waypoints_.back().z;
+
     if(lookFixedPointOrientation_)
     {
       yawrate=calcYawRate_targetpoint(tempPoint, fixedOrientationPoint_);
     }else{
       yawrate=calcYawRate_area(tempPoint,prevPoint);
     }
-    
+
     for(int i=0;i<waypoints_.size(); i++)
     {
-      std::cout << "yaw rates: " << waypoints_.at(i).yaw;
+      std::cout << "old yaw rate: " << waypoints_.at(i).yaw << " / ";
+
       tempPoint<<waypoints_.at(i).x,waypoints_.at(i).y,waypoints_.at(i).z;
       if(lookFixedPointOrientation_)
       {
@@ -499,8 +506,9 @@ void Planner::createWaypoints(Planner::Node StartNode)
       }else{
         yawrate=calcYawRate_area(tempPoint,prevPoint);
       }
+
       waypoints_.at(i).yaw=yawrate;//calcYawRate_area(tempPoint,prevPoint);
-      std::cout << "yaw rates: " << waypoints_.at(i).yaw;
+      std::cout << "new yaw rate: " << waypoints_.at(i).yaw << std::endl;
       prevPoint=tempPoint;
     
     }
@@ -510,6 +518,7 @@ void Planner::createWaypoints(Planner::Node StartNode)
       //yawrate=calcYawRate_area(tempPoint,prevPoint);
       for(int i=0;i<waypoints_wayback.size(); i++)
       {
+
         // std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
         tempPoint<<waypoints_wayback.at(i).x,waypoints_wayback.at(i).y,waypoints_wayback.at(i).z;
         if(lookFixedPointOrientation_)
@@ -518,6 +527,7 @@ void Planner::createWaypoints(Planner::Node StartNode)
         }else{
           yawrate=calcYawRate_area(tempPoint,prevPoint);
         }
+
         waypoints_wayback.at(i).yaw=yawrate;//calcYawRate_area(tempPoint,prevPoint);
         // std::cout<<"yaw rates"<<waypoints_wayback.at(i).yaw;
         prevPoint=tempPoint;
@@ -754,8 +764,6 @@ double Planner::calcYawRate_area(Eigen::Vector3d point, Eigen::Vector3d prev_poi
     return 0;
   }
 
-
-
 }
 
 
@@ -775,6 +783,8 @@ double Planner::calcYawRate_targetpoint(Eigen::Vector3d point, Eigen::Vector3d t
     }
 
 }
+
+
  /// \brief check if area below is free
   /// \return true if free
  bool Planner::freetoground(Eigen::Vector3i point)

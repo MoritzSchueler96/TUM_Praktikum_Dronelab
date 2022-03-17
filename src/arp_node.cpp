@@ -108,7 +108,7 @@ struct globalParams{
   Eigen::Vector3d lookFixedOrientationPoint;
   int gridSize;
   int occupancyThres;
-  uint32_t maxNodesAStar;
+  uint16_t maxNodesAStar;
 };
 
  /// \brief Load global variables
@@ -137,7 +137,7 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
 
   int maxNodes;
   if(!nh.getParam("/arp_node/maxNodesAStar", maxNodes)) ROS_FATAL("error loading maxNodesAStar");
-  gp.maxNodesAStar = (uint32_t) maxNodes;
+  gp.maxNodesAStar = (uint16_t) maxNodes;
   if(!nh.getParam("/arp_node/lookFixedPointOrientation", gp.lookFixedPointOrientation)) ROS_FATAL("error loading lookFixedPointOrientation");
 
   std::vector<double> temp;

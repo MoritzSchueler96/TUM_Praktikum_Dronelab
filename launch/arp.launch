@@ -54,7 +54,7 @@
     <param name="fontScaling" value="1.5" />
     <param name="gridSize" type="int" value="5" />
     <param name="occupancyThres" type="int" value="0" />
-    <param name="maxNodesAStar" type="int" value="10000" />
+    <param name="maxNodesAStar" type="int" value="1000" />
 
     <!-- Yaw Rate Control -->
     <param name="calcYawRate" type="bool" value="true" />
