@@ -100,7 +100,8 @@ class Planner {
 
   /// \brief Has Planner found a path?;
   bool pathFound() { return found_; }
-
+/// \brief true if planner failed to find path?;
+  bool plannerFailed() { return Plannerfailed_; }
   /// \brief Reset Path found;
   void resetPathFound() { found_=false; }
 
@@ -178,6 +179,7 @@ class Planner {
   };
   ros::NodeHandle * nh_;  ///< ROS node handle.
   std::atomic<bool> found_; ///< True, if in path found.
+  std::atomic<bool> Plannerfailed_;
   std::atomic<bool> isReady_; ///< True, if in planner ready.
   std::atomic<bool> calcYawRate_; ///< True, if yaw Rate should be calculated.
   std::atomic<bool> flyForward_; ///< True, if yaw Rate should be calculated, s.t. camera faces forward.

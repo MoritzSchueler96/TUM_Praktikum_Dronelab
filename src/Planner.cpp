@@ -19,6 +19,7 @@
 #define MAX_TRIES 20
 #define ROS_PI 3.141592653589793238462643383279502884L
 #define occupancy_treshold 127
+#define maxnumber_AStar 10000
 namespace arp {
 
 Planner::Planner(ros::NodeHandle& nh): nh_(&nh)
@@ -247,6 +248,7 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
   //Start point is on floor==> add 1m height
   Node Start_Node;
   Node Goal_Node;
+  uint32_t count_tries=0;
   Goal_Node.point=goal;
   //Initialise Start Node
   Start_Node.point=start;
@@ -262,8 +264,9 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
   openSet.push_back(Start_Node);
 
   bool finished=false;
-  while( openSet.empty()!=true&&finished!=true)//run until all Nodes are explored or goal is reached
+  while( openSet.empty()!=true&&finished!=true&&count_tries<maxnumber_AStar)//run until all Nodes are explored or goal is reached
   {
+    count_tries++;
     //get next Node to explore
     int index_next_Node= getSmallestTotDist();
     Node Next_Node=openSet.at(index_next_Node);
@@ -371,29 +374,35 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal)
     Eigen::Vector3i goal_p(goal_x, goal_y, goal_z);
     // std::cout << "Goal Point "<<goal_p[0]<<", "<<goal_p[1]<<", "<<goal_p[2]<< std::endl;
     found_=A_Star(start_p, goal_p);
+    
     createWaypoints(exploredSet.back());
     
     Goal.z=0.6;
     Start.z=0.6;
     checkLandingPos(waypoints_.back(), waypoints_);
     checkLandingPos(waypoints_wayback.back(), waypoints_wayback);
-    for(int i=0; i<waypoints_.size();i++)
+    /*for(int i=0; i<waypoints_.size();i++)
     {
       // std::cout<<"Waypoint"<<i<<": ("<<waypoints_.at(i).x<<", "\
       <<waypoints_.at(i).y<<", "\
       <<waypoints_.at(i).z<<") Yaw: "\
       <<waypoints_.at(i).yaw<<std::endl;
-    }
+    }*/
     // std::cout<<"Rueckweg:"<<std::endl;
-    for(int i=0; i<waypoints_wayback.size();i++)
+    /*for(int i=0; i<waypoints_wayback.size();i++)
     {
       // std::cout<<"Waypoint Wayback"<<i<<": ("<<waypoints_wayback.at(i).x<<", "\
       <<waypoints_wayback.at(i).y<<", "\
       <<waypoints_wayback.at(i).z<<") Yaw: "\
       <<waypoints_wayback.at(i).yaw<<std::endl;
+    }*/
+    //found_ = true;
+    if(found_==true){
+      isReady_ = true;
     }
-    found_ = true;
-    isReady_ = true;
+    else{
+      Plannerfailed_=true;
+    }
 
     return true;
 
