@@ -18,8 +18,7 @@
 #define POS_TOLERANCE_TIGHT 0.15
 #define MAX_TRIES 20
 #define ROS_PI 3.141592653589793238462643383279502884L
-#define occupancy_treshold 127
-#define maxnumber_AStar 10000
+
 namespace arp {
 
 Planner::Planner(ros::NodeHandle& nh): nh_(&nh)
@@ -29,9 +28,12 @@ Planner::Planner(ros::NodeHandle& nh): nh_(&nh)
   //camera_=camMod;
   found_ = false; // always assume no found path  
   isReady_ = false; // always set Planner to not ready
+  planningFailed_ = false; // assume planning works till it fails
   calcYawRate_ = true; // calc yaw rate, s.t. camera faces in to the room
   flyForward_ = false; // calc yaw rate, s.t. camera faces forward
-  gridSize_=5; // default gridsize
+  gridSize_ = 5; // default gridsize
+  occupancyThres_ = 0; // default threshold
+  maxNodesAStar_ = 10000; // default max nodes
 }
 //Set Occupancy Map
 void Planner::setOccupancyMap(cv::Mat MapData)
@@ -93,7 +95,7 @@ bool Planner::is_occupied(int i, int j, int k)
   if(i<wrappedMapData_.size[0]& j<wrappedMapData_.size[1]&k<wrappedMapData_.size[2]&i>=0&j>=0&k>=0)
   {
     //Check Log Odds of Occupancy Map
-    if(wrappedMapData_.at<char>(i,j,k)>=0)
+    if(wrappedMapData_.at<char>(i,j,k)>=occupancyThres_)
     {
         return true;
     }
@@ -160,7 +162,7 @@ int Planner::NodeExplored(Eigen::Vector3i Point)
   return index;
 }
 
-void Planner::addNeighbour(Eigen::Vector3i curPoint,   double dist,int stepsize, Eigen::Vector3i direction,  Eigen::Vector3i GoalPoint)
+void Planner::addNeighbour(Eigen::Vector3i curPoint, double dist,int stepsize, Eigen::Vector3i direction, Eigen::Vector3i GoalPoint)
 {
   Eigen::Vector3i neighbor;
   neighbor=curPoint;
@@ -264,9 +266,10 @@ bool Planner::A_Star(Eigen::Vector3i start, Eigen::Vector3i goal)
   openSet.push_back(Start_Node);
 
   bool finished=false;
-  while( openSet.empty()!=true&&finished!=true&&count_tries<maxnumber_AStar)//run until all Nodes are explored or goal is reached
+  while( openSet.empty()!=true&&finished!=true) //&&count_tries<maxNodesAStar_) //run until all Nodes are explored or goal is reached
   {
     count_tries++;
+    ROS_WARN_STREAM("Cnt: " << count_tries);
     //get next Node to explore
     int index_next_Node= getSmallestTotDist();
     Node Next_Node=openSet.at(index_next_Node);
@@ -342,6 +345,7 @@ bool Planner::plan(Eigen::Vector3d Start,Eigen::Vector3d Goal ){
 
     found_ = true;
     isReady_ = true;
+    planningFailed_ = false;
 
     return true;
 
@@ -381,27 +385,11 @@ bool Planner::plan(arp::Autopilot::Waypoint Start,arp::Autopilot::Waypoint Goal)
     Start.z=0.6;
     checkLandingPos(waypoints_.back(), waypoints_);
     checkLandingPos(waypoints_wayback.back(), waypoints_wayback);
-    /*for(int i=0; i<waypoints_.size();i++)
-    {
-      // std::cout<<"Waypoint"<<i<<": ("<<waypoints_.at(i).x<<", "\
-      <<waypoints_.at(i).y<<", "\
-      <<waypoints_.at(i).z<<") Yaw: "\
-      <<waypoints_.at(i).yaw<<std::endl;
-    }*/
-    // std::cout<<"Rueckweg:"<<std::endl;
-    /*for(int i=0; i<waypoints_wayback.size();i++)
-    {
-      // std::cout<<"Waypoint Wayback"<<i<<": ("<<waypoints_wayback.at(i).x<<", "\
-      <<waypoints_wayback.at(i).y<<", "\
-      <<waypoints_wayback.at(i).z<<") Yaw: "\
-      <<waypoints_wayback.at(i).yaw<<std::endl;
-    }*/
-    //found_ = true;
-    if(found_==true){
+
+    if(found_){
       isReady_ = true;
-    }
-    else{
-      Plannerfailed_=true;
+    } else {
+      planningFailed_=true;
     }
 
     return true;
@@ -428,7 +416,7 @@ void Planner::createWaypoints(Planner::Node StartNode)
   Node curNode=StartNode;
   Eigen::Vector3i curDirection(0,0,0);
   Eigen::Vector3i prevDirection(0,0,0);
-  ROS_INFO_STREAM("Total Distance"<<StartNode.dist);
+  ROS_INFO_STREAM("Total Distance: "<< StartNode.dist);
   double curYawRate;
   double prevYawRate;
   
@@ -503,7 +491,7 @@ void Planner::createWaypoints(Planner::Node StartNode)
     
     for(int i=0;i<waypoints_.size(); i++)
     {
-      std::cout<<"yaw rates"<<waypoints_.at(i).yaw;
+      std::cout << "yaw rates: " << waypoints_.at(i).yaw;
       tempPoint<<waypoints_.at(i).x,waypoints_.at(i).y,waypoints_.at(i).z;
       if(lookFixedPointOrientation_)
       {
@@ -512,7 +500,7 @@ void Planner::createWaypoints(Planner::Node StartNode)
         yawrate=calcYawRate_area(tempPoint,prevPoint);
       }
       waypoints_.at(i).yaw=yawrate;//calcYawRate_area(tempPoint,prevPoint);
-      std::cout<<"yaw rates"<<waypoints_.at(i).yaw;
+      std::cout << "yaw rates: " << waypoints_.at(i).yaw;
       prevPoint=tempPoint;
     
     }
@@ -673,7 +661,7 @@ bool Planner::lineCheck(const Eigen::Vector3d start, const Eigen::Vector3d goal)
       if(i<wrappedMapData_.size[0]& j<wrappedMapData_.size[1]&k<wrappedMapData_.size[2]&i>=0&j>=0&k>=0)
       {
         // check if occupied
-        if(wrappedMapData_.at<char>(i,j,k)>=occupancy_treshold)
+        if(wrappedMapData_.at<char>(i,j,k)>=occupancyThres_)
         {
             ROS_WARN_THROTTLE(10, "Occupied");
             return false;

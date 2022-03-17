@@ -95,13 +95,19 @@ class Planner {
   /// \brief set grid size
   void setGridSize(uint8_t value) {gridSize_=value;}
 
+  /// \brief set occupancy threshold
+  void setOccupancyThreshold(uint8_t value) {occupancyThres_=value;}
+
+  /// \brief set max Nodes A Star
+  void setMaxAStarNodes(uint32_t value) {maxNodesAStar_=value;}
+
   /// \brief Is Planner ready?;
   bool isReady() { return isReady_; }
 
   /// \brief Has Planner found a path?;
   bool pathFound() { return found_; }
 /// \brief true if planner failed to find path?;
-  bool plannerFailed() { return Plannerfailed_; }
+  bool planningFailed() { return planningFailed_; }
   /// \brief Reset Path found;
   void resetPathFound() { found_=false; }
 
@@ -179,14 +185,16 @@ class Planner {
   };
   ros::NodeHandle * nh_;  ///< ROS node handle.
   std::atomic<bool> found_; ///< True, if in path found.
-  std::atomic<bool> Plannerfailed_;
   std::atomic<bool> isReady_; ///< True, if in planner ready.
+  std::atomic<bool> planningFailed_; ///< True if planning failed
   std::atomic<bool> calcYawRate_; ///< True, if yaw Rate should be calculated.
   std::atomic<bool> flyForward_; ///< True, if yaw Rate should be calculated, s.t. camera faces forward.
 
   std::atomic<bool> lookFixedPointOrientation_; ///< True, if yaw Rate should be calculated, s.t. camera faces to specified point.
   Eigen::Vector3d fixedOrientationPoint_;
   uint8_t gridSize_; ///< gridSize for the planner.
+  uint8_t occupancyThres_; ///< Threshold to decide if sth is occupied
+  uint32_t maxNodesAStar_; ///< max Nodes before planning fails
 
   std::deque<arp::Autopilot::Waypoint> waypoints_wayback;  ///< A list of waypoints that will be approached, if not empty.
   std::deque<arp::Autopilot::Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.

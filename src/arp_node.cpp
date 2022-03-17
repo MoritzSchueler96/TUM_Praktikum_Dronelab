@@ -107,6 +107,8 @@ struct globalParams{
   bool lookFixedPointOrientation;
   Eigen::Vector3d lookFixedOrientationPoint;
   int gridSize;
+  int occupancyThres;
+  uint32_t maxNodesAStar;
 };
 
  /// \brief Load global variables
@@ -126,11 +128,16 @@ bool loadGlobalVars(ros::NodeHandle& nh, globalParams& gp){
 
   double threshold;
   if(!nh.getParam("/arp_node/poseLostTimeThreshold", threshold)) ROS_FATAL("error loading poseLostTimeThreshold");
-  gp.poseLostTimeThreshold = ros::Duration(threshold);
+  gp.poseLostTimeThreshold = ros::Duration(threshold);  
 
   if(!nh.getParam("/arp_node/calcYawRate", gp.calcYawRate)) ROS_FATAL("error loading calcYawRate");
   if(!nh.getParam("/arp_node/flyForward", gp.flyForward)) ROS_FATAL("error loading flyForward");
   if(!nh.getParam("/arp_node/gridSize", gp.gridSize)) ROS_FATAL("error loading gridSize");
+  if(!nh.getParam("/arp_node/occupancyThres", gp.occupancyThres)) ROS_FATAL("error loading occupancyThres");
+
+  int maxNodes;
+  if(!nh.getParam("/arp_node/maxNodesAStar", maxNodes)) ROS_FATAL("error loading maxNodesAStar");
+  gp.maxNodesAStar = (uint32_t) maxNodes;
   if(!nh.getParam("/arp_node/lookFixedPointOrientation", gp.lookFixedPointOrientation)) ROS_FATAL("error loading lookFixedPointOrientation");
 
   std::vector<double> temp;
@@ -433,6 +440,8 @@ int main(int argc, char **argv)
   planner.setCalcYawRate(gp.calcYawRate);
   planner.setFlyForward(gp.flyForward);
   planner.setGridSize(gp.gridSize);
+  planner.setOccupancyThreshold(gp.occupancyThres);
+  planner.setMaxAStarNodes(gp.maxNodesAStar);
   planner.setFixedPointOrientation(gp.lookFixedPointOrientation);
   planner.setFixedOrientationPoint(gp.lookFixedOrientationPoint);
   
@@ -752,6 +761,18 @@ int main(int argc, char **argv)
             planner.resetPathFound();
         }
 
+        if(planner.planningFailed()){
+            ROS_INFO("Planning failed");
+            flyChallenge = false;
+            flyBack = false;
+            challengeCompleted = false;
+            challengePaused = false;
+            displayTimeChallengeCompleted = ros::Time::now();
+            challengeTime = 999.99;
+            planner.resetReady();
+            autopilot.setManual();
+        }
+        
         // check progress
         if(autopilot.waypointsLeft() == 0 && planner.isReady() && !planner.pathFound()){
 
@@ -800,6 +821,7 @@ int main(int argc, char **argv)
           displayTimeChallengeCompleted = ros::Time::now();
           challengeTime = 999.99;
           planner.resetReady();
+          autopilot.setManual();
       }
 
       // Start Challenge with linear planner when hitting O
