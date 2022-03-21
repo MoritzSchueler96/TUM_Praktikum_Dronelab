@@ -77,6 +77,9 @@ class Autopilot {
   /// \brief Are we currently in automatic mode?;
   bool isAutomatic() { return isAutomatic_; }
 
+  /// \brief set occupancy threshold
+  void setOccupancyThreshold(uint8_t value) {occupancyThres_=value;}
+
   /// \brief Set to tracking control mode.
   void setTracking();
 
@@ -201,6 +204,7 @@ class Autopilot {
   double z_limit; ///< limit for z position.
   double yaw_limit; ///< limit for yaw rateS.
   cv::Mat wrappedMapData_; ///< Matrix containing occupancy map.
+  uint8_t occupancyThres_; ///< Threshold to decide if sth is occupied
   bool islanding;///< flag to indicate that landing is triggered
 
   std::deque<Waypoint> waypoints_;  ///< A list of waypoints that will be approached, if not empty.

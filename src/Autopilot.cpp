@@ -17,6 +17,7 @@ Autopilot::Autopilot(ros::NodeHandle& nh,  Autopilot::pidParams pp)
 {
   isAutomatic_ = false; // always start in manual mode  
   isTracking_ = false; // always start in manual mode
+  occupancyThres_ = 0; // default threshold
   // receive navdata
   subNavdata_ = nh.subscribe("ardrone/navdata", 50, &Autopilot::navdataCallback,
                              this);
@@ -243,7 +244,7 @@ bool Autopilot::setPoseReference(double x, double y, double z, double yaw)
       if(i<wrappedMapData_.size[0]& j<wrappedMapData_.size[1]&k<wrappedMapData_.size[2]&i>=0&j>=0&k>=0)
       {
         
-        if(wrappedMapData_.at<char>(i,j,k)>=127)
+        if(wrappedMapData_.at<char>(i,j,k)>=occupancyThres_)
         {
             goal = last;
             ROS_WARN_THROTTLE(10, "Wall in front.");
@@ -308,9 +309,9 @@ void Autopilot::controllerCallback(uint64_t timeMicroseconds,
     if(!waypoints_.empty() && isTracking_) {
         // TODO: setPoseReference() from current waypoint
         Waypoint w = waypoints_.front();
-        ROS_DEBUG_STREAM_THROTTLE(2, "Current waypointX: " << w.x);
-        ROS_DEBUG_STREAM_THROTTLE(2, "Current waypointY: " << w.y);
-        ROS_DEBUG_STREAM_THROTTLE(2, "Current waypointZ: " << w.z);
+        ROS_INFO_STREAM_THROTTLE(2, "Current waypointX: " << w.x);
+        ROS_INFO_STREAM_THROTTLE(2, "Current waypointY: " << w.y);
+        ROS_INFO_STREAM_THROTTLE(2, "Current waypointZ: " << w.z);
         markerServer_.activate(w.x, w.y, w.z, w.yaw);
         setPoseReference(w.x, w.y, w.z, w.yaw);
 

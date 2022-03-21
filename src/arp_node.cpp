@@ -432,6 +432,7 @@ int main(int argc, char **argv)
   ROS_INFO("Setup Autopilot...");
   arp::Autopilot autopilot(nh, pp);
   autopilot.setOccupancyMap(wrappedMapData);
+  autopilot.setOccupancyThreshold(gp.occupancyThres);
   int poseLostCnt = 0;
 
   // set up Planner
